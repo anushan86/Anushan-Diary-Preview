@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="optimo-core">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Optimo Diary — Journey 1 Create Booking</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-stage="a" data-phase="select" data-lines="0" data-has-selection="false" data-editing="false" data-week="checkpoint" data-created="false">
+  <a class="skip-link" id="skip-calendar" href="#calendar">Skip to calendar</a>
+  <a class="skip-link skip-cart" href="#booking-cart">Skip to cart</a>
+
+  <aside class="review-rail" id="review-rail" aria-label="Review only">
+    <span class="review-rail-label">Review only</span>
+    <button type="button" class="review-demo-toggle" id="review-demo-toggle" aria-label="Demo settings" title="Demo settings" aria-expanded="false" aria-controls="review-demo-panel" hidden>☰</button>
+    <button type="button" class="review-rail-toggle" id="review-rail-toggle" aria-expanded="false" aria-controls="review-rail-panel" title="Review controls">☰</button>
+    <button type="button" class="btn-play" id="btn-play-journey">Play journey</button>
+    <button type="button" class="btn-play btn-play-complete" id="btn-play-complete">Play complete</button>
+    <nav class="stage-nav" aria-label="Journey stages">
+      <button type="button" class="stage-chip" data-stage-target="a" aria-current="true">A</button>
+      <button type="button" class="stage-chip" data-stage-target="b">B</button>
+      <button type="button" class="stage-chip" data-stage-target="c">C</button>
+      <button type="button" class="stage-chip" data-stage-target="d">D</button>
+      <button type="button" class="stage-chip" data-stage-target="e">E</button>
+      <button type="button" class="stage-chip" data-stage-target="f">F</button>
+      <button type="button" class="stage-chip" data-stage-target="g">G</button>
+      <button type="button" class="stage-chip" data-stage-target="h">H</button>
+      <button type="button" class="stage-chip" data-stage-target="i">I</button>
+      <button type="button" class="stage-chip" data-stage-target="j">J</button>
+      <button type="button" class="stage-chip" data-stage-target="k">K</button>
+      <button type="button" class="stage-chip" data-stage-target="l">L</button>
+      <button type="button" class="stage-chip" data-stage-target="m">M</button>
+      <button type="button" class="stage-chip" data-stage-target="n">N</button>
+      <button type="button" class="stage-chip" data-stage-target="o">O</button>
+    </nav>
+    <div class="stress-controls" role="group" aria-label="Review only — Cart volume">
+      <span class="stress-label">1/5/10/20/30</span>
+      <button type="button" class="stress-btn" data-stress="1">1</button>
+      <button type="button" class="stress-btn" data-stress="5">5</button>
+      <button type="button" class="stress-btn" data-stress="10">10</button>
+      <button type="button" class="stress-btn" data-stress="20">20</button>
+      <button type="button" class="stress-btn" data-stress="30">30</button>
+    </div>
+    <div class="review-scale-controls" role="group" aria-label="Review only — generated fixture scale">
+      <span class="review-scale-label">1K/10K/50K</span>
+      <button type="button" class="review-scale-btn active" id="review-scale-1k" data-scale="1000">1K</button>
+      <button type="button" class="review-scale-btn" id="review-scale-10k" data-scale="10000">10K</button>
+      <button type="button" class="review-scale-btn" id="review-scale-50k" data-scale="50000">50K</button>
+    </div>
+    <span class="review-scale-caption">Review fixture data · generated in this page · not a tenant catalogue</span>
+    <div class="review-rail-panel" id="review-rail-panel" hidden>
+      <p class="review-rail-title">Review metadata</p>
+      <details class="claim-legend">
+        <summary>Claim classes</summary>
+        <ul>
+          <li><span class="badge badge-evidence">EVIDENCE</span> Confirmed behaviour</li>
+          <li><span class="badge badge-safe">SAFE UX</span> Presentation only</li>
+          <li><span class="badge badge-decision">DECISION</span> Human decision required</li>
+          <li><span class="badge badge-fixture">REVIEW FIXTURE</span> Local sample data</li>
+          <li><span class="badge badge-scope">OUT OF SCOPE</span> Excluded</li>
+        </ul>
+      </details>
+      <fieldset class="theme-switcher">
+        <legend>Theme</legend>
+        <label><input type="radio" name="theme" value="optimo-core" checked> Optimo Core</label>
+        <label><input type="radio" name="theme" value="harbour"> Harbour</label>
+        <label><input type="radio" name="theme" value="riverside"> Riverside</label>
+      </fieldset>
+      <p class="review-note">Review rail only — not product navigation</p>
+    </div>
+  </aside>
+
+  <div class="review-demo-panel" id="review-demo-panel" hidden aria-labelledby="review-demo-title">
+    <h2 class="review-demo-title" id="review-demo-title">Demo settings</h2>
+    <div class="review-fixture-bar" id="review-fixture-bar">
+      <fieldset class="fixture-rights-field" id="fixture-rights">
+        <legend>Local rights fixture</legend>
+        <label><input type="radio" name="fixture-rights" id="fixture-rights-both" value="both" checked> Both modes</label>
+        <label><input type="radio" name="fixture-rights" id="fixture-rights-booking" value="booking-only"> Booking only</label>
+        <label><input type="radio" name="fixture-rights" id="fixture-rights-maintenance" value="maintenance-only"> Maintenance only</label>
+      </fieldset>
+      <label class="fixture-advanced-label">
+        <input type="checkbox" id="fixture-advanced" checked>
+        Enable Advanced Week (<code>enableAdvanceView</code> review fixture)
+      </label>
+      <p class="review-fixture-caption">Non-tenant review fixtures — not Product navigation</p>
+      <details class="review-exclusion-note">
+        <summary>Excluded views (not Product controls)</summary>
+        <p>Advanced Day, Advanced Month, side panel, Custom and Agenda are intentionally absent.</p>
+      </details>
+    </div>
+  </div>
+
+  <div class="app-shell" id="app-shell">
+    <header class="top-bar" id="top-bar" role="banner">
+      <div class="brand" aria-label="Optimo">
+        <span class="brand-mark" aria-hidden="true">O</span>
+        <span class="brand-text">OPTIMO</span>
+      </div>
+      <nav class="mode-nav" aria-label="Booking or Maintenance mode">
+        <button type="button" class="mode-btn is-active" data-mode="booking">Booking</button>
+        <span class="mode-sep" aria-hidden="true">|</span>
+        <button type="button" class="mode-btn" data-mode="maintenance">Maintenance</button>
+      </nav>
+      <div class="mode-group" id="mode-group" role="group" aria-label="Booking or Maintenance mode" hidden>
+        <button type="button" class="mode-btn" id="mode-booking" aria-pressed="true">Booking</button>
+        <button type="button" class="mode-btn" id="mode-maintenance" aria-pressed="false">Maintenance</button>
+      </div>
+      <span class="mode-indicator" id="mode-indicator" aria-live="polite" hidden>Booking</span>
+      <span class="user-identity">A. Perera</span>
+      <span class="visually-hidden" id="mode-booking-reason" hidden>Booking unavailable — Maintenance-only review fixture</span>
+      <span class="visually-hidden" id="mode-maintenance-reason" hidden>Maintenance unavailable — Booking-only review fixture</span>
+    </header>
+
+    <nav class="view-bar" id="view-bar" aria-label="Calendar views">
+      <div class="date-nav">
+        <button type="button" class="btn-icon" id="date-prev" aria-label="Previous week">‹</button>
+        <button type="button" class="date-range" id="date-range-label">24–30 Aug 2026</button>
+        <span class="date-range-label" id="j2-date-range-label" hidden>31 Aug–6 Sep 2026</span>
+        <button type="button" class="btn-icon" id="date-next" aria-label="Next week">›</button>
+        <button type="button" class="btn-ghost" id="date-today">Today</button>
+        <button type="button" class="btn-ghost" id="date-picker-btn" aria-haspopup="dialog">Pick date</button>
+      </div>
+      <div class="calendar-controls">
+        <div class="slot-layout-control" id="slot-layout-control" role="group" aria-label="Slot layout">
+          <span class="slot-layout-label" aria-hidden="true">Slots</span>
+          <button type="button" class="slot-layout-btn" id="slot-layout-stack" data-slot-layout="stack" aria-label="Stack view" aria-pressed="false" title="Stack view">
+            <svg class="slot-layout-icon" viewBox="0 0 18 18" aria-hidden="true"><rect x="2" y="3" width="14" height="4" rx="1"></rect><rect x="2" y="11" width="14" height="4" rx="1"></rect></svg>
+            <span>Stack</span>
+          </button>
+          <button type="button" class="slot-layout-btn is-active" id="slot-layout-column" data-slot-layout="column" aria-label="Column view" aria-pressed="true" title="Column view">
+            <svg class="slot-layout-icon" viewBox="0 0 18 18" aria-hidden="true"><rect x="3" y="2" width="4" height="14" rx="1"></rect><rect x="11" y="2" width="4" height="14" rx="1"></rect></svg>
+            <span>Column</span>
+          </button>
+        </div>
+        <span class="visually-hidden" id="layout-day-reason" hidden>Layout unavailable in Day view — single-day time axis</span>
+        <div class="view-group" id="view-group" role="group" aria-label="Calendar view" hidden>
+          <span class="control-group-label" aria-hidden="true">Standard:</span>
+          <button type="button" class="view-btn" id="view-day" aria-pressed="false">Day</button>
+          <button type="button" class="view-btn" id="view-week" aria-pressed="true" aria-current="true">Week</button>
+          <button type="button" class="view-btn" id="view-work-week" aria-pressed="false">Work Week</button>
+          <button type="button" class="view-btn" id="view-month" aria-pressed="false">Month</button>
+          <button type="button" class="view-btn view-advanced" id="view-advanced-week" aria-pressed="false">Advanced Week</button>
+        </div>
+        <div class="view-switch" role="group" aria-label="Calendar view mode">
+          <button type="button" class="view-btn" data-view="day">Day</button>
+          <button type="button" class="view-btn is-active" data-view="week">Week</button>
+          <button type="button" class="view-btn" data-view="workweek">Work Week</button>
+          <button type="button" class="view-btn" data-view="month">Month</button>
+          <button type="button" class="view-btn" data-view="custom">Custom</button>
+          <button type="button" class="view-btn" data-view="agenda">Agenda</button>
+        </div>
+      </div>
+      <button type="button" class="surface-toggle" id="surface-toggle" hidden>Assets</button>
+    </nav>
+
+    <div class="workspace">
+      <section class="j3-asset-launcher" id="j3-asset-launcher" hidden inert aria-hidden="true" aria-label="Assets">
+        <div class="j3-launcher-summary">
+          <span class="j3-launcher-kicker">Assets</span>
+          <span class="j3-launcher-count" id="j3-launcher-count">0 selected</span>
+          <p class="j3-launcher-names" id="j3-launcher-names">No resources selected</p>
+        </div>
+        <button type="button" class="j3-launcher-btn" id="j3-launcher-btn" aria-expanded="false" aria-controls="assets-panel" aria-haspopup="dialog" title="Open Asset Explorer — search, filter and select resources">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          <span class="j3-launcher-btn-label">Search or browse assets</span>
+          <svg class="j3-launcher-filter-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/><circle cx="9" cy="6" r="2.25" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="2.25" fill="currentColor" stroke="none"/><circle cx="11" cy="18" r="2.25" fill="currentColor" stroke="none"/></svg>
+        </button>
+      </section>
+
+      <div class="j3-explorer-scrim" id="j3-explorer-scrim" hidden inert aria-hidden="true"></div>
+
+      <aside class="assets-panel" id="assets-panel" aria-label="Diary assets">
+        <header class="panel-header j3-explorer-header">
+          <h2>Diary assets</h2>
+          <span class="asset-count-chip" id="asset-count-chip">1,000 resources · 2 selected</span>
+          <button type="button" class="j3-explorer-close" id="j3-explorer-close" hidden inert aria-hidden="true" aria-label="Close Asset Explorer">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.2 3.2 8 8l4.8-4.8.9.9L8.9 8.9l4.8 4.8-.9.9L8 9.8l-4.8 4.8-.9-.9 4.8-4.8-4.8-4.8z"/></svg>
+          </button>
+        </header>
+        <div class="asset-search-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          <input type="search" class="asset-search" id="asset-search" placeholder="Search facilities, venues, resources" aria-label="Search facilities, venues, resources" aria-controls="asset-tree" autocomplete="off">
+        </div>
+        <p class="j3-fixture-caption" id="j3-fixture-caption" hidden inert aria-hidden="true">REVIEW FIXTURE — local prototype catalogue of twenty named capacity-bearing resources; not a tenant catalogue</p>
+        <div class="j3-filters-toolbar" id="j3-filters-toolbar" hidden inert aria-hidden="true">
+          <button type="button" class="j3-filters-toggle" id="j3-filters-toggle" aria-expanded="false" aria-controls="j3-capacity-fieldset">
+            <svg class="j3-filters-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/><circle cx="9" cy="6" r="2.25" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="2.25" fill="currentColor" stroke="none"/><circle cx="11" cy="18" r="2.25" fill="currentColor" stroke="none"/></svg>
+            <span>Filters</span>
+            <svg class="j3-filters-chevron" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 6.2 8 10.2l4-4 .9.9L8 11.9l-4.9-4.9z"/></svg>
+          </button>
+          <p class="j3-filter-status visually-live" id="j3-filter-status" aria-live="polite" aria-atomic="true" hidden></p>
+        </div>
+        <fieldset class="j3-capacity-filters" id="j3-capacity-fieldset" hidden inert aria-hidden="true" aria-label="Capacity bounds">
+          <legend class="visually-hidden">Capacity bounds</legend>
+          <div class="capacity-heading-row" hidden inert aria-hidden="true">
+            <span class="capacity-title">Capacity</span>
+            <button type="button" class="btn-secondary j3-reset-btn" id="j3-reset-filters">Reset filters</button>
+          </div>
+          <div class="capacity-inputs-row" hidden inert aria-hidden="true">
+            <div class="cap-col" hidden inert aria-hidden="true">
+              <label class="j3-capacity-label" for="j3-capacity-from">Capacity From</label>
+              <input type="number" class="j3-capacity-input" id="j3-capacity-from" min="0" step="1" inputmode="numeric" aria-describedby="j3-filter-error">
+            </div>
+            <div class="cap-col" hidden inert aria-hidden="true">
+              <label class="j3-capacity-label" for="j3-capacity-to">Capacity To</label>
+              <input type="number" class="j3-capacity-input" id="j3-capacity-to" min="0" step="1" inputmode="numeric" aria-describedby="j3-filter-error">
+            </div>
+          </div>
+        </fieldset>
+        <p class="j3-filter-error" id="j3-filter-error" role="alert" hidden></p>
+        <div class="selected-band" hidden inert aria-hidden="true">
+          <h3 class="j3-section-heading" id="j3-selected-heading" hidden inert aria-hidden="true">Selected assets</h3>
+          <div class="selected-strip" id="asset-selected-strip" aria-label="Selected resources"></div>
+        </div>
+        <h3 class="j3-section-heading" id="j3-available-heading" hidden inert aria-hidden="true">Available assets</h3>
+        <div class="breadcrumb" id="asset-breadcrumb"></div>
+        <div class="count-line" id="asset-window-copy">1,000 resources · showing <b>1–48</b> of 1,000 · Review fixture data</div>
+        <div id="asset-tree" class="asset-tree" role="tree" aria-label="Venue hierarchy" tabindex="0">
+          <div class="tree-viewport" id="asset-tree-viewport"></div>
+        </div>
+        <footer class="j3-explorer-footer" id="j3-explorer-footer" hidden inert aria-hidden="true">
+          <span class="j3-explorer-selected-count" id="j3-explorer-selected-count">0 selected</span>
+          <button type="button" class="btn-primary" id="j3-explorer-done">Done</button>
+        </footer>
+        <p class="lane-note">Diary lanes stay on Journey fixtures. Generated resources are selectable review fixtures — production lane-load policy is not claimed.</p>
+      </aside>
+
+      <aside class="j2-selected-assets" id="j2-selected-assets" aria-label="Selected review fixtures" tabindex="-1" hidden>
+        <header class="panel-header">
+          <h2>Diary assets</h2>
+        </header>
+        <ul class="asset-list" id="asset-list" aria-label="Selected review fixtures"></ul>
+        <p class="fixture-caption">Review fixture data — not a tenant catalogue</p>
+      </aside>
+
+      <main class="calendar-panel" id="calendar" role="main" aria-label="Week calendar" tabindex="-1">
+        <p class="range-live visually-live" id="range-live" aria-live="polite" aria-atomic="true" hidden></p>
+        <p class="calendar-caption">Checkpoint shows working hours; DiarySettings 24h remains EVIDENCE for Stage 3.</p>
+        <div class="timeslot-legend-wrap">
+          <div id="timeslot-colours-legend" class="timeslot-colours-legend" role="region" aria-label="Timeslot colours"></div>
+        </div>
+        <div class="calendar-scroll" id="calendar-scroll">
+          <div class="calendar-grid" id="calendar-grid" role="grid" aria-label="Resource week grid"></div>
+        </div>
+        <div class="now-line" id="now-line" hidden aria-hidden="true"></div>
+      </main>
+
+      <aside class="booking-cart" id="booking-cart" aria-label="Booking Cart">
+        <div class="cart-accent" aria-hidden="true"></div>
+        <header class="cart-header">
+          <div class="cart-header-main">
+            <div class="cart-title-row">
+              <h2>Booking Cart</h2>
+              <div class="cart-header-badges">
+                <span class="cart-count" id="cart-count">0 items</span>
+                <span class="cart-not-saved" id="cart-save-status">Not saved</span>
+              </div>
+            </div>
+          </div>
+          <div class="cart-toolbar" id="cart-toolbar" hidden>
+            <div class="cart-view-controls" id="cart-view-controls" role="group" aria-label="Cart view">
+              <button type="button" class="cart-view-btn" id="cart-view-compact" aria-pressed="true">Compact</button>
+              <button type="button" class="cart-view-btn" id="cart-view-detailed" aria-pressed="false">Detailed</button>
+            </div>
+            <button type="button" class="btn-ghost btn-sm cart-clear-btn" id="clear-cart-btn" hidden>
+              <svg class="cart-clear-icon" aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M5 4V2.5A1.5 1.5 0 0 1 6.5 1h3A1.5 1.5 0 0 1 11 2.5V4m1 0v9.5a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 4 13.5V4h8Z"/><path d="M6.5 7v4M9.5 7v4"/></svg>
+              Clear cart
+            </button>
+          </div>
+        </header>
+
+        <div class="cart-body" id="cart-body" data-cart-view="compact">
+          <section class="cart-region cart-empty-guidance" id="cart-empty-guidance" aria-label="Getting started">
+            <p class="cart-empty-title">Select a facility and time to start a booking.</p>
+            <p class="cart-empty-sub" id="cart-empty-sub">Hall 1 · Northside Leisure Centre</p>
+          </section>
+
+          <section class="cart-region cart-unavailable" id="cart-unavailable" hidden aria-label="Unavailable selection">
+            <h3 class="unavailable-title">Unavailable — blocked</h3>
+            <p class="unavailable-main"><span class="status-icon coral-icon" aria-hidden="true">⚠</span> This time is unavailable.</p>
+            <p class="unavailable-quiet quiet">No create-override policy is approved.</p>
+            <p class="unavailable-detail" id="unavailable-detail"></p>
+          </section>
+
+          <section class="cart-region caller-context" id="caller-context" hidden aria-label="Caller-supplied booking context">
+            <div class="caller-context-head">
+              <div><span class="eyebrow">Caller supplied</span><h3>Booking context</h3></div>
+              <button type="button" class="btn-ghost btn-sm" id="caller-context-toggle" aria-expanded="false" aria-controls="caller-context-details">Show details</button>
+            </div>
+            <p id="caller-context-summary" class="caller-context-summary"></p>
+            <dl id="caller-context-details" class="caller-context-details" hidden></dl>
+            <p class="field-caption quiet">Read-only Diary context. No Customer, Contact or Event editor is exposed.</p>
+          </section>
+
+          <section class="cart-region cart-current-selection" id="cart-current-selection" hidden aria-label="Current selection">
+            <h3 class="current-selection-title" id="current-selection-title">New selection</h3>
+            <p class="staged-summary" id="staged-summary"></p>
+            <form id="configure-form" class="configure-form">
+              <div class="field" id="field-item">
+                <label for="cfg-item-input">Item</label>
+                <div class="combobox">
+                  <input type="hidden" id="cfg-item" value="community-hall" tabindex="-1" aria-hidden="true">
+                  <div class="combo-field">
+                    <input class="combo-input" id="cfg-item-input" role="combobox" aria-expanded="false" aria-controls="large-data-listbox" aria-autocomplete="list" autocomplete="off" aria-label="Item">
+                    <button type="button" class="combo-chev" tabindex="-1" aria-label="Open item list">▾</button>
+                  </div>
+                </div>
+              </div>
+              <div class="field" id="field-package">
+                <label for="cfg-package-input">Private package</label>
+                <div class="combobox">
+                  <input type="hidden" id="cfg-package" value="private-day" tabindex="-1" aria-hidden="true">
+                  <div class="combo-field">
+                    <input class="combo-input" id="cfg-package-input" role="combobox" aria-expanded="false" aria-controls="large-data-listbox" aria-autocomplete="list" autocomplete="off" aria-label="Package">
+                    <button type="button" class="combo-chev" tabindex="-1" aria-label="Open package list">▾</button>
+                  </div>
+                </div>
+              </div>
+              <div class="field" id="field-configuration">
+                <label for="cfg-configuration">Facility configuration</label>
+                <select id="cfg-configuration">
+                  <option value="theatre">Theatre</option>
+                  <option value="banquet">Banquet</option>
+                </select>
+              </div>
+              <div class="package-conditional" id="package-conditional" hidden aria-live="polite"></div>
+              <div class="field" id="field-allocation">
+                <span class="field-label">Allocation</span>
+                <p class="allocation-summary" id="allocation-summary">Hall 1</p>
+              </div>
+              <div class="field" id="field-concession">
+                <label for="cfg-concession-input">Price concession</label>
+                <div class="combobox">
+                  <input type="hidden" id="cfg-concession" value="review-fixture" tabindex="-1" aria-hidden="true">
+                  <div class="combo-field">
+                    <input class="combo-input" id="cfg-concession-input" role="combobox" aria-expanded="false" aria-controls="large-data-listbox" aria-autocomplete="list" autocomplete="off" aria-label="Concession">
+                    <button type="button" class="combo-chev" tabindex="-1" aria-label="Open concession list">▾</button>
+                  </div>
+                </div>
+              </div>
+              <div class="amount-region" id="amount-region" hidden aria-live="polite">
+                <span class="amount-label">Total</span>
+                <p class="amount-value">AU$ 2,750.00</p>
+              </div>
+            </form>
+          </section>
+
+          <section class="cart-region cart-success" id="cart-success" hidden aria-label="Booking created and external handoff">
+            <p class="success-message"><span class="status-icon teal-icon" aria-hidden="true">✓</span> Booking is created.</p>
+            <p class="success-quiet quiet">Local prototype fixture — nothing was saved to a server.</p>
+            <div class="handoff-boundary" id="external-handoff-boundary">
+              <strong>External Booking App handoff</strong>
+              <span>Production Diary opens the Corporate or Call Center Booking App after success. This local prototype does not open an external URL.</span>
+            </div>
+          </section>
+
+          <p class="cart-hint" id="cart-hint" hidden>Select another time on the calendar to add.</p>
+
+          <section class="cart-region cart-added-items" id="cart-added-items" hidden aria-label="Already added items">
+            <div class="cart-added-head">
+              <div><h3 class="cart-added-title">Already added</h3><p class="grouping-caption quiet">Select Cart lines for proven multi-line actions.</p></div>
+              <span class="selected-lines-count" id="selected-lines-count">0 selected</span>
+            </div>
+            <div class="cart-bulk-actions" id="cart-bulk-actions" hidden aria-label="Actions for selected Booking lines">
+              <button type="button" class="btn-secondary btn-sm" id="bulk-time-btn" disabled>Change selected time</button>
+              <button type="button" class="btn-secondary btn-sm" id="bulk-config-btn" disabled>Bulk configuration</button>
+            </div>
+            <div class="cart-high-volume-summaries" id="cart-high-volume-summaries" aria-label="Cart summary" hidden>
+              <div class="cart-summary-card" id="cart-summary-items">
+                <span class="cart-summary-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M5 3V2M11 3V2M2 6h12"/></svg></span>
+                <span class="cart-summary-label">Items</span>
+                <span class="cart-summary-value" id="cart-summary-item-count">0 Items</span>
+              </div>
+              <div class="cart-summary-card" id="cart-summary-total">
+                <span class="cart-summary-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><path d="M8 5v6M6 8h4"/></svg></span>
+                <span class="cart-summary-label" id="cart-summary-total-label">Priced subtotal</span>
+                <span class="cart-summary-value" id="cart-summary-total-value">AU$ 0.00</span>
+              </div>
+              <div class="cart-summary-card" id="cart-summary-status">
+                <span class="cart-summary-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><path d="M5.5 8.2 7.2 9.8 10.5 6.5"/></svg></span>
+                <span class="cart-summary-label">Status</span>
+                <span class="cart-summary-value" id="cart-summary-status-count">0 Ready / 0 Attention</span>
+              </div>
+            </div>
+            <div class="cart-column-head" id="cart-column-head" hidden>
+              <span class="col-select visually-hidden">Select</span>
+              <span class="col-no">#</span>
+              <span class="col-item">Item</span>
+              <span class="col-datetime">Date &amp; Time</span>
+              <span class="col-status">Status</span>
+              <span class="col-price">Price</span>
+              <span class="col-more visually-hidden">More</span>
+            </div>
+            <div class="items-scroll" id="items-scroll">
+              <ul class="cart-line-list" id="cart-line-list"></ul>
+            </div>
+          </section>
+
+          <section class="cart-region cart-amount-context" id="cart-amount-context" hidden aria-label="Amount context">
+            <div class="cart-summary-bar" id="cart-summary-bar" aria-live="polite">
+              <div class="summary-copy" id="summary-copy"></div>
+              <div class="summary-value" id="summary-value"></div>
+            </div>
+            <div class="cart-totals" id="cart-totals"></div>
+          </section>
+        </div>
+
+        <footer class="cart-sticky-actions" id="cart-sticky-actions">
+          <button type="button" class="btn-primary" id="cart-primary-action">Select a time</button>
+          <div class="cart-book-footer" id="cart-book-footer">
+            <div class="journey-actions">
+              <button type="button" class="btn-primary btn-confirm" id="confirm-booking-btn" hidden>Book</button>
+              <p class="confirm-helper quiet" id="confirm-helper" hidden>Book uses the evidenced Diary Footer create action. This prototype remains local.</p>
+            </div>
+          </div>
+        </footer>
+      </aside>
+    </div>
+
+    <div class="cart-sheet" id="cart-sheet">
+      <button type="button" class="sheet-handle" id="sheet-handle" aria-expanded="false" aria-controls="cart-sheet-panel">
+        <span class="sheet-handle-label">Cart · <span id="sheet-count">0</span> · <span id="sheet-status">Not saved</span></span>
+        <span class="sheet-chevron" aria-hidden="true">⌃</span>
+      </button>
+      <div class="sheet-panel" id="cart-sheet-panel" hidden></div>
+    </div>
+
+    <p class="claim-boundary" id="claim-boundary" hidden>This prototype does not claim exhaustive rights, menus, persistence or Advanced combinations. Current-system FN-SHELL-004/005/006 remain PARTIAL.</p>
+  </div>
+
+  <aside class="j3-visibility-card" id="j3-visibility-card" hidden inert aria-hidden="true">
+    <p class="j3-vis-card-name" id="j3-vis-card-name"></p>
+    <p class="j3-vis-card-sub" id="j3-vis-card-sub"></p>
+    <dl class="j3-vis-card-facts">
+      <div>
+        <dt>Capacity</dt>
+        <dd id="j3-vis-card-capacity"></dd>
+      </div>
+      <div>
+        <dt>Fixture ID</dt>
+        <dd id="j3-vis-card-id"></dd>
+      </div>
+    </dl>
+    <div class="j3-vis-card-status">
+      <span class="j3-vis-card-sel" id="j3-vis-card-sel"></span>
+      <span class="j3-vis-card-badge">REVIEW FIXTURE</span>
+    </div>
+  </aside>
+
+  <div class="toast-region" id="toast-region" role="status" aria-live="polite" aria-atomic="true"></div>
+  <div id="alert-region" role="alert" aria-live="assertive" class="visually-hidden"></div>
+  <div id="ldp-live" role="status" aria-live="polite" aria-atomic="true" class="visually-hidden"></div>
+
+  <dialog class="modal" id="mismatch-dialog" role="alertdialog" aria-labelledby="mismatch-title" aria-describedby="mismatch-desc">
+    <h2 id="mismatch-title">Item and package do not match</h2>
+    <p id="mismatch-desc">This asset does not have an Item with matching Sales Categories with the selected Package.</p>
+    <div class="dialog-actions">
+      <button type="button" class="btn-secondary" id="mismatch-close">Close</button>
+      <button type="button" class="btn-primary" id="mismatch-fix">Choose a matching item</button>
+    </div>
+  </dialog>
+
+  <dialog class="modal" id="remove-dialog" role="alertdialog" aria-labelledby="remove-title" aria-describedby="remove-desc">
+    <h2 id="remove-title">Remove from cart?</h2>
+    <p id="remove-desc">This removes a staged selection. It does not delete a saved booking.</p>
+    <div class="dialog-actions">
+      <button type="button" class="btn-secondary" id="remove-keep">Keep</button>
+      <button type="button" class="btn-primary btn-danger" id="remove-confirm">Remove</button>
+    </div>
+  </dialog>
+
+  <dialog class="modal" id="clear-dialog" role="alertdialog" aria-labelledby="clear-title" aria-describedby="clear-desc">
+    <h2 id="clear-title">Clear cart</h2>
+    <p id="clear-desc">Do you want to clear all selections?</p>
+    <div class="dialog-actions">
+      <button type="button" class="btn-secondary" id="clear-cancel">Cancel</button>
+      <button type="button" class="btn-primary btn-danger" id="clear-confirm">Clear</button>
+    </div>
+  </dialog>
+
+  <dialog class="modal date-picker-dialog" id="date-picker-dialog" aria-labelledby="picker-title" aria-describedby="picker-desc">
+    <h2 id="picker-title">Pick a date</h2>
+    <p id="picker-desc" class="visually-hidden">Select a date to display the week containing that date.</p>
+    <label for="picker-input">Date in displayed week</label>
+    <input type="date" id="picker-input" value="2026-08-29">
+    <p class="picker-error" id="picker-error" role="alert" hidden>Enter a valid date.</p>
+    <div class="dialog-actions">
+      <button type="button" class="btn-secondary" id="picker-cancel">Cancel</button>
+      <button type="button" class="btn-primary" id="picker-apply">Apply</button>
+    </div>
+  </dialog>
+
+  <dialog class="modal workflow-dialog cart-item-editor-dialog" id="cart-item-editor-dialog" aria-labelledby="cart-item-editor-title">
+    <div class="dialog-head cart-item-editor-head">
+      <div class="cart-item-editor-title-wrap">
+        <span class="eyebrow" id="cart-item-editor-eyebrow">Staged selection</span>
+        <h2 id="cart-item-editor-title" class="visually-hidden">Edit cart item</h2>
+      </div>
+      <div class="cart-item-editor-tabs" role="tablist" aria-label="Cart item editor sections">
+        <button type="button" class="cart-item-editor-tab" role="tab" id="cie-tab-time" aria-controls="cie-panel-time" data-editor-tab="time" aria-selected="true">Time</button>
+        <button type="button" class="cart-item-editor-tab" role="tab" id="cie-tab-config" aria-controls="cie-panel-config" data-editor-tab="config" aria-selected="false" tabindex="-1">Config</button>
+        <button type="button" class="cart-item-editor-tab" role="tab" id="cie-tab-package" aria-controls="cie-panel-package" data-editor-tab="package" aria-selected="false" tabindex="-1">Add package</button>
+        <button type="button" class="cart-item-editor-tab" role="tab" id="cie-tab-pricing" aria-controls="cie-panel-pricing" data-editor-tab="pricing" aria-selected="false" tabindex="-1">Pricing</button>
+        <button type="button" class="cart-item-editor-tab" role="tab" id="cie-tab-more" aria-controls="cie-panel-more" data-editor-tab="more" aria-selected="false" tabindex="-1">More</button>
+      </div>
+      <button type="button" class="dialog-close" id="cart-item-editor-close" aria-label="Close cart item editor">×</button>
+    </div>
+    <div class="cart-item-editor-panels">
+      <section class="editor-tabpanel" role="tabpanel" id="cie-panel-time" aria-labelledby="cie-tab-time" tabindex="0">
+        <h3 id="time-title" class="visually-hidden">Change date &amp; time</h3>
+        <p id="time-desc" class="dialog-intro">Edit, review live availability and confirm on this one surface. The same staged Cart line is updated.</p>
+        <form method="dialog" id="time-form" novalidate>
+          <div id="time-edit-panel">
+            <fieldset class="segmented" id="time-mode-fieldset">
+              <legend>Reschedule mode</legend>
+              <label><input type="radio" name="time-mode" id="time-mode-common" value="common" checked> Common time</label>
+              <label><input type="radio" name="time-mode" id="time-mode-different" value="different"> Different times</label>
+            </fieldset>
+            <label class="check-row keep-duration"><input type="checkbox" id="time-keep-duration" checked> Keep duration</label>
+            <div class="time-common-grid" id="time-common-grid">
+              <label>Start date<input type="date" id="time-start-date"></label>
+              <label>Start time<input type="time" id="time-start-time" step="1800"></label>
+              <label>End date<input type="date" id="time-end-date"></label>
+              <label>End time<input type="time" id="time-end-time" step="1800"></label>
+            </div>
+            <section class="different-time-list" id="different-time-list" hidden aria-labelledby="different-time-heading"></section>
+            <div class="availability-result" id="time-availability" role="status" aria-live="polite"></div>
+            <div class="dialog-actions">
+              <button type="button" class="btn-secondary" id="time-cancel">Cancel</button>
+              <button type="button" class="btn-primary" id="time-confirm">Confirm time change</button>
+            </div>
+          </div>
+        </form>
+      </section>
+      <section class="editor-tabpanel" role="tabpanel" id="cie-panel-config" aria-labelledby="cie-tab-config" hidden tabindex="0">
+        <h3 id="configuration-title" class="visually-hidden">Configuration</h3>
+        <p id="configuration-desc" class="dialog-intro">Apply a configuration to one or more compatible staged facilities.</p>
+        <label class="dialog-field">Configuration<select id="configuration-choice"><option value="theatre">Theatre</option><option value="banquet">Banquet</option><option value="studio">Studio</option></select></label>
+        <label class="check-row" id="configuration-select-all-row"><input type="checkbox" id="configuration-select-all"> Select all compatible facilities</label>
+        <div class="target-list" id="configuration-targets"></div>
+        <div class="availability-result" id="configuration-status" role="status" aria-live="polite"></div>
+        <div class="dialog-actions"><button type="button" class="btn-secondary" id="configuration-cancel">Cancel</button><button type="button" class="btn-primary" id="configuration-apply">Update configuration</button></div>
+      </section>
+      <section class="editor-tabpanel package-dialog" role="tabpanel" id="cie-panel-package" aria-labelledby="cie-tab-package" hidden tabindex="0">
+        <h3 id="package-title" class="visually-hidden">Change package</h3>
+        <p id="package-desc" class="dialog-intro">Package type determines whether Quantity or Attendees is shown. No universal default is assumed.</p>
+        <label class="dialog-field">Package<button type="button" class="inline-picker-btn" id="package-picker-btn">Choose package</button></label>
+        <div id="package-editor-fields"></div>
+        <div class="availability-result" id="package-status" role="status" aria-live="polite"></div>
+        <div class="dialog-actions"><button type="button" class="btn-secondary" id="package-cancel">Cancel</button><button type="button" class="btn-primary" id="package-apply">Apply package</button></div>
+      </section>
+      <section class="editor-tabpanel pricing-dialog" role="tabpanel" id="cie-panel-pricing" aria-labelledby="cie-tab-pricing" hidden tabindex="0">
+        <h3 id="pricing-title" class="visually-hidden">Change pricing</h3>
+        <p id="pricing-desc" class="dialog-intro">The control structure is Diary-proven. All option names, amounts and formulas are local review fixtures.</p>
+        <div class="pricing-shortcuts"><button type="button" class="btn-ghost btn-sm" id="pricing-open-time">Change date &amp; time</button><button type="button" class="btn-ghost btn-sm" id="pricing-open-package">Change package</button></div>
+        <div class="dialog-grid">
+          <label class="dialog-field">Configuration<select id="pricing-configuration"></select></label>
+          <label class="dialog-field">Pricing option / Item<select id="pricing-option"><option value="standard">Standard option / Item — review fixture</option><option value="alternate">Alternate option / Item — review fixture</option></select></label>
+          <label class="dialog-field">Concession<select id="pricing-concession"><option value="review-fixture">Review fixture</option><option value="none">None</option></select></label>
+        </div>
+        <fieldset class="segmented price-type-mode"><legend>Price type</legend><label><input type="radio" name="price-mode" value="default" checked> Use default price type</label><label><input type="radio" name="price-mode" value="change"> Change price type</label></fieldset>
+        <div class="dialog-grid" id="changed-price-fields" hidden>
+          <label class="dialog-field">Price type<select id="pricing-type"><option value="standard-rate">Standard rate — review fixture</option><option value="alternate-rate">Alternate rate — review fixture</option></select></label>
+          <label class="dialog-field">Pricing unit<select id="pricing-unit"><option value="hour">Per hour — review fixture</option><option value="event">Per event — review fixture</option></select></label>
+        </div>
+        <div class="price-review"><span>Calculated line price</span><strong id="pricing-amount">AU$ 2,750.00</strong><small>Local review fixture · production formula open</small></div>
+        <div class="dialog-actions"><button type="button" class="btn-secondary" id="pricing-cancel">Cancel</button><button type="button" class="btn-primary" id="pricing-apply">Apply pricing</button></div>
+      </section>
+      <section class="editor-tabpanel" role="tabpanel" id="cie-panel-more" aria-labelledby="cie-tab-more" hidden tabindex="0">
+        <p class="dialog-intro">Progressive Item, Package, allocation and availability details for the selected Cart line.</p>
+        <div id="cie-panel-more-content"></div>
+      </section>
+    </div>
+  </dialog>
+
+  <div class="picker-backdrop" id="large-data-picker-backdrop"></div>
+  <div id="large-data-picker" role="presentation">
+    <div class="picker-search">
+      <input type="search" id="large-data-filter" aria-label="Filter list" autocomplete="off">
+    </div>
+    <div class="picker-meta" id="large-data-picker-meta"></div>
+    <div class="picker-list" id="large-data-picker-list">
+      <div class="picker-viewport" id="large-data-listbox" role="listbox" aria-label="Picker options"></div>
+    </div>
+    <div class="picker-foot">
+      <button type="button" class="picker-cancel" id="large-data-picker-cancel">Cancel</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
