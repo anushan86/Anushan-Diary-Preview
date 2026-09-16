@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Optimo Diary — Journey 1 Create Booking</title>
+  <title>Optimo Diary — Contextual Workspace Candidate</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -66,6 +66,18 @@
         <label><input type="radio" name="theme" value="optimo-core" checked> Optimo Core</label>
         <label><input type="radio" name="theme" value="harbour"> Harbour</label>
         <label><input type="radio" name="theme" value="riverside"> Riverside</label>
+      </fieldset>
+      <fieldset class="j4-review-controls" id="j4-review-controls" hidden inert aria-hidden="true">
+        <legend>Journey 4 fixture state</legend>
+        <div class="j4-review-state-list" role="group" aria-label="Review-only calendar state">
+          <button type="button" class="j4-review-state is-active" data-j4-review-state="ready" aria-pressed="true">Ready</button>
+          <button type="button" class="j4-review-state" data-j4-review-state="loading" aria-pressed="false">Loading</button>
+          <button type="button" class="j4-review-state" data-j4-review-state="empty" aria-pressed="false">Empty</button>
+          <button type="button" class="j4-review-state" data-j4-review-state="error" aria-pressed="false">Error</button>
+          <button type="button" class="j4-review-state" data-j4-review-state="access-denied" aria-pressed="false">Access denied</button>
+          <button type="button" class="j4-review-state" data-j4-review-state="varies" aria-pressed="false">Varies</button>
+        </div>
+        <p>Review fixtures only — not Product navigation or a rights matrix.</p>
       </fieldset>
       <p class="review-note">Review rail only — not product navigation</p>
     </div>
@@ -155,7 +167,7 @@
       <button type="button" class="surface-toggle" id="surface-toggle" hidden>Assets</button>
     </nav>
 
-    <div class="workspace">
+    <div class="workspace" id="diary-workspace">
       <section class="j3-asset-launcher" id="j3-asset-launcher" hidden inert aria-hidden="true" aria-label="Assets">
         <div class="j3-launcher-summary">
           <span class="j3-launcher-kicker">Assets</span>
@@ -238,12 +250,36 @@
       <main class="calendar-panel" id="calendar" role="main" aria-label="Week calendar" tabindex="-1">
         <p class="range-live visually-live" id="range-live" aria-live="polite" aria-atomic="true" hidden></p>
         <p class="calendar-caption">Checkpoint shows working hours; DiarySettings 24h remains EVIDENCE for Stage 3.</p>
+        <section class="j4-overview" id="j4-overview" hidden inert aria-hidden="true" aria-labelledby="j4-overview-title">
+          <div>
+            <span class="j4-kicker">Journey 4 · Timeslot interaction</span>
+            <h1 id="j4-overview-title">Review calendar states and safe first handoffs</h1>
+          </div>
+          <p>Six labelled local fixtures. Direct details are read-only; More actions stops at context; Public and lifecycle execution are excluded.</p>
+        </section>
         <div class="timeslot-legend-wrap">
           <div id="timeslot-colours-legend" class="timeslot-colours-legend" role="region" aria-label="Timeslot colours"></div>
         </div>
+        <section class="j4-state-panel" id="j4-state-panel" role="status" aria-live="polite" aria-atomic="true" hidden></section>
         <div class="calendar-scroll" id="calendar-scroll">
           <div class="calendar-grid" id="calendar-grid" role="grid" aria-label="Resource week grid"></div>
         </div>
+        <aside class="j4-selection-summary" id="j4-selection-summary" hidden inert aria-hidden="true" aria-labelledby="j4-selection-title">
+          <span class="j4-kicker">Selected summary</span>
+          <h2 id="j4-selection-title">Selected review fixture</h2>
+          <p id="j4-selection-copy">Review the selected state without changing saved data.</p>
+          <dl class="j4-selection-facts">
+            <div><dt>State</dt><dd id="j4-selection-state">Selected</dd></div>
+            <div><dt>Time</dt><dd id="j4-selection-time">14:00–15:30</dd></div>
+            <div><dt>Resource</dt><dd id="j4-selection-resource">Hall 1</dd></div>
+            <div><dt>Access</dt><dd id="j4-selection-access">Read-only fixture</dd></div>
+          </dl>
+          <div class="j4-selection-actions">
+            <button type="button" class="btn-primary" id="j4-summary-open">Open details</button>
+            <button type="button" class="btn-secondary" id="j4-summary-more" aria-haspopup="menu" aria-expanded="false" aria-controls="j4-context-items">More actions</button>
+          </div>
+          <p class="j4-selection-guidance" id="j4-selection-guidance">No mutation or lifecycle action is available.</p>
+        </aside>
         <div class="now-line" id="now-line" hidden aria-hidden="true"></div>
       </main>
 
@@ -259,6 +295,12 @@
               </div>
             </div>
           </div>
+          <button type="button" class="contextual-panel-close contextual-cart-close" id="contextual-cart-close" hidden inert aria-hidden="true" aria-label="Close Booking Cart">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.2 3.2 8 8l4.8-4.8.9.9L8.9 8.9l4.8 4.8-.9.9L8 9.8l-4.8 4.8-.9-.9 4.8-4.8-4.8-4.8z"/></svg>
+          </button>
+        </header>
+
+        <div class="cart-body" id="cart-body" data-cart-view="compact">
           <div class="cart-toolbar" id="cart-toolbar" hidden>
             <div class="cart-view-controls" id="cart-view-controls" role="group" aria-label="Cart view">
               <button type="button" class="cart-view-btn" id="cart-view-compact" aria-pressed="true">Compact</button>
@@ -269,9 +311,6 @@
               Clear cart
             </button>
           </div>
-        </header>
-
-        <div class="cart-body" id="cart-body" data-cart-view="compact">
           <section class="cart-region cart-empty-guidance" id="cart-empty-guidance" aria-label="Getting started">
             <p class="cart-empty-title">Select a facility and time to start a booking.</p>
             <p class="cart-empty-sub" id="cart-empty-sub">Hall 1 · Northside Leisure Centre</p>
@@ -295,9 +334,12 @@
           </section>
 
           <section class="cart-region cart-current-selection" id="cart-current-selection" hidden aria-label="Current selection">
-            <h3 class="current-selection-title" id="current-selection-title">New selection</h3>
-            <p class="staged-summary" id="staged-summary"></p>
-            <form id="configure-form" class="configure-form">
+            <div class="current-selection-head">
+              <div><span class="eyebrow">Current selection</span><h3 class="current-selection-title" id="current-selection-title">New selection</h3></div>
+              <button type="button" class="btn-ghost btn-sm current-selection-details-toggle" id="current-selection-details-toggle" aria-expanded="false" aria-controls="configure-form">Edit details</button>
+            </div>
+            <div class="staged-summary current-selection-summary" id="staged-summary" aria-live="polite"></div>
+            <form id="configure-form" class="configure-form" hidden inert aria-hidden="true" tabindex="-1">
               <div class="field" id="field-item">
                 <label for="cfg-item-input">Item</label>
                 <div class="combobox">
@@ -417,6 +459,16 @@
           </div>
         </footer>
       </aside>
+
+      <section class="contextual-cart-launcher" id="contextual-cart-launcher" hidden inert aria-hidden="true" aria-label="Booking Cart">
+        <button type="button" class="contextual-cart-open" id="contextual-cart-open" aria-expanded="false" aria-controls="booking-cart" title="Open Booking Cart">
+          <svg class="contextual-cart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1"/><circle cx="19" cy="20" r="1"/><path d="M3 4h2l2.4 10.2a2 2 0 0 0 2 1.5h7.8a2 2 0 0 0 2-1.6L21 7H6"/></svg>
+          <span class="contextual-cart-kicker">Cart</span>
+          <strong class="contextual-cart-count" id="contextual-cart-count">0 items</strong>
+          <span class="contextual-cart-status" id="contextual-cart-status">No items to review</span>
+          <span class="contextual-cart-total" id="contextual-cart-total">No priced items</span>
+        </button>
+      </section>
     </div>
 
     <div class="cart-sheet" id="cart-sheet">
@@ -491,6 +543,37 @@
       <button type="button" class="btn-primary" id="picker-apply">Apply</button>
     </div>
   </dialog>
+
+  <dialog class="modal j4-details-dialog" id="j4-details-dialog" aria-labelledby="j4-details-title" aria-describedby="j4-details-boundary" hidden inert aria-hidden="true">
+    <header class="j4-details-head">
+      <div>
+        <span class="j4-kicker">Read-only details</span>
+        <h2 id="j4-details-title">Timeslot details</h2>
+      </div>
+      <button type="button" class="dialog-close" id="j4-details-close" aria-label="Close timeslot details">×</button>
+    </header>
+    <p id="j4-details-boundary">First handoff only. No Copy, Edit, Delete, Move, Reschedule, reallocation, Block CRUD or Public action is available.</p>
+    <dl class="j4-details-facts">
+      <div><dt>Reference</dt><dd id="j4-details-reference"></dd></div>
+      <div><dt>Status</dt><dd id="j4-details-status"></dd></div>
+      <div><dt>Date and time</dt><dd id="j4-details-time"></dd></div>
+      <div><dt>Resource</dt><dd id="j4-details-resource"></dd></div>
+      <div><dt>Permission fixture</dt><dd id="j4-details-access"></dd></div>
+    </dl>
+    <footer class="j4-details-footer">
+      <span class="badge badge-fixture">REVIEW FIXTURE</span>
+      <button type="button" class="btn-secondary" id="j4-details-back">Back</button>
+    </footer>
+  </dialog>
+
+  <div class="j4-context-menu" id="j4-context-menu" hidden inert aria-hidden="true">
+    <strong id="j4-context-title">More actions</strong>
+    <p id="j4-context-copy">Type- and permission-controlled first handoff only.</p>
+    <div id="j4-context-items" role="menu" aria-labelledby="j4-context-title" aria-describedby="j4-context-copy">
+      <button type="button" class="j4-context-action" id="j4-context-open-details" role="menuitem" tabindex="0">Open details</button>
+      <button type="button" class="j4-context-close" id="j4-context-close" role="menuitem" tabindex="-1">Close actions</button>
+    </div>
+  </div>
 
   <dialog class="modal workflow-dialog cart-item-editor-dialog" id="cart-item-editor-dialog" aria-labelledby="cart-item-editor-title">
     <div class="dialog-head cart-item-editor-head">

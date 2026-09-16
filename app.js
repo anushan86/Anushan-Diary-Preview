@@ -161,12 +161,15 @@
     const v = values[0];
     if (v === '2') return 2;
     if (v === '3') return 3;
+    if (v === '4') return 4;
     return 1;
   }
 
   function applyJourneyBoot() {
     const journey = parseJourneyBoot(window.location.search);
     document.body.dataset.journey = String(journey);
+    if (journey === 1) document.body.dataset.contextualWorkspace = 'true';
+    else delete document.body.dataset.contextualWorkspace;
     return journey;
   }
 
@@ -187,6 +190,7 @@
     const isJ1 = journey === 1;
     const isJ2 = journey === 2;
     const isJ3 = journey === 3;
+    const isJ4 = journey === 4;
     const j1ProductOnly = [
       '.skip-cart', '#review-rail-toggle', '#review-rail-panel', '.stage-nav',
       '.stress-controls', '.review-scale-controls', '.review-scale-caption',
@@ -204,14 +208,20 @@
       '#layout-day-reason', '#j2-date-range-label', '#j2-selected-assets',
       '#claim-boundary', '#picker-error', '#range-live'
     ];
+    const contextualAssetChrome = [
+      '#j3-asset-launcher', '#j3-launcher-btn', '#j3-explorer-scrim', '#j3-explorer-close'
+    ];
+    const contextualJ1Only = [
+      '#contextual-cart-launcher', '#contextual-cart-open', '#contextual-cart-close'
+    ];
     const j3Only = [
-      '#j3-asset-launcher', '#j3-launcher-btn', '#j3-explorer-scrim', '#j3-explorer-close',
       '#j3-filters-toolbar', '#j3-filters-toggle', '#j3-fixture-caption', '#j3-capacity-fieldset',
       '.capacity-heading-row', '.capacity-inputs-row', '.cap-col',
       '#j3-capacity-from', '#j3-capacity-to', '#j3-reset-filters', '#j3-filter-status', '#j3-filter-error',
       '#j3-selected-heading', '#j3-available-heading', '#j3-explorer-footer', '#j3-explorer-selected-count',
       '#j3-explorer-done', '#j3-visibility-card'
     ];
+    const j4Only = ['#j4-overview', '#j4-selection-summary', '#j4-review-controls'];
     j1ProductOnly.forEach((sel) => {
       document.querySelectorAll(sel).forEach((el) => j2SetSurfaceExcluded(el, !isJ1));
     });
@@ -221,9 +231,26 @@
     j2Only.forEach((sel) => {
       document.querySelectorAll(sel).forEach((el) => j2SetSurfaceExcluded(el, !isJ2));
     });
+    contextualAssetChrome.forEach((sel) => {
+      document.querySelectorAll(sel).forEach((el) => j2SetSurfaceExcluded(el, !(isJ1 || isJ3)));
+    });
+    contextualJ1Only.forEach((sel) => {
+      document.querySelectorAll(sel).forEach((el) => j2SetSurfaceExcluded(el, !isJ1));
+    });
     j3Only.forEach((sel) => {
       document.querySelectorAll(sel).forEach((el) => j2SetSurfaceExcluded(el, !isJ3));
     });
+    j4Only.forEach((sel) => {
+      document.querySelectorAll(sel).forEach((el) => j2SetSurfaceExcluded(el, !isJ4));
+    });
+    if (isJ4) {
+      const reviewToggle = $('#review-rail-toggle');
+      const reviewPanel = $('#review-rail-panel');
+      j2SetSurfaceExcluded(reviewToggle, false);
+      j2SetSurfaceExcluded(reviewPanel, false);
+      if (reviewPanel) reviewPanel.hidden = true;
+      if (reviewToggle) reviewToggle.setAttribute('aria-expanded', 'false');
+    }
     const surfaceToggle = $('#surface-toggle');
     if (surfaceToggle) {
       surfaceToggle.setAttribute('aria-controls', isJ2 ? 'j2-selected-assets' : 'assets-panel');
@@ -245,10 +272,10 @@
     const assetsPanel = $('#assets-panel');
     const assetsPanelTitle = assetsPanel?.querySelector('.panel-header h2');
     if (assetsPanel) {
-      if (isJ3) {
+      if (isJ3 || isJ1) {
         assetsPanel.setAttribute('aria-label', 'Asset Explorer');
         if (assetsPanelTitle) assetsPanelTitle.textContent = 'Asset Explorer';
-      } else if (isJ1) {
+      } else if (isJ4) {
         assetsPanel.setAttribute('aria-label', 'Diary assets');
         if (assetsPanelTitle) assetsPanelTitle.textContent = 'Diary assets';
         assetsPanel.removeAttribute('role');
@@ -256,6 +283,768 @@
       }
     }
     if (isJ3) j3SyncExplorerChrome();
+  }
+
+  /* ===== Journey 4 MASTER-ancestry candidate — CR-J4-001 / CR-J4-002 / CR-J4-003 ===== */
+
+  const J4_FIXTURES = [
+    {
+      id: 'available', kind: 'available', label: 'Available', reference: 'Available interval',
+      status: 'Available · Selectable', asset: 'hall1', resource: 'Hall 1', dayOffset: 5,
+      startSlot: 12, endSlot: 18, access: 'Booking-create permitted review fixture', details: false, more: false
+    },
+    {
+      id: 'selected', kind: 'selected', label: 'Selected', reference: 'SEL-LOCAL-001',
+      status: 'Selected · Not saved', asset: 'hall1', resource: 'Hall 1', dayOffset: 4,
+      startSlot: 8, endSlot: 11, access: 'Read-only review fixture', details: true, more: false
+    },
+    {
+      id: 'private', kind: 'private', label: 'Private Booking', reference: 'BK-10482',
+      status: 'Private Booking · Confirmed', asset: 'studio2', resource: 'Studio 2', dayOffset: 4,
+      startSlot: 2, endSlot: 10, visualType: 'confirmed', access: 'Details and context permitted review fixture', details: true, more: true
+    },
+    {
+      id: 'blocked', kind: 'blocked', label: 'Blocked', reference: 'BLK-220',
+      status: 'Blocked · Unavailable', asset: 'hall2', resource: 'Hall 2', dayOffset: 5,
+      startSlot: 0, endSlot: 24, visualType: 'block', access: 'Block context first handoff only', details: true, more: true
+    },
+    {
+      id: 'facility-not-in-use', kind: 'facility-not-in-use', label: 'Facility Not In Use', reference: 'FNI-301',
+      status: 'Facility Not In Use · Unavailable', asset: 'studio2', resource: 'Studio 2', dayOffset: 6,
+      startSlot: 14, endSlot: 18, visualType: 'facility-not-in-use', access: 'Read-only review fixture', details: true, more: false
+    },
+    {
+      id: 'conflict', kind: 'conflict', label: 'Conflict', reference: 'CNF-LOCAL-001',
+      status: 'Conflict · No override', asset: 'hall1', resource: 'Hall 1', dayOffset: 3,
+      startSlot: 12, endSlot: 16, access: 'Read-only; override unavailable', details: true, more: false
+    }
+  ];
+
+  const J4_FILTER_ORDER = ['available', 'selected', 'private', 'blocked', 'facility-not-in-use', 'conflict'];
+  const J4_REVIEW_STATES = new Set(['ready', 'loading', 'empty', 'error', 'access-denied', 'varies']);
+  let j4ViewState = 'ready';
+  let j4ActiveFixtureId = 'selected';
+  let j4EnabledFilters = new Set(J4_FILTER_ORDER);
+  let j4ContextFixture = null;
+  let j4ContextTrigger = null;
+  let j4DetailsReturnTarget = null;
+  let j4PointerSelection = null;
+
+  function isJ4Journey() {
+    return document.body.dataset.journey === '4';
+  }
+
+  function j4FindFixture(id) {
+    return J4_FIXTURES.find((fixture) => fixture.id === id) || null;
+  }
+
+  function j4FixtureDate(fixture) {
+    return addDays(weekStart, fixture.dayOffset);
+  }
+
+  function j4FixtureTime(fixture) {
+    const start = slotToTime(fixture.startSlot);
+    const end = slotToTime(fixture.endSlot);
+    return `${formatTime(start.h, start.m)}–${formatTime(end.h, end.m)}`;
+  }
+
+  function j4FixtureDateTime(fixture) {
+    return `${formatShortDate(j4FixtureDate(fixture))} · ${j4FixtureTime(fixture)}`;
+  }
+
+  function j4ProviderEntry(fixture) {
+    if (!fixture.visualType) return { label: null, color: null };
+    return getTimeslotClassificationEntry(fixture.visualType);
+  }
+
+  function j4StateColor(fixture) {
+    const entry = j4ProviderEntry(fixture);
+    if (entry.color) return entry.color;
+    if (fixture.kind === 'available') return 'var(--diary-success)';
+    if (fixture.kind === 'selected') return 'var(--diary-blue-500)';
+    if (fixture.kind === 'private') return 'var(--diary-blue-600)';
+    if (fixture.kind === 'blocked') return 'var(--diary-warning)';
+    if (fixture.kind === 'facility-not-in-use') return 'var(--diary-text-secondary)';
+    return 'var(--diary-danger)';
+  }
+
+  function j4ActionsBlocked() {
+    return ['loading', 'error', 'access-denied', 'varies'].includes(j4ViewState);
+  }
+
+  function j4SyncReviewControls() {
+    $$('.j4-review-state[data-j4-review-state]').forEach((button) => {
+      const active = button.dataset.j4ReviewState === j4ViewState;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+  }
+
+  function j4RenderStatePanel() {
+    const panel = $('#j4-state-panel');
+    if (!panel) return;
+    panel.innerHTML = '';
+    panel.className = `j4-state-panel is-${j4ViewState}`;
+    if (j4ViewState === 'ready') {
+      panel.hidden = true;
+      return;
+    }
+    panel.hidden = false;
+    const title = document.createElement('strong');
+    const copy = document.createElement('span');
+    if (j4ViewState === 'loading') {
+      title.textContent = 'Loading calendar fixtures';
+      copy.textContent = ' Current content is unsettled and timeslot actions are unavailable.';
+      panel.setAttribute('aria-busy', 'true');
+    } else if (j4ViewState === 'empty') {
+      title.textContent = 'No occupied timeslots';
+      copy.textContent = ' The valid empty state remains usable and the available interval stays selectable.';
+      panel.removeAttribute('aria-busy');
+    } else if (j4ViewState === 'error') {
+      title.textContent = 'Calendar could not load';
+      copy.textContent = ' No selection or success was fabricated.';
+      panel.removeAttribute('aria-busy');
+      const retry = document.createElement('button');
+      retry.type = 'button';
+      retry.className = 'btn-secondary btn-sm';
+      retry.id = 'j4-retry';
+      retry.textContent = 'Retry';
+      retry.addEventListener('click', () => j4SetViewState('ready'));
+      panel.append(title, copy, retry);
+      return;
+    } else if (j4ViewState === 'access-denied') {
+      title.textContent = 'Access denied review fixture';
+      copy.textContent = ' Restricted details, context and create-selection actions are disabled. No complete tenant rights matrix is claimed.';
+      panel.removeAttribute('aria-busy');
+    } else {
+      title.textContent = 'Varies';
+      copy.textContent = ' Selected intervals have heterogeneous values. All timeslot action and mutation execution is disabled until resolved.';
+      panel.removeAttribute('aria-busy');
+    }
+    panel.append(title, copy);
+  }
+
+  function j4RenderLegend() {
+    const host = $('#timeslot-colours-legend');
+    if (!host) return;
+    host.innerHTML = '';
+    host.setAttribute('aria-label', 'Journey 4 timeslot visual filters');
+    const title = document.createElement('span');
+    title.className = 'timeslot-legend-title';
+    title.textContent = 'Show timeslots';
+    host.appendChild(title);
+    const list = document.createElement('ul');
+    list.className = 'timeslot-legend-list j4-filter-list';
+    J4_FILTER_ORDER.forEach((kind) => {
+      const fixture = J4_FIXTURES.find((entry) => entry.kind === kind);
+      if (!fixture) return;
+      const item = document.createElement('li');
+      item.className = 'timeslot-legend-item j4-filter-item';
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'j4-filter-button';
+      button.dataset.j4Filter = kind;
+      button.setAttribute('aria-pressed', j4EnabledFilters.has(kind) ? 'true' : 'false');
+      button.setAttribute('aria-label', `${j4EnabledFilters.has(kind) ? 'Hide' : 'Show'} ${fixture.label} timeslots`);
+      button.disabled = j4ActionsBlocked();
+      const swatch = document.createElement('span');
+      swatch.className = `timeslot-legend-swatch j4-swatch is-${kind}`;
+      swatch.setAttribute('aria-hidden', 'true');
+      swatch.style.setProperty('--j4-state-color', j4StateColor(fixture));
+      const label = document.createElement('span');
+      label.className = 'timeslot-legend-label';
+      const providerEntry = j4ProviderEntry(fixture);
+      label.textContent = providerEntry.label || fixture.label;
+      button.append(swatch, label);
+      button.addEventListener('click', () => j4ToggleFilter(kind));
+      item.appendChild(button);
+      list.appendChild(item);
+    });
+    host.appendChild(list);
+  }
+
+  function j4ApplyFilters(announce) {
+    let visibleCount = 0;
+    $$('.j4-timeslot[data-j4-kind]').forEach((card) => {
+      const visible = j4EnabledFilters.has(card.dataset.j4Kind);
+      card.hidden = !visible;
+      if (visible) visibleCount += 1;
+    });
+    const empty = $('#j4-filter-empty');
+    if (empty) empty.hidden = visibleCount !== 0;
+    if (announce) {
+      announceLive(`${visibleCount} Journey 4 timeslot ${visibleCount === 1 ? 'fixture' : 'fixtures'} shown. Filter state is session-only.`);
+    }
+  }
+
+  function j4ToggleFilter(kind) {
+    if (j4ActionsBlocked() || !J4_FILTER_ORDER.includes(kind)) return;
+    if (j4EnabledFilters.has(kind)) j4EnabledFilters.delete(kind);
+    else j4EnabledFilters.add(kind);
+    const button = $(`[data-j4-filter="${kind}"]`);
+    if (button) {
+      const shown = j4EnabledFilters.has(kind);
+      button.setAttribute('aria-pressed', shown ? 'true' : 'false');
+      const fixture = J4_FIXTURES.find((entry) => entry.kind === kind);
+      button.setAttribute('aria-label', `${shown ? 'Hide' : 'Show'} ${fixture ? fixture.label : kind} timeslots`);
+    }
+    j4ApplyFilters(true);
+  }
+
+  function j4MoveCardFocus(card, key) {
+    const cards = Array.from($$('.j4-timeslot[data-j4-kind]:not([hidden])'));
+    const index = cards.indexOf(card);
+    if (index < 0 || !cards.length) return;
+    let next = index;
+    if (key === 'ArrowRight' || key === 'ArrowDown') next = Math.min(cards.length - 1, index + 1);
+    else if (key === 'ArrowLeft' || key === 'ArrowUp') next = Math.max(0, index - 1);
+    else if (key === 'Home') next = 0;
+    else if (key === 'End') next = cards.length - 1;
+    else return;
+    cards[next].focus();
+  }
+
+  function j4RenderTimeslotCard(fixture) {
+    const card = document.createElement('article');
+    card.className = `j4-timeslot is-${fixture.kind}`;
+    card.dataset.j4Kind = fixture.kind;
+    card.dataset.j4Fixture = fixture.id;
+    card.setAttribute('role', 'gridcell');
+    card.setAttribute('aria-selected', fixture.id === j4ActiveFixtureId ? 'true' : 'false');
+    card.tabIndex = 0;
+    card.style.setProperty('--j4-state-color', j4StateColor(fixture));
+    if (fixture.id === j4ActiveFixtureId) card.classList.add('is-current');
+
+    const tooltipId = `j4-tooltip-${fixture.id}`;
+    card.setAttribute('aria-describedby', tooltipId);
+    card.setAttribute('aria-label', `${fixture.label}. ${fixture.reference}. ${j4FixtureDateTime(fixture)}. ${fixture.resource}. ${fixture.status}.`);
+
+    const heading = document.createElement('div');
+    heading.className = 'j4-timeslot-head';
+    const state = document.createElement('span');
+    state.className = 'j4-state-label';
+    state.textContent = fixture.label;
+    const reference = document.createElement('strong');
+    reference.textContent = fixture.reference;
+    heading.append(state, reference);
+
+    const time = document.createElement('span');
+    time.className = 'j4-timeslot-time';
+    time.textContent = j4FixtureDateTime(fixture);
+    const resource = document.createElement('span');
+    resource.className = 'j4-timeslot-resource';
+    resource.textContent = fixture.resource;
+    const status = document.createElement('span');
+    status.className = 'j4-timeslot-status';
+    status.textContent = fixture.status;
+
+    const tooltip = document.createElement('span');
+    tooltip.className = 'j4-tooltip';
+    tooltip.id = tooltipId;
+    tooltip.setAttribute('role', 'tooltip');
+    tooltip.textContent = `${fixture.reference} · ${j4FixtureDateTime(fixture)} · ${fixture.resource} · ${fixture.status}`;
+
+    const actions = document.createElement('div');
+    actions.className = 'j4-timeslot-actions';
+    const blocked = j4ActionsBlocked();
+    if (fixture.kind === 'available') {
+      const select = document.createElement('button');
+      select.type = 'button';
+      select.className = 'btn-primary btn-sm';
+      select.id = 'j4-select-available';
+      select.textContent = stagedSelection && j4ActiveFixtureId === 'available' ? 'Selected' : 'Select interval';
+      select.disabled = blocked;
+      select.addEventListener('click', (event) => {
+        event.stopPropagation();
+        j4SelectAvailable(event.currentTarget);
+      });
+      actions.appendChild(select);
+    } else if (fixture.details) {
+      const open = document.createElement('button');
+      open.type = 'button';
+      open.className = 'btn-primary btn-sm';
+      open.id = `j4-open-${fixture.id}`;
+      open.textContent = 'Open details';
+      open.disabled = blocked;
+      open.addEventListener('click', (event) => {
+        event.stopPropagation();
+        j4OpenDetails(fixture, event.currentTarget);
+      });
+      actions.appendChild(open);
+    }
+    if (fixture.more) {
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'btn-secondary btn-sm';
+      more.id = `j4-more-${fixture.id}`;
+      more.textContent = 'More actions';
+      more.disabled = blocked;
+      more.setAttribute('aria-haspopup', 'menu');
+      more.setAttribute('aria-expanded', j4ContextFixture && j4ContextFixture.id === fixture.id ? 'true' : 'false');
+      more.setAttribute('aria-controls', 'j4-context-items');
+      more.addEventListener('click', (event) => {
+        event.stopPropagation();
+        j4OpenContext(fixture, event.currentTarget);
+      });
+      actions.appendChild(more);
+    }
+    if (!actions.children.length) {
+      const guidance = document.createElement('span');
+      guidance.className = 'j4-safe-guidance';
+      guidance.textContent = fixture.kind === 'facility-not-in-use' ? 'Choose another interval' : 'Read-only state';
+      actions.appendChild(guidance);
+    }
+
+    card.append(heading, time, resource, status, actions, tooltip);
+    card.addEventListener('click', (event) => {
+      if (event.target.closest('button')) return;
+      if (fixture.kind === 'available') return;
+      j4SelectFixture(fixture.id, card);
+    });
+    card.addEventListener('pointerdown', (event) => {
+      if (fixture.kind !== 'available' || event.target.closest('button') || blocked) return;
+      j4PointerSelection = { fixtureId: fixture.id, card };
+    });
+    card.addEventListener('keydown', (event) => {
+      if (event.target !== card) return;
+      if (['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+        event.preventDefault();
+        j4MoveCardFocus(card, event.key);
+        return;
+      }
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        if (fixture.kind === 'available') j4SelectAvailable(card);
+        else j4SelectFixture(fixture.id, card);
+      }
+    });
+    return card;
+  }
+
+  function j4RenderSummary() {
+    const title = $('#j4-selection-title');
+    const copy = $('#j4-selection-copy');
+    const state = $('#j4-selection-state');
+    const time = $('#j4-selection-time');
+    const resource = $('#j4-selection-resource');
+    const access = $('#j4-selection-access');
+    const guidance = $('#j4-selection-guidance');
+    const open = $('#j4-summary-open');
+    const more = $('#j4-summary-more');
+    if (!title || !copy || !state || !time || !resource || !access || !guidance || !open || !more) return;
+
+    if (j4ViewState === 'varies') {
+      title.textContent = 'Varies';
+      copy.textContent = 'The selected intervals do not share common values.';
+      state.textContent = 'Varies';
+      time.textContent = 'Varies · zero-duration review state';
+      resource.textContent = 'Varies';
+      access.textContent = 'Actions blocked until resolved';
+      guidance.textContent = 'No normalization or mutation is inferred.';
+      open.disabled = true;
+      more.disabled = true;
+      open.dataset.j4Fixture = '';
+      more.dataset.j4Fixture = '';
+      return;
+    }
+
+    let fixture = j4FindFixture(j4ActiveFixtureId) || j4FindFixture('selected');
+    if (j4ViewState === 'empty') fixture = j4FindFixture('available');
+    if (!fixture) return;
+    const handedOff = fixture.kind === 'available' && !!stagedSelection;
+    title.textContent = handedOff ? 'Available interval selected' : fixture.reference;
+    copy.textContent = handedOff
+      ? 'One staged selection was handed to the existing J1 New Selection state and handlers; no second Cart was created.'
+      : `${fixture.label} · ${fixture.status}`;
+    state.textContent = handedOff ? 'Selected' : fixture.label;
+    time.textContent = j4FixtureDateTime(fixture);
+    resource.textContent = fixture.resource;
+    access.textContent = handedOff ? 'Existing J1 New Selection state' : fixture.access;
+    guidance.textContent = j4ViewState === 'access-denied'
+      ? 'Access-denied fixture: all timeslot actions are disabled.'
+      : (fixture.more ? 'Direct details and the separate non-mutating context handoff are available.' : 'No mutation or lifecycle action is available.');
+    open.dataset.j4Fixture = fixture.id;
+    more.dataset.j4Fixture = fixture.id;
+    open.disabled = j4ActionsBlocked() || !fixture.details;
+    more.disabled = j4ActionsBlocked() || !fixture.more;
+    more.hidden = !fixture.more;
+  }
+
+  function j4SelectFixture(fixtureId, trigger) {
+    if (!isJ4Journey()) return;
+    const fixture = j4FindFixture(fixtureId);
+    if (!fixture) return;
+    j4ActiveFixtureId = fixture.id;
+    $$('.j4-timeslot[data-j4-fixture]').forEach((card) => {
+      const selected = card.dataset.j4Fixture === fixture.id;
+      card.classList.toggle('is-current', selected);
+      card.setAttribute('aria-selected', selected ? 'true' : 'false');
+    });
+    j4RenderSummary();
+    announceLive(`${fixture.label} selected for read-only review.`);
+    if (trigger && typeof trigger.focus === 'function' && document.body.contains(trigger)) trigger.focus();
+  }
+
+  const J4_CART_HANDOFF_SURFACES = [
+    '#booking-cart', '#cart-sheet', '#mismatch-dialog', '#large-data-picker',
+    '#large-data-picker-backdrop', '#configure-form', '#amount-region', '#cart-current-selection'
+  ];
+
+  function j4SetCartHandoffVisible(visible) {
+    J4_CART_HANDOFF_SURFACES.forEach((selector) => {
+      document.querySelectorAll(selector).forEach((element) => j2SetSurfaceExcluded(element, !visible));
+    });
+    if (!visible) setSheetExpanded(false);
+  }
+
+  function j4ClearCartHandoff() {
+    stagedSelection = null;
+    editingLineId = null;
+    draft.unavailableSelection = null;
+    cartLines = [];
+    selectedLineIds.clear();
+    setPhase('select');
+    updateCartUI();
+    j4SetCartHandoffVisible(false);
+  }
+
+  function j4SelectAvailable(trigger) {
+    if (!isJ4Journey() || j4ActionsBlocked()) return;
+    const fixture = j4FindFixture('available');
+    if (!fixture) return;
+    j4ActiveFixtureId = fixture.id;
+    j4SetCartHandoffVisible(true);
+    createSelection(fixture.asset, dateKey(j4FixtureDate(fixture)), fixture.startSlot, fixture.endSlot);
+    if (isNarrowViewport()) setSheetExpanded(true);
+    announceLive('Available interval selected. The existing Journey 1 Booking Cart is the sole staged-selection surface. Nothing was saved.');
+    window.setTimeout(() => {
+      const next = $('#j4-select-available') || $('.j4-timeslot[data-j4-fixture="available"]');
+      if (next && typeof next.focus === 'function') next.focus();
+    }, 0);
+  }
+
+  function j4HandlePointerUp(event) {
+    if (!j4PointerSelection || !isJ4Journey()) return;
+    const pending = j4PointerSelection;
+    j4PointerSelection = null;
+    const card = event.target && event.target.closest ? event.target.closest('.j4-timeslot[data-j4-fixture="available"]') : null;
+    if (card && card === pending.card) j4SelectAvailable(card);
+  }
+
+  function j4OpenDetails(fixture, trigger) {
+    if (!isJ4Journey() || !fixture || !fixture.details || j4ActionsBlocked()) return;
+    j4SelectFixture(fixture.id);
+    j4DetailsReturnTarget = trigger || document.activeElement;
+    $('#j4-details-title').textContent = fixture.reference;
+    $('#j4-details-reference').textContent = fixture.reference;
+    $('#j4-details-status').textContent = fixture.status;
+    $('#j4-details-time').textContent = j4FixtureDateTime(fixture);
+    $('#j4-details-resource').textContent = fixture.resource;
+    $('#j4-details-access').textContent = fixture.access;
+    const dialog = $('#j4-details-dialog');
+    dialog.hidden = false;
+    dialog.inert = false;
+    dialog.removeAttribute('aria-hidden');
+    dialog.dataset.j4Fixture = fixture.id;
+    dialog.showModal();
+    $('#j4-details-close').focus();
+    announceLive(`${fixture.reference} read-only details opened.`);
+  }
+
+  function j4CloseDetails(restore) {
+    const dialog = $('#j4-details-dialog');
+    if (dialog && dialog.open) dialog.close();
+    if (dialog) {
+      dialog.hidden = true;
+      dialog.inert = true;
+      dialog.setAttribute('aria-hidden', 'true');
+    }
+    const target = j4DetailsReturnTarget;
+    j4DetailsReturnTarget = null;
+    if (restore !== false && target && document.body.contains(target) && typeof target.focus === 'function') target.focus();
+  }
+
+  function j4PositionContext(trigger) {
+    const menu = $('#j4-context-menu');
+    if (!menu || !trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    const width = menu.offsetWidth || 260;
+    const left = Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8));
+    const top = Math.max(8, Math.min(rect.bottom + 6, window.innerHeight - (menu.offsetHeight || 180) - 8));
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+  }
+
+  function j4ContextMenuItems() {
+    return Array.from($$('#j4-context-items [role="menuitem"]'));
+  }
+
+  function j4SetContextMenuFocus(index, focus) {
+    const items = j4ContextMenuItems();
+    if (!items.length) return;
+    const next = ((index % items.length) + items.length) % items.length;
+    items.forEach((item, itemIndex) => { item.tabIndex = itemIndex === next ? 0 : -1; });
+    if (focus !== false) items[next].focus();
+  }
+
+  function j4HandleContextKeydown(event) {
+    const items = j4ContextMenuItems();
+    const index = items.indexOf(event.target);
+    if (index < 0) return;
+    let next;
+    if (event.key === 'ArrowDown') next = index + 1;
+    else if (event.key === 'ArrowUp') next = index - 1;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = items.length - 1;
+    else return;
+    event.preventDefault();
+    j4SetContextMenuFocus(next, true);
+  }
+
+  function j4OpenContext(fixture, trigger) {
+    if (!isJ4Journey() || !fixture || !fixture.more || j4ActionsBlocked()) return;
+    if (j4ContextFixture) j4CloseContext(false);
+    j4SelectFixture(fixture.id);
+    j4ContextFixture = fixture;
+    j4ContextTrigger = trigger;
+    const menu = $('#j4-context-menu');
+    $('#j4-context-title').textContent = `${fixture.label} actions`;
+    $('#j4-context-copy').textContent = fixture.kind === 'blocked'
+      ? 'Block context first handoff only. Block create, edit and delete are unavailable.'
+      : 'Private Booking context first handoff only. No lifecycle action is available.';
+    const open = $('#j4-context-open-details');
+    open.dataset.j4Fixture = fixture.id;
+    menu.hidden = false;
+    menu.inert = false;
+    menu.removeAttribute('aria-hidden');
+    trigger.setAttribute('aria-expanded', 'true');
+    j4PositionContext(trigger);
+    j4SetContextMenuFocus(0, true);
+    announceLive(`${fixture.label} More actions opened. No data changed.`);
+  }
+
+  function j4CloseContext(restore) {
+    const menu = $('#j4-context-menu');
+    if (menu) {
+      menu.hidden = true;
+      menu.inert = true;
+      menu.setAttribute('aria-hidden', 'true');
+      menu.style.left = '';
+      menu.style.top = '';
+    }
+    const trigger = j4ContextTrigger;
+    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    j4SetContextMenuFocus(0, false);
+    j4ContextFixture = null;
+    j4ContextTrigger = null;
+    if (restore !== false && trigger && document.body.contains(trigger) && typeof trigger.focus === 'function') trigger.focus();
+  }
+
+  function j4SetViewState(nextState) {
+    if (!isJ4Journey() || !J4_REVIEW_STATES.has(nextState)) return;
+    j4CloseDetails(false);
+    j4CloseContext(false);
+    j4ClearCartHandoff();
+    j4ViewState = nextState;
+    document.body.dataset.j4State = nextState;
+    j4SyncReviewControls();
+    renderCalendar();
+    announceLive(`Journey 4 ${nextState.replace('-', ' ')} review fixture shown.`);
+  }
+
+  function j4RenderCalendar() {
+    const grid = $('#calendar-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    grid.classList.add('j4-calendar-grid');
+    grid.setAttribute('aria-label', 'Journey 4 labelled timeslot review fixtures');
+    syncSlotLayoutControl();
+    j4RenderStatePanel();
+    j4RenderLegend();
+
+    const boardHead = document.createElement('div');
+    boardHead.className = 'j4-board-head';
+    boardHead.setAttribute('role', 'row');
+    const titleCell = document.createElement('div');
+    titleCell.setAttribute('role', 'columnheader');
+    const title = document.createElement('h2');
+    title.textContent = 'Calendar timeslots';
+    titleCell.appendChild(title);
+    const countCell = document.createElement('div');
+    countCell.setAttribute('role', 'columnheader');
+    const count = document.createElement('span');
+    count.textContent = j4ViewState === 'loading' ? 'Loading' : 'Six supported fixture classes';
+    countCell.appendChild(count);
+    boardHead.append(titleCell, countCell);
+    grid.appendChild(boardHead);
+
+    let fixtures = J4_FIXTURES;
+    if (j4ViewState === 'loading' || j4ViewState === 'error') fixtures = [];
+    else if (j4ViewState === 'empty') fixtures = J4_FIXTURES.filter((fixture) => fixture.kind === 'available');
+
+    if (fixtures.length) {
+      const board = document.createElement('div');
+      board.className = 'j4-timeslot-board';
+      board.setAttribute('role', 'row');
+      fixtures.forEach((fixture) => board.appendChild(j4RenderTimeslotCard(fixture)));
+      grid.appendChild(board);
+    } else {
+      const noContent = document.createElement('div');
+      noContent.className = 'j4-no-content';
+      noContent.setAttribute('role', 'row');
+      const noContentCell = document.createElement('div');
+      noContentCell.setAttribute('role', 'gridcell');
+      noContentCell.textContent = j4ViewState === 'loading'
+        ? 'Loading labelled calendar fixtures…'
+        : 'The calendar is unavailable. Use Retry or another review state; no selection was created.';
+      noContent.appendChild(noContentCell);
+      grid.appendChild(noContent);
+    }
+    const filterEmpty = document.createElement('div');
+    filterEmpty.className = 'j4-filter-empty';
+    filterEmpty.id = 'j4-filter-empty';
+    filterEmpty.setAttribute('role', 'row');
+    filterEmpty.hidden = true;
+    const filterEmptyCell = document.createElement('div');
+    filterEmptyCell.setAttribute('role', 'gridcell');
+    filterEmptyCell.textContent = 'No timeslots match the current session-only visual filters.';
+    filterEmpty.appendChild(filterEmptyCell);
+    grid.appendChild(filterEmpty);
+
+    $('#date-range-label').textContent = formatRangeLabel(weekStart);
+    document.body.dataset.week = isCheckpointWeek() ? 'checkpoint' : 'other';
+    const nowLine = $('#now-line');
+    if (nowLine) nowLine.hidden = true;
+    j4RenderSummary();
+    j4ApplyFilters(false);
+  }
+
+  function j4ResetBootState() {
+    j4CloseDetails(false);
+    j4CloseContext(false);
+    j4ViewState = 'ready';
+    j4ActiveFixtureId = 'selected';
+    j4EnabledFilters = new Set(J4_FILTER_ORDER);
+    j4PointerSelection = null;
+    j4ClearCartHandoff();
+    document.body.dataset.j4State = 'ready';
+    document.body.dataset.surface = 'week';
+    const caption = $('.calendar-caption');
+    if (caption) caption.textContent = 'REVIEW FIXTURE — six labelled Journey 4 states on the shared calendar; not exhaustive tenant data.';
+    j4SyncReviewControls();
+    renderAssetTree();
+    renderCalendar();
+  }
+
+  function j4SetupEvents() {
+    $$('.j4-review-state[data-j4-review-state]').forEach((button) => {
+      button.addEventListener('click', () => j4SetViewState(button.dataset.j4ReviewState));
+    });
+    $('#j4-summary-open').addEventListener('click', (event) => {
+      const fixture = j4FindFixture(event.currentTarget.dataset.j4Fixture);
+      j4OpenDetails(fixture, event.currentTarget);
+    });
+    $('#j4-summary-more').addEventListener('click', (event) => {
+      event.stopPropagation();
+      const fixture = j4FindFixture(event.currentTarget.dataset.j4Fixture);
+      j4OpenContext(fixture, event.currentTarget);
+    });
+    $('#j4-details-close').addEventListener('click', () => j4CloseDetails(true));
+    $('#j4-details-back').addEventListener('click', () => j4CloseDetails(true));
+    $('#j4-details-dialog').addEventListener('cancel', (event) => {
+      event.preventDefault();
+      j4CloseDetails(true);
+    });
+    $('#j4-context-open-details').addEventListener('click', (event) => {
+      event.stopPropagation();
+      const fixture = j4FindFixture(event.currentTarget.dataset.j4Fixture);
+      j4OpenDetails(fixture, event.currentTarget);
+    });
+    $('#j4-context-close').addEventListener('click', (event) => {
+      event.stopPropagation();
+      j4CloseContext(true);
+    });
+    $('#j4-context-items').addEventListener('keydown', j4HandleContextKeydown);
+    document.addEventListener('pointerup', j4HandlePointerUp);
+    document.addEventListener('click', (event) => {
+      if (!j4ContextFixture) return;
+      if (event.target.closest('#j4-context-menu') || event.target.closest('#j4-details-dialog') || event.target.closest('[aria-haspopup="menu"]')) return;
+      j4CloseContext(true);
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && j4ContextFixture && !$('#j4-details-dialog').open) {
+        event.preventDefault();
+        j4CloseContext(true);
+      }
+    });
+    window.addEventListener('resize', () => {
+      if (j4ContextFixture && j4ContextTrigger) j4PositionContext(j4ContextTrigger);
+    });
+  }
+
+  async function j4PlayJourney() {
+    if (playJourneyActive) return;
+    playJourneyActive = true;
+    const playBtn = $('#btn-play-journey');
+    const completeBtn = $('#btn-play-complete');
+    playBtn.disabled = true;
+    completeBtn.disabled = true;
+    const total = 11;
+    let step = 0;
+    j4ResetBootState();
+    beginGuidedReview('journey', total);
+    showToast('Playing Journey 4 review-only timeslot interaction…');
+    try {
+      await guidedReviewStep(playBtn, 'Exact-one Journey 4 review route; J1–J3 remain isolated.', ++step, total, () => {}, REVIEW_PLAY_STEP_MS);
+      await guidedReviewStep('#j4-select-available', 'Select one valid available interval and hand it to the existing J1 New Selection state.', ++step, total);
+      await guidedReviewStep('#j4-open-private', 'Open Private Booking read-only details directly in one click.', ++step, total);
+      await guidedReviewStep('#j4-details-close', 'Close details and return focus to the exact direct action.', ++step, total);
+      await guidedReviewStep('#j4-more-private', 'Retain the separate non-mutating More actions capability.', ++step, total);
+      await guidedReviewStep('#j4-context-open-details', 'Open the same read-only details from the context first handoff.', ++step, total);
+      await guidedReviewStep('#j4-details-back', 'Back returns focus to the invoking context action.', ++step, total);
+      await guidedReviewStep('#j4-context-close', 'Close context and return to the exact More actions trigger.', ++step, total);
+      await guidedReviewStep('[data-j4-filter="conflict"]', 'Hide Conflict with one local visual update and no storage.', ++step, total);
+      await guidedReviewStep('#j4-selection-summary', 'Review the selected summary; no second Cart exists.', ++step, total, () => {}, REVIEW_PLAY_STEP_MS);
+      await guidedReviewStep('#j4-selection-summary', 'Show Varies and block all timeslot action or mutation execution.', ++step, total, () => j4SetViewState('varies'), REVIEW_PLAY_STEP_MS);
+      showToast('Journey 4 guided review finished — candidate only; Gate A remains pending.');
+    } catch (error) {
+      console.error(error);
+      showToast('Guided Journey 4 review stopped at the last safe state — inspect console evidence.');
+    } finally {
+      playJourneyActive = false;
+      playBtn.disabled = false;
+      completeBtn.disabled = false;
+      endGuidedReview();
+    }
+  }
+
+  async function j4PlayComplete() {
+    if (playJourneyActive) return;
+    playJourneyActive = true;
+    const playBtn = $('#btn-play-journey');
+    const completeBtn = $('#btn-play-complete');
+    playBtn.disabled = true;
+    completeBtn.disabled = true;
+    const total = 5;
+    let step = 0;
+    j4ResetBootState();
+    beginGuidedReview('complete', total);
+    try {
+      await guidedReviewStep(completeBtn, 'Journey 4 short review starts with all six labelled fixture states.', ++step, total, () => {}, REVIEW_COMPLETE_STEP_MS);
+      await guidedReviewStep('#j4-select-available', 'Available interval uses the single existing J1 selection graph.', ++step, total, null, REVIEW_COMPLETE_STEP_MS);
+      await guidedReviewStep('#j4-open-private', 'Direct one-click read-only details.', ++step, total, null, REVIEW_COMPLETE_STEP_MS);
+      await guidedReviewStep('#j4-details-back', 'Back with exact focus return.', ++step, total, null, REVIEW_COMPLETE_STEP_MS);
+      await guidedReviewStep('[data-j4-filter="blocked"]', 'Session-only visual filter; no persistence or request.', ++step, total, null, REVIEW_COMPLETE_STEP_MS);
+      showToast('Journey 4 Play complete finished — FUNCTIONAL CANDIDATE only; not Gate A.');
+    } catch (error) {
+      console.error(error);
+      showToast('Journey 4 Play complete stopped at the last safe state.');
+    } finally {
+      playJourneyActive = false;
+      playBtn.disabled = false;
+      completeBtn.disabled = false;
+      endGuidedReview();
+    }
   }
 
   /* ===== Journey 3 candidate — CR-J3-003 / CR-J3-004 / CR-J3-005 ===== */
@@ -907,10 +1696,16 @@
 
   function closeAllJourneyOverlays() {
     ['#date-picker-dialog', '#mismatch-dialog', '#remove-dialog', '#clear-dialog',
-      '#cart-item-editor-dialog'].forEach((sel) => {
+      '#cart-item-editor-dialog', '#j4-details-dialog'].forEach((sel) => {
       const d = $(sel);
       if (d && d.open) d.close();
     });
+    const j4Context = $('#j4-context-menu');
+    if (j4Context) {
+      j4Context.hidden = true;
+      j4Context.inert = true;
+      j4Context.setAttribute('aria-hidden', 'true');
+    }
     const reviewPanel = $('#review-rail-panel');
     if (reviewPanel) reviewPanel.hidden = true;
     const reviewToggle = $('#review-rail-toggle');
@@ -1970,6 +2765,7 @@
   let reviewPackages = [];
   let reviewConcessions = [];
   let genVenueExpanded = {};
+  let scalabilityFixturesExpanded = false;
   let assetQuery = '';
   let assetScroll = 0;
   let assetActive = 0;
@@ -1999,6 +2795,7 @@
   let expandedNodes = new Set(['venue', 'halls', 'studios']);
   let cartLines = [];
   let stagedSelection = null;
+  let currentSelectionDetailsExpanded = false;
   let editingLineId = null;
   let removeTargetId = null;
   let dragState = null;
@@ -2018,6 +2815,7 @@
   let pickerContext = null;
   let cartItemEditor = null;
   let cartViewMode = 'compact';
+  let openLineActionsId = null;
 
   const draft = {
     created: null,
@@ -2028,6 +2826,276 @@
 
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => document.querySelectorAll(sel);
+
+  /* Contextual Diary workspace candidate — CR-CW-001 / CR-CW-002.
+     Presentation orchestration only: the existing Asset Explorer and Booking Cart remain single-source. */
+  let contextualAssetOpener = null;
+  let contextualCartOpener = null;
+  let contextualLastSurface = null;
+  let contextualCartDismissed = false;
+
+  function isContextualWorkspace() {
+    return document.body.dataset.contextualWorkspace === 'true' && document.body.dataset.journey === '1';
+  }
+
+  function contextualIsMobile() {
+    return window.matchMedia('(width <= 600px)').matches;
+  }
+
+  function contextualUsesModalPrecedence() {
+    return window.matchMedia('(width < 1100px)').matches;
+  }
+
+  function contextualAllowsBothPanels() {
+    return window.matchMedia('(width >= 1100px)').matches;
+  }
+
+  function contextualAssetIsOpen() {
+    return document.body.dataset.cwAssets === 'open';
+  }
+
+  function contextualCartIsOpen() {
+    return document.body.dataset.cwCart === 'open';
+  }
+
+  function contextualSetExcluded(element, excluded) {
+    if (!element) return;
+    element.inert = excluded;
+    if (excluded) element.setAttribute('aria-hidden', 'true');
+    else element.removeAttribute('aria-hidden');
+  }
+
+  function contextualPanelFocusables(panel) {
+    if (!panel) return [];
+    return Array.from(panel.querySelectorAll(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )).filter((node) => !node.hidden && !!(node.offsetWidth || node.offsetHeight || node.getClientRects().length));
+  }
+
+  function contextualSyncAssetSummary() {
+    const countEl = $('#j3-launcher-count');
+    const namesEl = $('#j3-launcher-names');
+    const selected = Array.from(selectedAssets).map((id) =>
+      ASSETS.find((asset) => asset.id === id) || reviewAssets.find((asset) => asset.id === id)
+    ).filter(Boolean);
+    if (countEl) countEl.textContent = `${selected.length} selected`;
+    if (namesEl) namesEl.textContent = selected.length
+      ? selected.slice(0, 3).map((asset) => asset.name).join(' · ') + (selected.length > 3 ? ` · +${selected.length - 3}` : '')
+      : 'No resources selected';
+  }
+
+  function contextualSyncCartSummary() {
+    if (!isContextualWorkspace()) return;
+    const projection = projectCartRuntime();
+    const count = projection.itemLabel;
+    const status = projection.count > 0
+      ? projection.statusLabel
+      : (stagedSelection ? 'New selection in progress' : 'No items to review');
+    const total = projection.count > 0
+      ? projection.formattedTotal
+      : (stagedSelection ? 'Total shown in Cart' : 'No priced items');
+    if ($('#contextual-cart-count')) $('#contextual-cart-count').textContent = count;
+    if ($('#contextual-cart-status')) $('#contextual-cart-status').textContent = status;
+    if ($('#contextual-cart-total')) $('#contextual-cart-total').textContent = total;
+    const opener = $('#contextual-cart-open');
+    if (opener) opener.setAttribute('aria-label', `Open Booking Cart — ${count}; ${status}; ${total}`);
+  }
+
+  function contextualSyncSurfaces() {
+    if (!isContextualWorkspace()) return;
+    const assetPanel = $('#assets-panel');
+    const cart = $('#booking-cart');
+    const assetLauncher = $('#j3-asset-launcher');
+    const cartLauncher = $('#contextual-cart-launcher');
+    const assetButton = $('#j3-launcher-btn');
+    const cartButton = $('#contextual-cart-open');
+    const assetClose = $('#j3-explorer-close');
+    const cartClose = $('#contextual-cart-close');
+    const scrim = $('#j3-explorer-scrim');
+
+    if (contextualIsMobile()) {
+      document.body.dataset.cwAssets = 'closed';
+      document.body.dataset.cwCart = 'closed';
+      if (assetLauncher) assetLauncher.hidden = true;
+      if (cartLauncher) cartLauncher.hidden = true;
+      contextualSetExcluded(assetPanel, false);
+      contextualSetExcluded(cart, false);
+      [assetClose, cartClose].forEach((button) => {
+        if (!button) return;
+        button.hidden = true;
+        button.inert = true;
+        button.setAttribute('aria-hidden', 'true');
+      });
+      if (scrim) {
+        scrim.hidden = true;
+        scrim.inert = true;
+        scrim.setAttribute('aria-hidden', 'true');
+      }
+      if (assetButton) assetButton.setAttribute('aria-expanded', 'false');
+      if (cartButton) cartButton.setAttribute('aria-expanded', 'false');
+      assetPanel?.removeAttribute('role');
+      assetPanel?.removeAttribute('aria-modal');
+      cart?.removeAttribute('role');
+      cart?.removeAttribute('aria-modal');
+      return;
+    }
+
+    const assetOpen = contextualAssetIsOpen();
+    const cartOpen = contextualCartIsOpen();
+    const modal = contextualUsesModalPrecedence() && (assetOpen || cartOpen);
+
+    if (assetLauncher) assetLauncher.hidden = assetOpen;
+    if (cartLauncher) cartLauncher.hidden = cartOpen;
+    contextualSetExcluded(assetPanel, !assetOpen);
+    contextualSetExcluded(cart, !cartOpen);
+    if (assetButton) assetButton.setAttribute('aria-expanded', String(assetOpen));
+    if (cartButton) cartButton.setAttribute('aria-expanded', String(cartOpen));
+
+    if (assetClose) {
+      assetClose.hidden = !assetOpen;
+      contextualSetExcluded(assetClose, !assetOpen);
+    }
+    if (cartClose) {
+      cartClose.hidden = !cartOpen;
+      contextualSetExcluded(cartClose, !cartOpen);
+    }
+
+    if (assetOpen) {
+      assetPanel.setAttribute('role', modal ? 'dialog' : 'complementary');
+      if (modal) assetPanel.setAttribute('aria-modal', 'true');
+      else assetPanel.removeAttribute('aria-modal');
+    } else {
+      assetPanel.removeAttribute('role');
+      assetPanel.removeAttribute('aria-modal');
+    }
+    if (cartOpen) {
+      cart.setAttribute('role', modal ? 'dialog' : 'complementary');
+      if (modal) cart.setAttribute('aria-modal', 'true');
+      else cart.removeAttribute('aria-modal');
+    } else {
+      cart.removeAttribute('role');
+      cart.removeAttribute('aria-modal');
+    }
+
+    if (scrim) {
+      scrim.hidden = !modal;
+      scrim.inert = !modal;
+      if (modal) scrim.removeAttribute('aria-hidden');
+      else scrim.setAttribute('aria-hidden', 'true');
+    }
+    contextualSyncAssetSummary();
+    contextualSyncCartSummary();
+  }
+
+  function contextualCloseAssets(options) {
+    if (!isContextualWorkspace() || !contextualAssetIsOpen()) return;
+    const opts = options || {};
+    document.body.dataset.cwAssets = 'closed';
+    contextualSyncSurfaces();
+    if (opts.restore !== false && contextualAssetOpener && document.body.contains(contextualAssetOpener)) contextualAssetOpener.focus();
+    if (opts.announce !== false) announceLive('Asset Explorer closed. Diary width restored.');
+  }
+
+  function contextualCloseCart(options) {
+    if (!isContextualWorkspace() || !contextualCartIsOpen()) return;
+    const opts = options || {};
+    document.body.dataset.cwCart = 'closed';
+    if (opts.dismiss !== false) contextualCartDismissed = true;
+    contextualSyncSurfaces();
+    if (opts.restore !== false && contextualCartOpener && document.body.contains(contextualCartOpener)) contextualCartOpener.focus();
+    if (opts.announce !== false) announceLive('Booking Cart closed. Diary width restored.');
+  }
+
+  function contextualOpenAssets(opener, moveFocus) {
+    if (!isContextualWorkspace() || contextualIsMobile()) return;
+    contextualAssetOpener = opener || $('#j3-launcher-btn');
+    contextualLastSurface = 'assets';
+    if (!contextualAllowsBothPanels() && contextualCartIsOpen()) {
+      contextualCloseCart({ restore: false, dismiss: true, announce: false });
+    }
+    document.body.dataset.cwAssets = 'open';
+    contextualSyncSurfaces();
+    if (moveFocus !== false) {
+      const search = $('#asset-search');
+      search?.focus({ preventScroll: true });
+    }
+    announceLive('Asset Explorer opened.');
+  }
+
+  function contextualOpenCart(opener, moveFocus) {
+    if (!isContextualWorkspace() || contextualIsMobile()) return;
+    contextualCartOpener = opener || $('#contextual-cart-open');
+    contextualLastSurface = 'cart';
+    contextualCartDismissed = false;
+    if (!contextualAllowsBothPanels() && contextualAssetIsOpen()) {
+      contextualCloseAssets({ restore: false, announce: false });
+    }
+    document.body.dataset.cwCart = 'open';
+    contextualSyncSurfaces();
+    if (moveFocus !== false) $('#contextual-cart-close')?.focus({ preventScroll: true });
+    announceLive('Booking Cart opened.');
+  }
+
+  function contextualHandleKeydown(event) {
+    if (!isContextualWorkspace() || contextualIsMobile() || event.defaultPrevented) return;
+    const eventPath = typeof event.composedPath === 'function' ? event.composedPath() : [];
+    const originatedInOwnedOverlay = eventPath.some((node) => node instanceof Element && node.matches('dialog, #large-data-picker'));
+    if (originatedInOwnedOverlay || $('dialog[open]') || pickerOpen) return;
+    const assetOpen = contextualAssetIsOpen();
+    const cartOpen = contextualCartIsOpen();
+    if (!assetOpen && !cartOpen) return;
+    const activePanel = contextualLastSurface === 'assets' && assetOpen ? $('#assets-panel')
+      : (contextualLastSurface === 'cart' && cartOpen ? $('#booking-cart') : (cartOpen ? $('#booking-cart') : $('#assets-panel')));
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      if (activePanel?.id === 'booking-cart') contextualCloseCart();
+      else contextualCloseAssets();
+      return;
+    }
+    if (event.key !== 'Tab' || !contextualUsesModalPrecedence()) return;
+    const nodes = contextualPanelFocusables(activePanel);
+    if (!nodes.length) return;
+    const first = nodes[0];
+    const last = nodes[nodes.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  function contextualRefreshFromCart() {
+    if (!isContextualWorkspace()) return;
+    contextualSyncCartSummary();
+    const hasCartContext = !!stagedSelection || cartLines.length > 0;
+    if (!hasCartContext) contextualCartDismissed = false;
+    if (hasCartContext && !contextualCartDismissed && !contextualCartIsOpen() && !contextualIsMobile()) {
+      contextualOpenCart($('#contextual-cart-open'), false);
+    }
+  }
+
+  function setupContextualWorkspace() {
+    if (!isContextualWorkspace()) return;
+    document.body.dataset.cwAssets = 'closed';
+    document.body.dataset.cwCart = 'closed';
+    contextualAssetOpener = $('#j3-launcher-btn');
+    contextualCartOpener = $('#contextual-cart-open');
+    $('#j3-launcher-btn')?.addEventListener('click', (event) => contextualOpenAssets(event.currentTarget));
+    $('#j3-explorer-close')?.addEventListener('click', () => contextualCloseAssets());
+    $('#j3-explorer-done')?.addEventListener('click', () => contextualCloseAssets());
+    $('#contextual-cart-open')?.addEventListener('click', (event) => contextualOpenCart(event.currentTarget));
+    $('#contextual-cart-close')?.addEventListener('click', () => contextualCloseCart());
+    $('#j3-explorer-scrim')?.addEventListener('click', () => {
+      if (contextualLastSurface === 'assets' && contextualAssetIsOpen()) contextualCloseAssets();
+      else if (contextualCartIsOpen()) contextualCloseCart();
+    });
+    document.addEventListener('keydown', contextualHandleKeydown);
+    contextualSyncSurfaces();
+    contextualSyncAssetSummary();
+    contextualSyncCartSummary();
+  }
 
   function pad(n, w) {
     let s = String(n);
@@ -2133,6 +3201,7 @@
     reviewScale = scale;
     reviewAssets = generateReviewAssets(scale);
     reviewItems = generateReviewItems(scale);
+    scalabilityFixturesExpanded = false;
     assetScroll = 0;
     assetActive = 0;
     $$('.review-scale-btn').forEach((b) => b.classList.toggle('active', Number(b.dataset.scale) === scale));
@@ -2477,6 +3546,10 @@
     }
   }
 
+  function getScalabilityFixtureCount() {
+    return reviewAssets.reduce((count, asset) => count + (asset.journey ? 0 : 1), 0);
+  }
+
   function getBrowseRows() {
     if (isJ3Journey()) return getJ3BrowseRows();
     const rows = [];
@@ -2497,6 +3570,16 @@
         });
       }
     }
+    const fixtureCount = getScalabilityFixtureCount();
+    rows.push({
+      kind: 'fixture-group', key: 'scalability-review-fixtures',
+      name: `Scalability review fixtures (${fmt(fixtureCount)})`, level: 1,
+      expanded: scalabilityFixturesExpanded, journey: false,
+      meta: scalabilityFixturesExpanded ? 'Generated fixture hierarchy expanded' : 'Generated fixture hierarchy collapsed',
+      fixtureCount
+    });
+    if (!scalabilityFixturesExpanded) return rows;
+
     const genVenues = {};
     reviewAssets.forEach((a) => {
       if (a.journey) return;
@@ -2507,15 +3590,15 @@
       const g = genVenues[vk];
       const key = 'gv-' + vk;
       const exp = !!genVenueExpanded[key];
-      rows.push({ kind: 'venue', key, name: g.venue, level: 1, expanded: exp, journey: false, meta: 'Venue · generated' });
+      rows.push({ kind: 'venue', key, name: g.venue, level: 2, expanded: exp, journey: false, meta: 'Venue · generated' });
       if (exp) {
-        rows.push({ kind: 'category', key: key + '-halls', name: 'Halls', level: 2, expanded: true, meta: 'Category' });
+        rows.push({ kind: 'category', key: key + '-halls', name: 'Halls', level: 3, expanded: true, meta: 'Category' });
         g.resources.filter((r) => r.category === 'Halls').forEach((a) => {
-          rows.push({ kind: 'resource', key: a.id, asset: a, level: 3, meta: 'Resource · generated' });
+          rows.push({ kind: 'resource', key: a.id, asset: a, level: 4, meta: 'Resource · generated' });
         });
-        rows.push({ kind: 'category', key: key + '-studios', name: 'Studios', level: 2, expanded: true, meta: 'Category' });
+        rows.push({ kind: 'category', key: key + '-studios', name: 'Studios', level: 3, expanded: true, meta: 'Category' });
         g.resources.filter((r) => r.category === 'Studios').forEach((a) => {
-          rows.push({ kind: 'resource', key: a.id, asset: a, level: 3, meta: 'Resource · generated' });
+          rows.push({ kind: 'resource', key: a.id, asset: a, level: 4, meta: 'Resource · generated' });
         });
       }
     });
@@ -2570,6 +3653,7 @@
       strip.appendChild(chip);
     });
     if (isJ3Journey()) j3RenderLauncherSummary();
+    if (isContextualWorkspace()) contextualSyncAssetSummary();
   }
 
   function scrollTreeActive() {
@@ -2763,6 +3847,7 @@
     if (key === 'venue') expandedNodes.add('venue');
     else if (key === 'halls') expandedNodes.add('halls');
     else if (key === 'studios') expandedNodes.add('studios');
+    else if (key === 'scalability-review-fixtures') scalabilityFixturesExpanded = true;
     else genVenueExpanded[key] = true;
   }
 
@@ -2774,6 +3859,7 @@
     if (key === 'venue') expandedNodes.delete('venue');
     else if (key === 'halls') expandedNodes.delete('halls');
     else if (key === 'studios') expandedNodes.delete('studios');
+    else if (key === 'scalability-review-fixtures') scalabilityFixturesExpanded = false;
     else genVenueExpanded[key] = false;
   }
 
@@ -2783,7 +3869,8 @@
       else j3ExpandedNodes.add(key);
       return;
     }
-    if (expandedNodes.has(key)) expandedNodes.delete(key);
+    if (key === 'scalability-review-fixtures') scalabilityFixturesExpanded = !scalabilityFixturesExpanded;
+    else if (expandedNodes.has(key)) expandedNodes.delete(key);
     else if (key === 'venue' || key === 'halls' || key === 'studios') expandedNodes.add(key);
     else genVenueExpanded[key] = !genVenueExpanded[key];
   }
@@ -3180,10 +4267,15 @@
         ${(meta.includedItems || []).map((id) => `<label><input type="checkbox" data-staged-included="${id}" checked> ${escapeHtml(getItemRecord(id).label)}</label>`).join('')}
       </fieldset>`;
     const valueInput = host.querySelector('input[type="number"]');
-    if (valueInput) valueInput.addEventListener('input', () => {
-      valueInput.removeAttribute('aria-invalid');
-      updatePrimaryAction();
-    });
+    if (valueInput) {
+      const stagedValue = meta.type === 'quantity' ? stagedSelection?.packageQuantity : stagedSelection?.packageAttendees;
+      if (stagedValue != null) valueInput.value = String(stagedValue);
+      valueInput.addEventListener('input', () => {
+        valueInput.removeAttribute('aria-invalid');
+        updatePrimaryAction();
+        renderCurrentSelectionSummary();
+      });
+    }
   }
 
   function getStagedPackageState(showErrors) {
@@ -3212,6 +4304,39 @@
 
   function getDisplayLines() {
     return cartLines;
+  }
+
+  function projectCartRuntime(lines = cartLines) {
+    const actualLines = Array.isArray(lines) ? lines : [];
+    const count = actualLines.length;
+    const pendingLines = actualLines.filter((line) => line.amountPending === true);
+    const pricedLines = actualLines.filter((line) => line.amountPending !== true && Number.isFinite(line.amount));
+    const pendingCount = pendingLines.length;
+    const readyCount = count - pendingCount;
+    const attentionCount = pendingCount;
+    const total = pricedLines.reduce((sum, line) => sum + line.amount, 0);
+    const formattedTotal = `AU$ ${total.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const itemLabel = count === 1 ? '1 item' : `${count} items`;
+    return {
+      lines: actualLines,
+      count,
+      itemLabel,
+      summaryItemLabel: count === 1 ? '1 Item' : `${count} Items`,
+      cartItemLabel: `${count} Cart ${count === 1 ? 'item' : 'items'}`,
+      bookLabel: count === 1 ? 'Book 1 item ›' : `Book ${count} items ›`,
+      pendingLines,
+      pendingCount,
+      pricedLines,
+      readyCount,
+      attentionCount,
+      statusLabel: `${readyCount} Ready / ${attentionCount} Attention`,
+      total,
+      formattedTotal,
+      totalKindLabel: pendingCount > 0 ? 'Priced subtotal' : 'Priced total',
+      footerTotalLabel: pendingCount === 0
+        ? 'Cart price total'
+        : `Priced subtotal · ${pendingCount} ${pendingCount === 1 ? 'price' : 'prices'} pending`
+    };
   }
 
   function setCartViewMode(mode) {
@@ -3298,9 +4423,13 @@
   }
 
   function updateCartUI() {
-    const count = cartLines.length;
-    selectedLineIds = new Set(Array.from(selectedLineIds).filter((id) => cartLines.some((line) => line.id === id)));
-    const displayCount = draft.stressCount || count;
+    const projection = projectCartRuntime();
+    const count = projection.count;
+    selectedLineIds = new Set(Array.from(selectedLineIds).filter((id) => projection.lines.some((line) => line.id === id)));
+    if (draft.stressCount !== null && draft.stressCount !== count) {
+      draft.stressCount = null;
+      $$('.stress-btn').forEach((button) => button.classList.remove('active'));
+    }
     const hasSelection = !!stagedSelection;
     const isEditing = !!editingLineId;
     const phase = draft.phase;
@@ -3308,18 +4437,15 @@
     document.body.dataset.lines = String(count);
     document.body.dataset.hasSelection = hasSelection ? 'true' : 'false';
     document.body.dataset.editing = isEditing ? 'true' : 'false';
-    document.body.dataset.stress = draft.stressCount ? String(draft.stressCount) : '';
+    document.body.dataset.stress = draft.stressCount === count ? String(count) : '';
 
-    const itemLabel = displayCount === 1 ? '1 item' : `${displayCount} items`;
-    $('#cart-count').textContent = displayCount === 0 ? '0 items' : itemLabel;
-    $('#sheet-count').textContent = String(displayCount);
+    $('#cart-count').textContent = projection.itemLabel;
+    $('#sheet-count').textContent = String(count);
     $('#clear-cart-btn').hidden = count === 0 && !hasSelection;
     const cartToolbar = $('#cart-toolbar');
-    if (cartToolbar) cartToolbar.hidden = displayCount === 0 && !hasSelection;
+    if (cartToolbar) cartToolbar.hidden = count === 0 && !hasSelection;
     const confirmBookBtn = $('#confirm-booking-btn');
-    if (confirmBookBtn) {
-      confirmBookBtn.textContent = displayCount === 1 ? 'Book 1 item ›' : `Book ${displayCount} items ›`;
-    }
+    if (confirmBookBtn) confirmBookBtn.textContent = projection.bookLabel;
     const selectedCount = selectedLineIds.size;
     $('#selected-lines-count').textContent = `${selectedCount} selected`;
     $('#selected-lines-count').hidden = selectedCount === 0;
@@ -3327,13 +4453,13 @@
     $('#bulk-time-btn').disabled = selectedCount < 2;
     $('#bulk-config-btn').disabled = selectedCount < 2;
 
-    $('#cart-empty-guidance').hidden = hasSelection || count > 0 || displayCount > 0 || phase !== 'select';
+    $('#cart-empty-guidance').hidden = hasSelection || count > 0 || phase !== 'select';
     $('#cart-current-selection').hidden = !hasSelection || phase === 'unavailable';
-    $('#cart-added-items').hidden = displayCount === 0;
+    $('#cart-added-items').hidden = count === 0;
     $('#cart-hint').hidden = hasSelection || count === 0;
-    $('#cart-amount-context').hidden = displayCount === 0 && !hasSelection;
+    $('#cart-amount-context').hidden = count === 0 && !hasSelection;
 
-    if (!hasSelection && count === 0 && displayCount === 0) {
+    if (!hasSelection && count === 0) {
       const primary = ASSETS.find((a) => selectedAssets.has(a.id)) || ASSETS[0];
       $('#cart-empty-sub').textContent = `${primary.name} · ${primary.venue}`;
     }
@@ -3341,6 +4467,7 @@
     if (hasSelection) {
       $('#current-selection-title').textContent = isEditing ? 'Editing item' : 'New selection';
     }
+    syncCurrentSelectionDisclosure();
 
     if (phase === 'unavailable' && draft.unavailableSelection) {
       const u = draft.unavailableSelection;
@@ -3355,11 +4482,13 @@
     updatePrimaryAction();
     updateJourneyUI();
     positionCartForViewport();
+    contextualRefreshFromCart();
   }
 
   function renderCartTotals() {
-    const lines = getDisplayLines();
-    const displayCount = lines.length;
+    const projection = projectCartRuntime(getDisplayLines());
+    const lines = projection.lines;
+    const displayCount = projection.count;
     const summaryCopy = $('#summary-copy');
     const summaryValue = $('#summary-value');
     const el = $('#cart-totals');
@@ -3373,6 +4502,13 @@
     const totalLabelEl = $('#cart-summary-total-label');
     const totalValueEl = $('#cart-summary-total-value');
     const statusCountEl = $('#cart-summary-status-count');
+
+    if (itemCountEl) itemCountEl.textContent = projection.summaryItemLabel;
+    if (totalLabelEl) totalLabelEl.textContent = projection.totalKindLabel;
+    if (totalValueEl) totalValueEl.textContent = projection.formattedTotal;
+    if (statusCountEl) statusCountEl.textContent = projection.statusLabel;
+    if (summaryCopy) summaryCopy.innerHTML = `<b>${projection.cartItemLabel}</b>`;
+    if (summaryValue) summaryValue.innerHTML = `<span>${projection.footerTotalLabel}</span><b>${projection.formattedTotal}</b>`;
 
     if (displayCount === 0 && !stagedSelection) {
       if (el) el.innerHTML = '';
@@ -3393,31 +4529,10 @@
       return;
     }
 
-    const pricedLines = lines.filter((line) => !line.amountPending && Number.isFinite(line.amount));
-    const pendingCount = displayCount - pricedLines.length;
-    const total = pricedLines.reduce((sum, line) => sum + line.amount, 0);
-    const formattedTotal = `AU$ ${total.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    const readyCount = lines.filter((line) => line.amountPending !== true).length;
-    const attentionCount = lines.filter((line) => line.amountPending === true).length;
-
     if (summaryControls) summaryControls.hidden = false;
     if (cartToolbar) cartToolbar.hidden = false;
     if (summaryBlocks) summaryBlocks.hidden = false;
     if (columnHead) columnHead.hidden = false;
-    if (itemCountEl) itemCountEl.textContent = displayCount === 1 ? '1 Item' : `${displayCount} Items`;
-    if (totalLabelEl) totalLabelEl.textContent = pendingCount > 0 ? 'Priced subtotal' : 'Priced total';
-    if (totalValueEl) totalValueEl.textContent = formattedTotal;
-    if (statusCountEl) statusCountEl.textContent = `${readyCount} Ready / ${attentionCount} Attention`;
-
-    if (summaryCopy) {
-      summaryCopy.innerHTML = `<b>${displayCount} Cart ${displayCount === 1 ? 'item' : 'items'}</b>`;
-    }
-    if (summaryValue) {
-      const label = pendingCount === 0
-        ? 'Cart price total'
-        : `Priced subtotal · ${pendingCount} ${pendingCount === 1 ? 'price' : 'prices'} pending`;
-      summaryValue.innerHTML = `<span>${label}</span><b>${formattedTotal}</b>`;
-    }
 
     el.innerHTML = '<p>Fixture values · total policy open (DEC-PRC-005).</p>';
   }
@@ -3447,18 +4562,25 @@
       ? '<span class="cart-line-status is-pending" title="Price pending — review required">Attention</span>'
       : `<span class="cart-line-status is-ready" title="${escapeHtml(line.priceStatus || 'Calculated · review fixture')}">${readyState}</span>`;
     const priceMarkup = amountPending
-      ? '<span class="cart-line-price-pending">Price pending</span>'
+      ? '<span class="cart-line-price-pending" role="status" aria-label="Price pending" title="Price pending"><span aria-hidden="true">＄◷</span></span>'
       : `<b>AU$ ${amount.toLocaleString('en-AU', { minimumFractionDigits: 2 })}</b>`;
     const editingBadge = isEditingLine ? '<span class="cart-line-badge">Editing</span>' : '';
     const selected = selectedLineIds.has(line.id);
     const hasPackage = line.package !== 'none';
     const conditional = line.packageQuantity != null ? `Qty ${line.packageQuantity}` : (line.packageAttendees != null ? `${line.packageAttendees} attendees` : '');
     const packageRow = hasPackage
-      ? `<div class="cart-line-package-row"><span class="cart-line-package">${escapeHtml(compactCardLabel(pkg.label))}</span>${conditional ? `<span class="cart-line-package-value">${escapeHtml(conditional)}</span>` : ''}</div>`
+      ? `<div class="cart-line-package-row"><span class="cart-line-package" title="${escapeHtml(compactCardLabel(pkg.label))}">${escapeHtml(compactCardLabel(pkg.label))}</span>${conditional ? `<span class="cart-line-package-value">${escapeHtml(conditional)}</span>` : ''}</div>`
       : '';
     const timeslotSummary = line.hasMoreTimeslots
       ? `<button type="button" class="inline-disclosure cart-line-timeslots" data-show-timeslots="${line.id}" aria-expanded="${!!line.timeslotsRevealed}">${line.timeslotsRevealed ? 'Fewer times' : 'More times'}</button>`
       : '';
+    const detailContextParts = [
+      `<span class="cart-line-context-part" title="${escapeHtml(compactCardLabel(item.label))}">${escapeHtml(compactCardLabel(item.label))}</span>`,
+      `<span class="cart-line-context-part" title="${escapeHtml(compactCardLabel(configurationLabel(line.configuration)))}">${escapeHtml(compactCardLabel(configurationLabel(line.configuration)))}</span>`,
+      ...(hasPackage ? [`<span class="cart-line-context-part" title="${escapeHtml(compactCardLabel(pkg.label))}">${escapeHtml(compactCardLabel(pkg.label))}</span>`] : []),
+      ...(conditional ? [`<span class="cart-line-context-part" title="${escapeHtml(conditional)}">${escapeHtml(conditional)}</span>`] : [])
+    ];
+    const detailContextMarkup = `<div class="cart-line-context">${detailContextParts.join('<span class="cart-line-context-separator" aria-hidden="true">·</span>')}${timeslotSummary}</div>`;
     const summaryClass = `cart-line-summary${hasPackage ? ' has-package' : ''}${isExpanded ? ' detail-summary' : ''}`;
     return `
       <div class="${summaryClass}">
@@ -3468,24 +4590,55 @@
           <div class="cart-line-main">
             <button type="button" class="cart-line-title line-select-button" data-highlight-line="${line.id}" aria-pressed="${selected}"><span class="cart-line-resource">${escapeHtml(asset.name)}</span>${editingBadge}</button>
           </div>
-          <div class="cart-line-venue">${escapeHtml(asset.venue)}</div>
+          <span class="cart-line-compact-item" title="${escapeHtml(compactCardLabel(item.label))}">${escapeHtml(compactCardLabel(item.label))}</span>
+          <div class="cart-line-venue" title="${escapeHtml(asset.venue)}">${escapeHtml(asset.venue)}</div>
         </div>
         <div class="cart-line-datetime-block">
           <div class="cart-line-schedule"><span class="cart-line-schedule-date">${dateStr}</span><span class="cart-line-schedule-time">${timeStr}</span><span class="cart-line-schedule-duration">${durationStr}</span></div>
         </div>
         <div class="cart-line-amount-col">${stateMarkup}</div>
         <div class="cart-line-price">${priceMarkup}</div>
-        <div class="cart-line-offering"><span class="cart-line-item">${escapeHtml(compactCardLabel(item.label))}</span><span class="cart-line-configuration">${escapeHtml(compactCardLabel(configurationLabel(line.configuration)))}</span>${timeslotSummary}</div>
+        <div class="cart-line-offering"><span class="cart-line-item" title="${escapeHtml(compactCardLabel(item.label))}">${escapeHtml(compactCardLabel(item.label))}</span><span class="cart-line-configuration" title="${escapeHtml(compactCardLabel(configurationLabel(line.configuration)))}">${escapeHtml(compactCardLabel(configurationLabel(line.configuration)))}</span></div>
         ${packageRow}
+        ${detailContextMarkup}
         <div class="cart-line-actions" aria-label="Actions for ${escapeHtml(asset.name)}">
-          <button type="button" class="btn-ghost btn-sm" data-time="${line.id}" aria-label="Change date and time for ${escapeHtml(asset.name)}">Time</button>
-          <button type="button" class="btn-ghost btn-sm" data-config="${line.id}" aria-label="Change configuration for ${escapeHtml(asset.name)}">Config</button>
-          <button type="button" class="btn-ghost btn-sm" data-package="${line.id}" aria-label="${hasPackage ? 'Change' : 'Add'} package for ${escapeHtml(asset.name)}">${hasPackage ? 'Change package' : 'Add package'}</button>
-          <button type="button" class="btn-ghost btn-sm" data-pricing="${line.id}" aria-label="Change pricing for ${escapeHtml(asset.name)}">Pricing</button>
-          <button type="button" class="btn-ghost btn-sm cart-line-more-btn" data-details="${line.id}" aria-expanded="${isExpanded}" aria-label="${isExpanded ? 'Hide' : 'Show'} details for ${escapeHtml(asset.name)}"><span class="cart-line-more-ellipsis" aria-hidden="true">⋮</span><span class="cart-line-more-text">More</span></button>
-          <button type="button" class="btn-ghost btn-sm danger-link" data-remove="${line.id}" aria-label="Remove ${escapeHtml(asset.name)} from Cart">Remove</button>
+          <button type="button" class="btn-ghost btn-sm cart-line-delete" data-line-delete="${line.id}" aria-label="Remove ${escapeHtml(asset.name)} from Cart" title="Remove ${escapeHtml(asset.name)} from Cart"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11M6 4V2.5h4V4m2 0-.6 9H4.6L4 4m2.2 2.2v4.9m3.6-4.9v4.9"/></svg></button>
+          <button type="button" class="btn-ghost btn-sm cart-line-actions-toggle" data-line-actions-toggle="${line.id}" aria-expanded="${openLineActionsId === line.id}" aria-controls="cart-line-action-menu-${line.id}" aria-haspopup="menu" aria-label="${openLineActionsId === line.id ? 'Close' : 'Open'} actions for ${escapeHtml(asset.name)}"><span aria-hidden="true">⋮</span></button>
+          <div class="cart-line-action-menu" id="cart-line-action-menu-${line.id}" role="menu" aria-label="Actions for ${escapeHtml(asset.name)}" ${openLineActionsId === line.id ? '' : 'hidden'}>
+            <button type="button" class="btn-ghost btn-sm" role="menuitem" tabindex="-1" data-time="${line.id}" aria-label="Change date and time for ${escapeHtml(asset.name)}">Change time</button>
+            <button type="button" class="btn-ghost btn-sm" role="menuitem" tabindex="-1" data-config="${line.id}" aria-label="Change configuration for ${escapeHtml(asset.name)}">Change configuration</button>
+            <button type="button" class="btn-ghost btn-sm" role="menuitem" tabindex="-1" data-package="${line.id}" aria-label="${hasPackage ? 'Change' : 'Add'} package for ${escapeHtml(asset.name)}">${hasPackage ? 'Change package' : 'Add package'}</button>
+            <button type="button" class="btn-ghost btn-sm" role="menuitem" tabindex="-1" data-pricing="${line.id}" aria-label="Change pricing for ${escapeHtml(asset.name)}">Pricing</button>
+            <button type="button" class="btn-ghost btn-sm cart-line-more-btn" role="menuitem" tabindex="-1" data-details="${line.id}" aria-label="Show more details for ${escapeHtml(asset.name)}">More details</button>
+            <button type="button" class="btn-ghost btn-sm danger-link" role="menuitem" tabindex="-1" data-remove="${line.id}" aria-label="Remove ${escapeHtml(asset.name)} from Cart">Remove</button>
+          </div>
         </div>
       </div>`;
+  }
+
+  function positionLineActionMenu(id) {
+    const line = Array.from(document.querySelectorAll('[data-booking-line]')).find((entry) => entry.dataset.bookingLine === id);
+    const menu = line?.querySelector('.cart-line-action-menu:not([hidden])');
+    const toggle = line?.querySelector('[data-line-actions-toggle]');
+    const scroll = $('#items-scroll');
+    if (!line || !menu || !toggle || !scroll) return;
+    line.classList.remove('is-actions-flipped');
+    menu.style.position = 'fixed';
+    menu.style.inset = 'auto';
+    menu.style.left = '0px';
+    menu.style.top = '0px';
+    const menuRect = menu.getBoundingClientRect();
+    const toggleRect = toggle.getBoundingClientRect();
+    const scrollRect = scroll.getBoundingClientRect();
+    const below = toggleRect.bottom + 4;
+    const above = toggleRect.top - menuRect.height - 4;
+    const top = below + menuRect.height <= scrollRect.bottom - 4
+      ? below
+      : (above >= scrollRect.top + 4 ? above : Math.max(scrollRect.top + 4, scrollRect.bottom - menuRect.height - 4));
+    const left = Math.max(scrollRect.left + 4, Math.min(toggleRect.right - menuRect.width, scrollRect.right - menuRect.width - 4));
+    menu.style.left = `${Math.round(left)}px`;
+    menu.style.top = `${Math.round(top)}px`;
+    line.classList.toggle('is-actions-flipped', top < toggleRect.top);
   }
 
   function renderCartLines() {
@@ -3526,14 +4679,19 @@
         li.className = 'cart-line' + (isEditingLine ? ' is-editing' : '') + (selectedLineIds.has(line.id) ? ' is-selected' : '');
         li.innerHTML = renderCompactLineSummary(line, lineNum, asset, item, pkg, isEditingLine, false);
       }
+      if (openLineActionsId === line.id) li.classList.add('has-open-actions');
       list.appendChild(li);
     });
 
-    if (scroll) requestAnimationFrame(() => { scroll.scrollTop = listScrollPos; });
+    requestAnimationFrame(() => {
+      if (scroll) scroll.scrollTop = listScrollPos;
+      if (openLineActionsId) positionLineActionMenu(openLineActionsId);
+    });
 
     list.querySelectorAll('[data-group-toggle]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const group = Number(btn.dataset.groupToggle);
+        openLineActionsId = null;
         if (expandedGroups.has(group)) expandedGroups.delete(group); else expandedGroups.add(group);
         renderCartLines();
       });
@@ -3549,6 +4707,50 @@
         const id = btn.dataset.highlightLine;
         if (selectedLineIds.has(id)) selectedLineIds.delete(id); else selectedLineIds.add(id);
         updateCartUI();
+      });
+    });
+    list.querySelectorAll('[data-line-actions-toggle]').forEach((btn) => {
+      btn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const id = btn.dataset.lineActionsToggle;
+        const opening = openLineActionsId !== id;
+        openLineActionsId = opening ? id : null;
+        renderCartLines();
+        requestAnimationFrame(() => {
+          const line = Array.from(list.querySelectorAll('[data-booking-line]')).find((entry) => entry.dataset.bookingLine === id);
+          const target = opening
+            ? line?.querySelector('.cart-line-action-menu [role="menuitem"]')
+            : line?.querySelector('[data-line-actions-toggle]');
+          if (target) target.focus();
+        });
+      });
+      btn.addEventListener('keydown', (event) => {
+        if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+        event.preventDefault();
+        const id = btn.dataset.lineActionsToggle;
+        openLineActionsId = id;
+        renderCartLines();
+        requestAnimationFrame(() => {
+          const line = Array.from(list.querySelectorAll('[data-booking-line]')).find((entry) => entry.dataset.bookingLine === id);
+          const items = Array.from(line?.querySelectorAll('.cart-line-action-menu [role="menuitem"]') || []);
+          const target = event.key === 'ArrowUp' ? items[items.length - 1] : items[0];
+          if (target) target.focus();
+        });
+      });
+    });
+    list.querySelectorAll('.cart-line-action-menu').forEach((menu) => {
+      menu.addEventListener('click', (event) => event.stopPropagation());
+      menu.addEventListener('keydown', (event) => {
+        const items = Array.from(menu.querySelectorAll('[role="menuitem"]'));
+        const current = items.indexOf(document.activeElement);
+        let next = null;
+        if (event.key === 'ArrowDown') next = items[(current + 1 + items.length) % items.length];
+        else if (event.key === 'ArrowUp') next = items[(current - 1 + items.length) % items.length];
+        else if (event.key === 'Home') next = items[0];
+        else if (event.key === 'End') next = items[items.length - 1];
+        if (!next) return;
+        event.preventDefault();
+        next.focus();
       });
     });
     list.querySelectorAll('[data-details]').forEach((btn) => {
@@ -3568,6 +4770,9 @@
     });
     list.querySelectorAll('[data-remove]').forEach((btn) => {
       btn.addEventListener('click', () => promptRemove(btn.dataset.remove, btn));
+    });
+    list.querySelectorAll('[data-line-delete]').forEach((btn) => {
+      btn.addEventListener('click', () => promptRemove(btn.dataset.lineDelete, btn));
     });
     list.querySelectorAll('[data-inline-picker]').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -3654,6 +4859,81 @@
     return itemKey === 'community-hall';
   }
 
+  function syncCurrentSelectionEditControl() {
+    const toggle = $('#current-selection-details-toggle');
+    if (!toggle) return;
+    const dialog = $('#cart-item-editor-dialog');
+    const newSelectionTarget = !!stagedSelection && !editingLineId && !currentSelectionDetailsExpanded;
+    if (newSelectionTarget) {
+      toggle.setAttribute('aria-controls', 'cart-item-editor-dialog');
+      toggle.setAttribute('aria-haspopup', 'dialog');
+      toggle.setAttribute('aria-expanded', String(!!dialog?.open && dialog.dataset.editorTarget === 'staged-selection'));
+      toggle.textContent = 'Edit details';
+    } else {
+      toggle.setAttribute('aria-controls', 'configure-form');
+      toggle.removeAttribute('aria-haspopup');
+      toggle.setAttribute('aria-expanded', String(currentSelectionDetailsExpanded));
+      toggle.textContent = currentSelectionDetailsExpanded ? 'Hide details' : 'Edit details';
+    }
+  }
+
+  function setCurrentSelectionDetailsExpanded(expanded, options = {}) {
+    const form = $('#configure-form');
+    const toggle = $('#current-selection-details-toggle');
+    if (!form || !toggle) return;
+    const open = !!expanded && !!stagedSelection;
+    currentSelectionDetailsExpanded = open;
+    document.body.dataset.currentSelectionDetails = open ? 'expanded' : 'collapsed';
+    form.hidden = !open;
+    form.toggleAttribute('inert', !open);
+    form.setAttribute('aria-hidden', String(!open));
+    syncCurrentSelectionEditControl();
+    if (open && options.moveFocus) {
+      requestAnimationFrame(() => form.focus({ preventScroll: true }));
+    } else if (!open && options.restoreFocus && !toggle.closest('[hidden]')) {
+      requestAnimationFrame(() => toggle.focus({ preventScroll: true }));
+    }
+  }
+
+  function syncCurrentSelectionDisclosure() {
+    if (!stagedSelection) currentSelectionDetailsExpanded = false;
+    setCurrentSelectionDetailsExpanded(currentSelectionDetailsExpanded);
+  }
+
+  function renderCurrentSelectionSummary() {
+    const host = $('#staged-summary');
+    if (!host) return;
+    if (!stagedSelection) {
+      host.innerHTML = '';
+      return;
+    }
+    const s = stagedSelection;
+    const asset = ASSETS.find((entry) => entry.id === s.asset);
+    if (!asset) return;
+    const hours = selectionDurationHours(s);
+    const endDate = s.endDate || s.date;
+    const endDateSuffix = endDate !== s.date ? ` ${formatShortDate(new Date(endDate + 'T12:00:00'))}` : '';
+    const when = `${formatShortDate(new Date(s.date + 'T12:00:00'))} · ${formatSelectionTime(s.startH, s.startM)}–${endDateSuffix}${formatSelectionTime(s.endH, s.endM)} · ${hours} hour${hours !== 1 ? 's' : ''}`;
+    const item = getItemRecord(getCommitted('item')).label;
+    const packageId = getCommitted('package');
+    const packageRecord = getPackageRecord(packageId);
+    const packageMetadata = packageMeta(packageId);
+    const packageState = getStagedPackageState(false);
+    let packageSummary = packageRecord.label;
+    if (packageMetadata.type === 'quantity') packageSummary += ` · ${packageState.quantity == null ? 'Quantity required' : `Qty ${packageState.quantity}`}`;
+    else if (packageMetadata.type === 'attendees') packageSummary += ` · ${packageState.attendees == null ? 'Attendees required' : `${packageState.attendees} attendees`}`;
+    const configuration = $('#cfg-configuration')?.selectedOptions?.[0]?.textContent || configurationLabel($('#cfg-configuration')?.value);
+    const allocation = $('#allocation-summary')?.textContent || asset.name;
+    const amountRegion = $('#amount-region');
+    const amount = amountRegion && !amountRegion.hidden ? amountRegion.querySelector('.amount-value')?.textContent : 'Quote pending';
+    const concession = getConcessionRecord(getCommitted('concession')).label;
+    const pricing = [amount, concession].filter(Boolean).join(' · ');
+    const row = (label, value) => `<div class="current-selection-summary-row" data-summary-row="${label.toLowerCase()}"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`;
+    host.innerHTML = `
+      <div class="current-selection-resource"><strong title="${escapeHtml(asset.name)}">${escapeHtml(asset.name)}</strong><span title="${escapeHtml(asset.venue)}">${escapeHtml(asset.venue)}</span></div>
+      <dl>${row('When', when)}${row('Item', item)}${row('Package', packageSummary)}${row('Configuration', configuration)}${row('Allocation', allocation)}${row('Pricing', pricing)}</dl>`;
+  }
+
   function updateConfigureForm() {
     if (!stagedSelection) {
       updatePrimaryAction();
@@ -3661,9 +4941,6 @@
     }
     const s = stagedSelection;
     const asset = ASSETS.find((a) => a.id === s.asset);
-    const hours = selectionDurationHours(s);
-    $('#staged-summary').textContent =
-      `${asset.name} · ${formatShortDate(new Date(s.date + 'T12:00:00'))} · ${formatSelectionTime(s.startH, s.startM)}–${formatSelectionTime(s.endH, s.endM)} · ${hours} hour${hours !== 1 ? 's' : ''} · ${asset.venue}`;
 
     const allowedConfigurations = CONFIGURATIONS[s.asset] || [];
     const configuration = $('#cfg-configuration');
@@ -3684,6 +4961,8 @@
       else amountEl.textContent = 'AU$ 2,750.00';
     }
 
+    renderCurrentSelectionSummary();
+
     if (!compatible && isJourneyItem(item) && isJourneyPackage(pkg)) {
       const dlg = $('#mismatch-dialog');
       if (!dlg.open) openMismatchDialog($('#cfg-item-input'));
@@ -3701,6 +4980,7 @@
 
   function createSelection(assetId, dk, startSlot, endSlotExclusive) {
     stagedSelection = selectionFromSlots(assetId, dk, startSlot, endSlotExclusive);
+    currentSelectionDetailsExpanded = false;
     editingLineId = null;
     draft.unavailableSelection = null;
     setCommitted('item', 'community-hall', { notify: false });
@@ -3763,6 +5043,7 @@
       cartLines.push(line);
     }
     stagedSelection = null;
+    currentSelectionDetailsExpanded = false;
     setPhase('cart');
     setStage(cartLines.length >= 2 ? 'l' : 'h');
     showToast(wasEdit ? 'Cart item updated — booking is not saved' : 'Added to cart — booking is not saved');
@@ -3775,6 +5056,7 @@
     if (!line) return;
     editingLineId = id;
     stagedSelection = { ...line };
+    currentSelectionDetailsExpanded = true;
     setCommitted('item', line.item, { notify: false });
     setCommitted('package', line.package, { notify: false });
     syncFieldDisplay('item');
@@ -3815,6 +5097,8 @@
     lastDialogTrigger = null;
   }
 
+  const STAGED_SELECTION_EDITOR_ID = 'staged-selection-draft';
+
   function sameIdSet(a, b) {
     if (!a || !b || a.length !== b.length) return false;
     const sortedA = [...a].sort().join('|');
@@ -3824,6 +5108,61 @@
 
   function getCartItemEditorDialog() {
     return $('#cart-item-editor-dialog');
+  }
+
+  function cartItemEditorTargetsStagedSelection() {
+    return cartItemEditor?.target === 'staged-selection';
+  }
+
+  function getEditorTargetRecord(id) {
+    if (id === STAGED_SELECTION_EDITOR_ID && cartItemEditorTargetsStagedSelection()) return stagedSelection;
+    return cartLines.find((entry) => entry.id === id);
+  }
+
+  function setCartItemEditorContext(target) {
+    const draftTarget = target === 'staged-selection';
+    const dialog = getCartItemEditorDialog();
+    if (!dialog) return;
+    dialog.dataset.editorTarget = draftTarget ? 'staged-selection' : 'cart-line';
+    $('#cart-item-editor-eyebrow').textContent = draftTarget ? 'New selection draft' : 'Staged selection';
+    $('#cart-item-editor-title').textContent = draftTarget ? 'Edit new selection' : 'Edit cart item';
+    $('#cart-item-editor-close').setAttribute('aria-label', draftTarget ? 'Close new selection editor' : 'Close cart item editor');
+    $('#time-desc').textContent = draftTarget
+      ? 'Edit the current draft using existing availability rules. The Cart stays unchanged until Add to cart succeeds.'
+      : 'Edit, review live availability and confirm on this one surface. The same staged Cart line is updated.';
+    const tablist = dialog.querySelector('.cart-item-editor-tabs');
+    if (tablist) {
+      tablist.setAttribute('role', draftTarget ? 'toolbar' : 'tablist');
+      tablist.setAttribute('aria-label', draftTarget ? 'New selection editor sections' : 'Cart item editor sections');
+    }
+    const controls = {
+      time: 'cie-panel-time',
+      config: 'cie-panel-config',
+      package: 'cie-panel-package',
+      pricing: 'cie-panel-pricing',
+      more: 'cie-panel-more'
+    };
+    const draftLabels = {
+      time: 'Edit draft time',
+      config: 'Open existing configuration controls',
+      package: 'Open existing package controls',
+      pricing: 'Open existing pricing controls'
+    };
+    $$('.cart-item-editor-tab').forEach((tab) => {
+      const name = tab.dataset.editorTab;
+      if (draftTarget) {
+        tab.setAttribute('role', 'button');
+        tab.removeAttribute('aria-controls');
+        tab.removeAttribute('aria-selected');
+        tab.setAttribute('aria-label', draftLabels[name] || tab.textContent.trim());
+        tab.tabIndex = 0;
+      } else {
+        tab.setAttribute('role', 'tab');
+        tab.setAttribute('aria-controls', controls[name]);
+        tab.removeAttribute('aria-label');
+        tab.removeAttribute('aria-pressed');
+      }
+    });
   }
 
   function updateEditorTabLabels(lineId) {
@@ -3837,10 +5176,18 @@
   function setEditorTab(tab) {
     const tabs = $$('.cart-item-editor-tab');
     const panels = $$('.editor-tabpanel');
+    const draftTarget = cartItemEditorTargetsStagedSelection();
     tabs.forEach((btn) => {
       const active = btn.dataset.editorTab === tab;
-      btn.setAttribute('aria-selected', active ? 'true' : 'false');
-      btn.tabIndex = active ? 0 : -1;
+      if (draftTarget) {
+        btn.removeAttribute('aria-selected');
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        btn.tabIndex = 0;
+      } else {
+        btn.removeAttribute('aria-pressed');
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+        btn.tabIndex = active ? 0 : -1;
+      }
     });
     panels.forEach((panel) => {
       panel.hidden = panel.id !== `cie-panel-${tab}`;
@@ -3863,7 +5210,18 @@
   }
 
   function updateEditorTabAvailability(ids) {
+    if (cartItemEditorTargetsStagedSelection()) {
+      ['time', 'config', 'package', 'pricing'].forEach((tab) => {
+        const el = $(`#cie-tab-${tab}`);
+        if (el) el.hidden = false;
+      });
+      const more = $('#cie-tab-more');
+      if (more) more.hidden = true;
+      return;
+    }
     const bulk = ids.length > 1;
+    const config = $('#cie-tab-config');
+    if (config) config.hidden = false;
     ['package', 'pricing', 'more'].forEach((tab) => {
       const el = $(`#cie-tab-${tab}`);
       if (el) el.hidden = bulk;
@@ -3880,6 +5238,7 @@
 
   function closeCartItemEditor(restore) {
     const dialog = getCartItemEditorDialog();
+    const wasDraftTarget = cartItemEditorTargetsStagedSelection();
     const focusOrigin = restore !== false && lastDialogTrigger ? captureFocusOrigin(lastDialogTrigger) : null;
     timeEditor = null;
     configurationEditor = null;
@@ -3888,6 +5247,7 @@
     cartItemEditor = null;
     lastDialogTrigger = null;
     if (dialog && dialog.open) dialog.close();
+    if (wasDraftTarget) setCartItemEditorContext('cart-line');
     updateCartUI();
     if (focusOrigin) queueMicrotask(() => restoreFocusToOrigin(focusOrigin));
   }
@@ -3931,15 +5291,15 @@
   }
 
   function initTimeEditor(ids) {
-    const uniqueIds = Array.from(new Set(ids)).filter((id) => cartLines.some((line) => line.id === id));
+    const uniqueIds = Array.from(new Set(ids)).filter((id) => !!getEditorTargetRecord(id));
     if (!uniqueIds.length) return false;
     const drafts = {};
     uniqueIds.forEach((id) => {
-      const line = cartLines.find((entry) => entry.id === id);
+      const line = getEditorTargetRecord(id);
       drafts[id] = { candidate: { ...line }, checked: true };
     });
-    timeEditor = { ids: uniqueIds, mode: 'common', drafts, candidates: {} };
-    const first = cartLines.find((line) => line.id === uniqueIds[0]);
+    timeEditor = { ids: uniqueIds, mode: 'common', drafts, candidates: {}, target: cartItemEditorTargetsStagedSelection() ? 'staged-selection' : 'cart-line' };
+    const first = getEditorTargetRecord(uniqueIds[0]);
     const start = toDateAndTime(lineInterval(first).start);
     const end = toDateAndTime(lineInterval(first).end);
     $('#time-start-date').value = start.date;
@@ -4002,6 +5362,7 @@
 
   function ensureEditorTabInitialized(tab) {
     if (!cartItemEditor) return false;
+    if (cartItemEditorTargetsStagedSelection() && tab !== 'time') return false;
     const ids = cartItemEditor.ids;
     switch (tab) {
       case 'time':
@@ -4024,8 +5385,32 @@
     }
   }
 
+  function openStagedConfigurePath(tab) {
+    if (!cartItemEditorTargetsStagedSelection() || !stagedSelection) return;
+    const focusTargets = {
+      config: '#cfg-configuration',
+      package: '#cfg-package-input',
+      pricing: '#cfg-concession-input'
+    };
+    const labels = {
+      config: 'Configuration',
+      package: 'Package',
+      pricing: 'Pricing'
+    };
+    const selector = focusTargets[tab];
+    if (!selector) return;
+    closeCartItemEditor(false);
+    setCurrentSelectionDetailsExpanded(true);
+    requestAnimationFrame(() => $(selector)?.focus({ preventScroll: true }));
+    announceLive(`${labels[tab]} controls opened in the existing Current selection form.`);
+  }
+
   function switchCartItemEditorTab(tab) {
     if (!cartItemEditor) return;
+    if (cartItemEditorTargetsStagedSelection() && tab !== 'time') {
+      openStagedConfigurePath(tab);
+      return;
+    }
     if (!ensureEditorTabInitialized(tab)) return;
     setEditorTab(tab);
     focusEditorTab(tab);
@@ -4036,10 +5421,10 @@
     const ids = (Array.isArray(idsOrId) ? idsOrId : [idsOrId]).filter((id) => cartLines.some((line) => line.id === id));
     if (!ids.length) return;
     const dialog = getCartItemEditorDialog();
-    const sameSession = cartItemEditor && dialog && dialog.open && sameIdSet(cartItemEditor.ids, ids);
+    const sameSession = cartItemEditor && !cartItemEditorTargetsStagedSelection() && dialog && dialog.open && sameIdSet(cartItemEditor.ids, ids);
     if (!sameSession) {
       lastDialogTrigger = trigger || document.activeElement;
-      cartItemEditor = { ids, tab };
+      cartItemEditor = { ids, tab, target: 'cart-line' };
       timeEditor = null;
       configurationEditor = null;
       packageEditor = null;
@@ -4047,6 +5432,7 @@
     } else {
       cartItemEditor.tab = tab;
     }
+    setCartItemEditorContext('cart-line');
     if (ids.length === 1) updateEditorTabLabels(ids[0]);
     updateEditorTabAvailability(ids);
     if (!ensureEditorTabInitialized(tab)) return;
@@ -4056,10 +5442,32 @@
     updateCartUI();
   }
 
+  function openStagedSelectionEditor(trigger) {
+    if (!stagedSelection || editingLineId) return;
+    const dialog = getCartItemEditorDialog();
+    if (!dialog) return;
+    lastDialogTrigger = trigger || document.activeElement;
+    cartItemEditor = { ids: [STAGED_SELECTION_EDITOR_ID], tab: 'time', target: 'staged-selection' };
+    timeEditor = null;
+    configurationEditor = null;
+    packageEditor = null;
+    pricingEditor = null;
+    setCartItemEditorContext('staged-selection');
+    updateEditorTabAvailability(cartItemEditor.ids);
+    if (!ensureEditorTabInitialized('time')) return;
+    setEditorTab('time');
+    if (!dialog.open) dialog.showModal();
+    updateCartUI();
+    syncCurrentSelectionEditControl();
+    focusEditorTab('time');
+    announceLive('Edit new selection opened on Time. Cart items and total are unchanged.');
+  }
+
   function handleEditorTabKeydown(event) {
     const tabs = Array.from($$('.cart-item-editor-tab')).filter((tab) => !tab.hidden);
     if (!tabs.length) return;
-    const currentIndex = tabs.findIndex((tab) => tab.getAttribute('aria-selected') === 'true');
+    const draftTarget = cartItemEditorTargetsStagedSelection();
+    const currentIndex = draftTarget ? Math.max(0, tabs.indexOf(document.activeElement)) : tabs.findIndex((tab) => tab.getAttribute('aria-selected') === 'true');
     let nextIndex = currentIndex;
     if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % tabs.length;
     else if (event.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
@@ -4067,6 +5475,10 @@
     else if (event.key === 'End') nextIndex = tabs.length - 1;
     else return;
     event.preventDefault();
+    if (draftTarget) {
+      tabs[nextIndex].focus();
+      return;
+    }
     const nextTab = tabs[nextIndex].dataset.editorTab;
     switchCartItemEditorTab(nextTab);
     tabs[nextIndex].focus();
@@ -4097,7 +5509,8 @@
 
   function syncCommonDuration() {
     if (!timeEditor || !$('#time-keep-duration').checked) return;
-    const first = cartLines.find((line) => line.id === timeEditor.ids[0]);
+    const first = getEditorTargetRecord(timeEditor.ids[0]);
+    if (!first) return;
     const duration = lineDurationMinutes(first);
     const start = new Date(`${$('#time-start-date').value}T${$('#time-start-time').value}:00`);
     if (Number.isNaN(start.getTime())) return;
@@ -4110,7 +5523,7 @@
   function syncDifferentDuration(id) {
     if (!timeEditor || !$('#time-keep-duration').checked) return;
     const row = $(`[data-time-row="${id}"]`);
-    const original = cartLines.find((line) => line.id === id);
+    const original = getEditorTargetRecord(id);
     if (!row || !original) return;
     const start = new Date(`${row.querySelector('[data-time-field="startDate"]').value}T${row.querySelector('[data-time-field="startTime"]').value}:00`);
     if (Number.isNaN(start.getTime())) return;
@@ -4125,7 +5538,8 @@
     if (!timeEditor) return result;
     if (timeEditor.mode === 'common') {
       timeEditor.ids.forEach((id) => {
-        const line = cartLines.find((entry) => entry.id === id);
+        const line = getEditorTargetRecord(id);
+        if (!line) return;
         result[id] = candidateFromParts(line, $('#time-start-date').value, $('#time-start-time').value, $('#time-end-date').value, $('#time-end-time').value);
       });
     } else {
@@ -4134,7 +5548,8 @@
         const checked = !!row.querySelector(`[data-time-check="${id}"]`).checked;
         timeEditor.drafts[id].checked = checked;
         if (!checked) return;
-        const line = cartLines.find((entry) => entry.id === id);
+        const line = getEditorTargetRecord(id);
+        if (!line) return;
         result[id] = candidateFromParts(
           line,
           row.querySelector('[data-time-field="startDate"]').value,
@@ -4153,9 +5568,10 @@
     const selectAll = $('#time-select-all-rows');
     if (selectAll && timeEditor.mode === 'different') selectAll.checked = timeEditor.ids.every((id) => timeEditor.drafts[id].checked);
     const ids = Object.keys(candidates);
-    let verdict = { ok: false, kind: 'validation', message: 'Select at least one staged Cart line.' };
+    const draftTarget = timeEditor.target === 'staged-selection';
+    let verdict = { ok: false, kind: 'validation', message: draftTarget ? 'Current selection time is required.' : 'Select at least one staged Cart line.' };
     if (ids.length) {
-      verdict = { ok: true, kind: 'available', message: `${ids.length} staged ${ids.length === 1 ? 'line is' : 'lines are'} available in this review fixture.` };
+      verdict = { ok: true, kind: 'available', message: draftTarget ? 'Current selection draft is available in this review fixture.' : `${ids.length} staged ${ids.length === 1 ? 'line is' : 'lines are'} available in this review fixture.` };
       for (const id of ids) {
         const candidateVerdict = checkCandidateAvailability(candidates[id], new Set(timeEditor.ids));
         if (!candidateVerdict.ok) { verdict = candidateVerdict; break; }
@@ -4175,6 +5591,25 @@
 
   function confirmTimeUpdate() {
     if (!timeEditor || !evaluateTimeEditor()) return;
+    const draftTarget = timeEditor.target === 'staged-selection';
+    if (draftTarget) {
+      const candidate = timeEditor.candidates[STAGED_SELECTION_EDITOR_ID];
+      if (!candidate || !stagedSelection) return;
+      stagedSelection = {
+        ...stagedSelection,
+        date: candidate.date,
+        startH: candidate.startH,
+        startM: candidate.startM,
+        endDate: candidate.endDate,
+        endH: candidate.endH,
+        endM: candidate.endM
+      };
+      closeCartItemEditor();
+      showToast('Current selection time updated · Add to cart is still required');
+      updateCartUI();
+      renderCalendar();
+      return;
+    }
     Object.entries(timeEditor.candidates).forEach(([id, candidate]) => {
       const idx = cartLines.findIndex((line) => line.id === id);
       if (idx < 0) return;
@@ -4412,13 +5847,31 @@
         const a = r.asset;
         const checked = selectedAssets.has(a.id) ? ' checked' : '';
         const te = (a.color || a.tint) === 'teal' ? ' teal' : '';
+        const generated = !isJ3Journey() && (r.meta === 'Resource · generated' || (r.search && a.journey === false));
+        const rowClass = generated ? ' generated-fixture-resource' : '';
+        const rowLabel = generated
+          ? ' aria-label="' + escapeHtml(a.name) + ', generated review fixture resource, ' + escapeHtml(a.venue) + ', ' + escapeHtml(a.category) + '"'
+          : (!isJ3Journey()
+            ? ' aria-label="' + escapeHtml(a.name) + ', Journey resource, ' + escapeHtml(a.venue) + ', ' + escapeHtml(a.category) + '"'
+            : '');
         const metaHtml = isJ3Journey()
           ? '<span class="j3-capacity-badge">' + a.capacity + '</span>'
-          : '<span class="tree-meta">' + r.meta + '</span>';
-        html += '<div class="tree-row' + active + '" id="' + rowId + '" role="treeitem" aria-level="' + r.level + '" data-idx="' + i + '" data-res="' + a.id + '" style="top:' + top + 'px;padding-left:' + (8 + ind) + 'px"><input type="checkbox" class="tree-check' + te + '" data-res="' + a.id + '" aria-label="Select ' + a.name + '"' + checked + '><span class="tree-name">' + a.name + '</span>' + metaHtml + '</div>';
+          : (generated ? '' : '<span class="tree-meta">' + r.meta + '</span>');
+        html += '<div class="tree-row' + rowClass + active + '" id="' + rowId + '" role="treeitem" aria-level="' + r.level + '"' + rowLabel + ' data-idx="' + i + '" data-res="' + a.id + '" style="top:' + top + 'px;padding-left:' + (8 + ind) + 'px"><input type="checkbox" class="tree-check' + te + '" data-res="' + a.id + '" aria-label="Select ' + a.name + '"' + checked + '><span class="tree-name">' + a.name + '</span>' + metaHtml + '</div>';
       } else {
         const exp = r.expanded ? '▾' : '▸';
-        html += '<div class="tree-row' + active + '" id="' + rowId + '" role="treeitem" aria-expanded="' + (r.expanded ? 'true' : 'false') + '" aria-level="' + r.level + '" data-idx="' + i + '" data-toggle="' + r.key + '" style="top:' + top + 'px;padding-left:' + (8 + ind) + 'px"><button type="button" class="tree-toggle" tabindex="-1" aria-hidden="true">' + exp + '</button><span class="tree-name">' + r.name + '</span><span class="tree-meta">' + r.meta + '</span></div>';
+        const fixtureClass = r.kind === 'fixture-group' ? ' scalability-fixture-group' : '';
+        const fixtureAttrs = r.kind === 'fixture-group'
+          ? ' data-scalability-fixtures="true" data-fixture-count="' + r.fixtureCount + '" aria-label="Scalability review fixtures, ' + r.fixtureCount + ' resources, ' + (r.expanded ? 'expanded' : 'collapsed') + '"'
+          : '';
+        const generatedNode = !isJ3Journey() && (r.meta.includes('generated') || String(r.key).startsWith('gv-'));
+        const nodeType = generatedNode
+          ? 'generated review fixture ' + (r.kind === 'venue' ? 'venue' : 'category')
+          : (r.kind === 'venue' ? 'Journey fixture venue' : 'Journey resource category');
+        const nodeLabel = !isJ3Journey() && r.kind !== 'fixture-group'
+          ? ' aria-label="' + escapeHtml(r.name) + ', ' + nodeType + ', ' + (r.expanded ? 'expanded' : 'collapsed') + '"'
+          : '';
+        html += '<div class="tree-row' + fixtureClass + active + '" id="' + rowId + '" role="treeitem" aria-expanded="' + (r.expanded ? 'true' : 'false') + '" aria-level="' + r.level + '"' + nodeLabel + ' data-idx="' + i + '" data-toggle="' + r.key + '"' + fixtureAttrs + ' style="top:' + top + 'px;padding-left:' + (8 + ind) + 'px"><button type="button" class="tree-toggle" tabindex="-1" aria-hidden="true">' + exp + '</button><span class="tree-name">' + r.name + '</span><span class="tree-meta">' + r.meta + '</span></div>';
       }
     }
     vp.innerHTML = html;
@@ -4669,8 +6122,10 @@
 
   function renderCalendar() {
     if (document.body.dataset.journey === '2') { j2RenderCalendar(); return; }
+    if (document.body.dataset.journey === '4') { j4RenderCalendar(); return; }
     const grid = $('#calendar-grid');
     grid.innerHTML = '';
+    grid.classList.remove('j4-calendar-grid');
     syncSlotLayoutControl();
 
     const days = getWeekDays();
@@ -4940,6 +6395,7 @@
         };
       }
       if (trigger.dataset.remove) return { cartAction: 'remove', lineId: trigger.dataset.remove };
+      if (trigger.dataset.lineDelete) return { cartAction: 'line-delete', lineId: trigger.dataset.lineDelete };
     }
     if (trigger.id) return { elementId: trigger.id };
     return { element: trigger };
@@ -4948,7 +6404,7 @@
   function resolveFocusTarget(origin) {
     if (!origin) return null;
     if (origin.cartAction) {
-      const dataAttr = origin.cartAction === 'more' ? 'details' : origin.cartAction;
+      const dataAttr = origin.cartAction === 'more' ? 'details' : origin.cartAction === 'line-delete' ? 'line-delete' : origin.cartAction;
       const selector = `[data-${dataAttr}="${origin.lineId}"]`;
       if (origin.cartAction === 'package' && origin.packageCard) {
         const cardBtn = document.querySelector(`.package-card-disclosure ${selector}`);
@@ -5207,9 +6663,28 @@
     el.click();
   }
 
+  function contextualPrepareGuidedTarget(el) {
+    if (!isContextualWorkspace() || !el) return;
+    if (el.closest('dialog, #large-data-picker')) return;
+    if (el.closest('#assets-panel')) {
+      if (!contextualAssetIsOpen()) contextualOpenAssets($('#j3-launcher-btn'), false);
+      return;
+    }
+    if (el.closest('#booking-cart')) {
+      if (!contextualCartIsOpen()) contextualOpenCart($('#contextual-cart-open'), false);
+      if (el.closest('#configure-form') && !currentSelectionDetailsExpanded) {
+        setCurrentSelectionDetailsExpanded(true);
+      }
+      return;
+    }
+    if (contextualAssetIsOpen()) contextualCloseAssets({ restore: false, announce: false });
+    if (contextualCartIsOpen()) contextualCloseCart({ restore: false, announce: false, dismiss: false });
+  }
+
   async function guidedReviewStep(target, caption, step, total, action, dwellMs) {
     const el = resolveGuidedReviewTarget(target);
     if (!el) throw new Error(`Guided review target missing at step ${step}: ${caption}`);
+    contextualPrepareGuidedTarget(el);
     if (guidedReviewTarget && guidedReviewTarget !== el) {
       guidedReviewTarget.classList.remove('guided-review-target', 'guided-review-clicked');
     }
@@ -5245,6 +6720,18 @@
     await waitForPlay(dwellMs == null ? REVIEW_PLAY_STEP_MS : dwellMs);
     cursor.classList.remove('is-clicking');
     el.classList.remove('guided-review-clicked');
+  }
+
+  function revealGuidedLineAction(lineSelector, actionSelector) {
+    let line = document.querySelector(lineSelector);
+    if (!line) return null;
+    const id = line.dataset.bookingLine;
+    if (id && openLineActionsId !== id) {
+      openLineActionsId = id;
+      renderCartLines();
+      line = Array.from(document.querySelectorAll('[data-booking-line]')).find((entry) => entry.dataset.bookingLine === id);
+    }
+    return line?.querySelector(actionSelector) || null;
   }
 
   async function playJourney() {
@@ -5286,11 +6773,11 @@
       await guidedReviewStep(() => $('.cart-line [data-pricing]'), 'Open Change Pricing', ++playJourneyStep, total);
       await guidedReviewStep('input[name="price-mode"][value="change"]', 'Choose another Price Type', ++playJourneyStep, total);
       await guidedReviewStep('#pricing-apply', 'Apply Pricing Option, Type, Unit and Concession', ++playJourneyStep, total);
-      await guidedReviewStep(() => $('.cart-line [data-details]'), 'Open progressive Item, Package, allocation and availability details', ++playJourneyStep, total);
+      await guidedReviewStep(() => revealGuidedLineAction('.cart-line', '[data-details]'), 'Open progressive Item, Package, allocation and availability details', ++playJourneyStep, total);
       await guidedReviewStep('#cart-primary-action', 'Return to Diary to add another interval', ++playJourneyStep, total);
       await guidedReviewStep('.cal-day-col[data-asset="studio2"][data-date="2026-08-29"] .cal-slot[data-slot="4"]', 'Stage Studio 2 · 10:00–12:00', ++playJourneyStep, total, activateGuidedCalendarSlot);
       await guidedReviewStep('#cart-primary-action', 'Add the second selection', ++playJourneyStep, total);
-      await guidedReviewStep(() => $('.cart-line:last-child [data-remove]'), 'Remove the second staged selection', ++playJourneyStep, total);
+      await guidedReviewStep(() => revealGuidedLineAction('.cart-line:last-child', '[data-remove]'), 'Remove the second staged selection', ++playJourneyStep, total);
       showToast('Source-complete guided review finished — remove confirmation remains open for explicit review');
     } catch (error) {
       console.error(error);
@@ -5352,7 +6839,10 @@
     dialog.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         if (dialog.id === 'cart-item-editor-dialog') closeCartItemEditor();
-        else {
+        else if (dialog.id === 'j4-details-dialog') {
+          e.preventDefault();
+          j4CloseDetails(true);
+        } else {
           dialog.close();
           restoreFocus();
         }
@@ -5360,7 +6850,7 @@
       }
       if (e.key !== 'Tab') return;
       const focusable = dialog.querySelectorAll('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
-      const list = Array.from(focusable).filter((el) => !el.disabled);
+      const list = Array.from(focusable).filter((el) => !el.disabled && (!cartItemEditorTargetsStagedSelection() || el.offsetParent !== null));
       if (!list.length) return;
       const first = list[0];
       const last = list[list.length - 1];
@@ -5376,6 +6866,8 @@
 
   function init() {
     const isJ2 = document.body.dataset.journey === '2';
+    const isJ3 = document.body.dataset.journey === '3';
+    const isJ4 = document.body.dataset.journey === '4';
     if (!isJ2) document.body.dataset.surface = 'week';
 
     $('#date-prev').addEventListener('click', () => {
@@ -5455,15 +6947,59 @@
     $$('.mode-nav .mode-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         if (btn.dataset.mode === 'booking') return;
-        showToast('Maintenance is not Journey 1');
+        showToast(isJ4 ? 'Maintenance is outside the Journey 4 review fixture.' : 'Maintenance is not Journey 1');
       });
     });
 
     $('#cfg-item').addEventListener('change', updateConfigureForm);
     $('#cfg-package').addEventListener('change', updateConfigureForm);
+    $('#cfg-configuration').addEventListener('change', renderCurrentSelectionSummary);
+    $('#cfg-concession').addEventListener('change', renderCurrentSelectionSummary);
+
+    $('#current-selection-details-toggle').addEventListener('click', (event) => {
+      if (stagedSelection && !editingLineId && !currentSelectionDetailsExpanded) {
+        openStagedSelectionEditor(event.currentTarget);
+        return;
+      }
+      setCurrentSelectionDetailsExpanded(!currentSelectionDetailsExpanded, {
+        moveFocus: !currentSelectionDetailsExpanded,
+        restoreFocus: currentSelectionDetailsExpanded
+      });
+    });
+    document.addEventListener('keydown', (event) => {
+      const picker = $('#large-data-picker');
+      const pickerOpen = picker && !picker.hidden && !!picker.getClientRects().length;
+      if (event.key !== 'Escape' || !currentSelectionDetailsExpanded || document.querySelector('dialog[open]') || pickerOpen) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setCurrentSelectionDetailsExpanded(false, { restoreFocus: true });
+    }, true);
 
     $('#cart-primary-action').addEventListener('click', handlePrimaryAction);
     $('#confirm-booking-btn').addEventListener('click', confirmBooking);
+
+    document.addEventListener('click', (event) => {
+      const eventPath = typeof event.composedPath === 'function' ? event.composedPath() : [];
+      const ownedOverlayOrigin = eventPath.some((node) => node && typeof node.matches === 'function' && node.matches('dialog, #large-data-picker'));
+      if (!openLineActionsId || event.target.closest('.cart-line-actions') || ownedOverlayOrigin) return;
+      openLineActionsId = null;
+      renderCartLines();
+    });
+    document.addEventListener('keydown', (event) => {
+      const largePicker = $('#large-data-picker');
+      const largePickerOpen = largePicker && !largePicker.hidden && !!largePicker.getClientRects().length;
+      if (event.key !== 'Escape' || !openLineActionsId || document.querySelector('dialog[open]') || largePickerOpen) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const id = openLineActionsId;
+      openLineActionsId = null;
+      renderCartLines();
+      requestAnimationFrame(() => {
+        const line = Array.from(document.querySelectorAll('[data-booking-line]')).find((entry) => entry.dataset.bookingLine === id);
+        const toggle = line?.querySelector('[data-line-actions-toggle]');
+        if (toggle) toggle.focus();
+      });
+    }, true);
 
     const cartViewCompact = $('#cart-view-compact');
     const cartViewDetailed = $('#cart-view-detailed');
@@ -5661,11 +7197,13 @@
     $('#btn-play-journey').addEventListener('click', () => {
       if (document.body.dataset.journey === '2') j2PlayJourney();
       else if (document.body.dataset.journey === '3') j3PlayJourney();
+      else if (document.body.dataset.journey === '4') j4PlayJourney();
       else playJourney();
     });
     $('#btn-play-complete').addEventListener('click', () => {
       if (document.body.dataset.journey === '2') j2PlayComplete();
       else if (document.body.dataset.journey === '3') j3PlayComplete();
+      else if (document.body.dataset.journey === '4') j4PlayComplete();
       else playCompleteJourney();
     });
 
@@ -5682,18 +7220,26 @@
       });
     });
 
-    ['#mismatch-dialog', '#remove-dialog', '#clear-dialog', '#date-picker-dialog', '#cart-item-editor-dialog'].forEach((sel) => {
+    ['#mismatch-dialog', '#remove-dialog', '#clear-dialog', '#date-picker-dialog', '#cart-item-editor-dialog', '#j4-details-dialog'].forEach((sel) => {
       trapDialogFocus($(sel));
     });
 
     window.addEventListener('resize', () => {
       if (document.body.dataset.journey !== '2') positionCartForViewport();
+      if (isContextualWorkspace()) {
+        if (!contextualAllowsBothPanels() && contextualAssetIsOpen() && contextualCartIsOpen()) {
+          if (contextualLastSurface === 'assets') contextualCloseCart({ restore: false, dismiss: true, announce: false });
+          else contextualCloseAssets({ restore: false, announce: false });
+        }
+        contextualSyncSurfaces();
+      }
     });
 
     reviewPackages = generateReviewPackages();
     reviewConcessions = generateReviewConcessions();
+    setupContextualWorkspace();
     setupPickerEvents();
-    const isJ3 = document.body.dataset.journey === '3';
+    if (isJ4) j4SetupEvents();
     if (!isJ2) {
       setupAssetExplorerEvents();
       if (!isJ3) {
@@ -5711,6 +7257,8 @@
       loadTimeslotVisualOptions().then(() => j2Render());
     } else if (isJ3) {
       loadTimeslotVisualOptions().then(() => j3ResetBootState());
+    } else if (isJ4) {
+      loadTimeslotVisualOptions().then(() => j4ResetBootState());
     } else {
       loadTimeslotVisualOptions().then(() => resetJourney());
     }
@@ -5726,6 +7274,8 @@
       if (pickerInput) pickerInput.value = '2026-09-04';
     } else if (journey === 3) {
       document.title = 'Optimo Diary — Journey 3 Asset Search, Hierarchy and Selection';
+    } else if (journey === 4) {
+      document.title = 'Optimo Diary — Journey 4 Timeslot Rendering and Calendar Interaction';
     }
     init();
   }
