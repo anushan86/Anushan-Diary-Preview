@@ -162,13 +162,18 @@
     if (v === '2') return 2;
     if (v === '3') return 3;
     if (v === '4') return 4;
+    if (v === '5') return 5;
+    if (v === '6') return 6;
+    if (v === '7') return 7;
+    if (v === '8') return 8;
+    if (v === '9') return 9;
     return 1;
   }
 
   function applyJourneyBoot() {
     const journey = parseJourneyBoot(window.location.search);
     document.body.dataset.journey = String(journey);
-    if (journey === 1) document.body.dataset.contextualWorkspace = 'true';
+    if (journey === 1 || journey === 7) document.body.dataset.contextualWorkspace = 'true';
     else delete document.body.dataset.contextualWorkspace;
     return journey;
   }
@@ -187,10 +192,13 @@
   }
 
   function applyJourneySurfaces(journey) {
-    const isJ1 = journey === 1;
+    const isJ1 = journey === 1 || journey === 7 || journey === 9;
     const isJ2 = journey === 2;
     const isJ3 = journey === 3;
     const isJ4 = journey === 4;
+    const isJ5 = journey === 5;
+    const isJ6 = journey === 6;
+    const isJ8 = journey === 8;
     const j1ProductOnly = [
       '.skip-cart', '#review-rail-toggle', '#review-rail-panel', '.stage-nav',
       '.stress-controls', '.review-scale-controls', '.review-scale-caption',
@@ -221,7 +229,9 @@
       '#j3-selected-heading', '#j3-available-heading', '#j3-explorer-footer', '#j3-explorer-selected-count',
       '#j3-explorer-done', '#j3-visibility-card'
     ];
-    const j4Only = ['#j4-overview', '#j4-selection-summary', '#j4-review-controls'];
+    const j4Only = ['#j4-overview', '#j4-selection-summary'];
+    const j5Only = ['#j5-review-controls', '#j5-lifecycle-review-controls'];
+    const j6Only = ['#j6-review-controls'];
     j1ProductOnly.forEach((sel) => {
       document.querySelectorAll(sel).forEach((el) => j2SetSurfaceExcluded(el, !isJ1));
     });
@@ -241,15 +251,42 @@
       document.querySelectorAll(sel).forEach((el) => j2SetSurfaceExcluded(el, !isJ3));
     });
     j4Only.forEach((sel) => {
-      document.querySelectorAll(sel).forEach((el) => j2SetSurfaceExcluded(el, !isJ4));
+      document.querySelectorAll(sel).forEach((el) => j2SetSurfaceExcluded(el, !(isJ4 || isJ5 || isJ6 || isJ8)));
     });
-    if (isJ4) {
+    j2SetSurfaceExcluded($('#mismatch-dialog'), !(isJ1 || isJ8));
+    j2SetSurfaceExcluded($('#j4-review-controls'), !isJ4);
+    j5Only.forEach((sel) => {
+      document.querySelectorAll(sel).forEach((el) => j2SetSurfaceExcluded(el, !isJ5));
+    });
+    j6Only.forEach((sel) => {
+      document.querySelectorAll(sel).forEach((el) => j2SetSurfaceExcluded(el, !isJ6));
+    });
+    if (isJ6) j2SetSurfaceExcluded($('#j4-context-menu'), true);
+    if (journey === 7) {
+      ['#review-rail-toggle', '#review-rail-panel', '#btn-play-journey', '#btn-play-complete', '.stage-nav', '.stress-controls', '.review-scale-controls', '.review-scale-caption'].forEach((sel) => {
+        document.querySelectorAll(sel).forEach((el) => j2SetSurfaceExcluded(el, true));
+      });
+    }
+    if (isJ4 || isJ5 || isJ6 || isJ8) {
       const reviewToggle = $('#review-rail-toggle');
       const reviewPanel = $('#review-rail-panel');
       j2SetSurfaceExcluded(reviewToggle, false);
       j2SetSurfaceExcluded(reviewPanel, false);
       if (reviewPanel) reviewPanel.hidden = true;
       if (reviewToggle) reviewToggle.setAttribute('aria-expanded', 'false');
+    }
+    if (journey === 9) {
+      [
+        '#review-rail-toggle', '#review-rail-panel', '#btn-play-journey', '#btn-play-complete', '.stage-nav',
+        '#cart-primary-action', '#confirm-booking-btn', '#clear-cart-btn', '#cart-book-footer',
+        '#cart-toolbar', '#cart-view-controls', '#cart-amount-context', '#cart-totals', '#cart-added-items',
+        '#cart-bulk-actions', '#cart-column-head', '#cart-high-volume-summaries', '#cart-item-editor-dialog',
+        '#mismatch-dialog', '#remove-dialog', '#clear-dialog', '#large-data-picker', '#large-data-picker-backdrop',
+        '#current-selection-details-toggle', '#configure-form', '#cart-success', '#cart-unavailable',
+        '#contextual-cart-launcher', '#j4-details-dialog', '#j4-context-menu', '#j5-workflow-dialog'
+      ].forEach((sel) => document.querySelectorAll(sel).forEach((el) => j2SetSurfaceExcluded(el, true)));
+      const cart = $('#booking-cart');
+      if (cart) { cart.hidden = false; cart.inert = false; cart.removeAttribute('aria-hidden'); }
     }
     const surfaceToggle = $('#surface-toggle');
     if (surfaceToggle) {
@@ -275,7 +312,7 @@
       if (isJ3 || isJ1) {
         assetsPanel.setAttribute('aria-label', 'Asset Explorer');
         if (assetsPanelTitle) assetsPanelTitle.textContent = 'Asset Explorer';
-      } else if (isJ4) {
+      } else if (isJ4 || isJ5) {
         assetsPanel.setAttribute('aria-label', 'Diary assets');
         if (assetsPanelTitle) assetsPanelTitle.textContent = 'Diary assets';
         assetsPanel.removeAttribute('role');
@@ -304,6 +341,11 @@
       startSlot: 2, endSlot: 10, visualType: 'confirmed', access: 'Details and context permitted review fixture', details: true, more: true
     },
     {
+      id: 'public-review', kind: 'public-review', journey6: true, label: 'Public timeslot · review fixture', reference: 'PUB-REVIEW-001',
+      status: 'Maintenance / Public Events · review-only', asset: 'hall1', resource: 'Hall 1', dayOffset: 4,
+      startSlot: 4, endSlot: 26, access: 'Review-only control; public identification unverified', details: true, more: false
+    },
+    {
       id: 'blocked', kind: 'blocked', label: 'Blocked', reference: 'BLK-220',
       status: 'Blocked · Unavailable', asset: 'hall2', resource: 'Hall 2', dayOffset: 5,
       startSlot: 0, endSlot: 24, visualType: 'block', access: 'Block context first handoff only', details: true, more: true
@@ -321,6 +363,7 @@
   ];
 
   const J4_FILTER_ORDER = ['available', 'selected', 'private', 'blocked', 'facility-not-in-use', 'conflict'];
+  const J6_FILTER_ORDER = ['public-review'];
   const J4_REVIEW_STATES = new Set(['ready', 'loading', 'empty', 'error', 'access-denied', 'varies']);
   let j4ViewState = 'ready';
   let j4ActiveFixtureId = 'selected';
@@ -329,9 +372,18 @@
   let j4ContextTrigger = null;
   let j4DetailsReturnTarget = null;
   let j4PointerSelection = null;
+  let j6PublicInterval = { start: '08:00', end: '19:00' };
 
   function isJ4Journey() {
-    return document.body.dataset.journey === '4';
+    return document.body.dataset.journey === '4' || document.body.dataset.journey === '5' || document.body.dataset.journey === '6';
+  }
+
+  function isJ5Journey() {
+    return document.body.dataset.journey === '5';
+  }
+
+  function isJ6Journey() {
+    return document.body.dataset.journey === '6';
   }
 
   function j4FindFixture(id) {
@@ -343,6 +395,7 @@
   }
 
   function j4FixtureTime(fixture) {
+    if (fixture?.journey6) return `${j6PublicInterval.start}–${j6PublicInterval.end}`;
     const start = slotToTime(fixture.startSlot);
     const end = slotToTime(fixture.endSlot);
     return `${formatTime(start.h, start.m)}–${formatTime(end.h, end.m)}`;
@@ -435,7 +488,8 @@
     host.appendChild(title);
     const list = document.createElement('ul');
     list.className = 'timeslot-legend-list j4-filter-list';
-    J4_FILTER_ORDER.forEach((kind) => {
+    const filterOrder = isJ6Journey() ? J6_FILTER_ORDER : J4_FILTER_ORDER;
+    filterOrder.forEach((kind) => {
       const fixture = J4_FIXTURES.find((entry) => entry.kind === kind);
       if (!fixture) return;
       const item = document.createElement('li');
@@ -547,7 +601,17 @@
     const actions = document.createElement('div');
     actions.className = 'j4-timeslot-actions';
     const blocked = j4ActionsBlocked();
-    if (fixture.kind === 'available') {
+    if (isJ6Journey() && fixture.journey6) {
+      const open = document.createElement('button');
+      open.type = 'button';
+      open.className = 'btn-primary btn-sm j6-timeslot-entry';
+      open.id = 'j6-open-public-review';
+      open.textContent = 'Open review flow';
+      open.disabled = blocked;
+      open.setAttribute('aria-label', 'REVIEW FIXTURE — public-event identification and the public context menu are UNVERIFIED (runtime validation 2026-08-04). This entry is a review-only control, not a reproduced menu path.');
+      open.addEventListener('click', (event) => { event.stopPropagation(); j6StartOperation('PublicReschedule', event.currentTarget); });
+      actions.appendChild(open);
+    } else if (fixture.kind === 'available') {
       const select = document.createElement('button');
       select.type = 'button';
       select.className = 'btn-primary btn-sm';
@@ -648,6 +712,23 @@
       return;
     }
 
+    if (isJ6Journey()) {
+      const fixture = j4FindFixture('public-review');
+      if (!fixture) return;
+      title.textContent = 'Public timeslot · REVIEW FIXTURE';
+      copy.textContent = 'Maintenance / Public Events context is presented as one local review fixture; no public context menu is reproduced.';
+      state.textContent = 'REVIEW FIXTURE';
+      time.textContent = j6PublicInterval.start + '–' + j6PublicInterval.end;
+      resource.textContent = fixture.resource;
+      access.textContent = fixture.access;
+      guidance.textContent = 'Dedicated review control only. Public identification, menu options and gating are UNVERIFIED.';
+      open.dataset.j4Fixture = fixture.id;
+      open.textContent = 'Open review flow';
+      open.disabled = j4ActionsBlocked();
+      more.hidden = true;
+      return;
+    }
+
     let fixture = j4FindFixture(j4ActiveFixtureId) || j4FindFixture('selected');
     if (j4ViewState === 'empty') fixture = j4FindFixture('available');
     if (!fixture) return;
@@ -733,6 +814,10 @@
 
   function j4OpenDetails(fixture, trigger) {
     if (!isJ4Journey() || !fixture || !fixture.details || j4ActionsBlocked()) return;
+    if (isJ6Journey() && fixture.journey6) {
+      j6StartOperation('PublicReschedule', trigger);
+      return;
+    }
     j4SelectFixture(fixture.id);
     j4DetailsReturnTarget = trigger || document.activeElement;
     $('#j4-details-title').textContent = fixture.reference;
@@ -873,14 +958,14 @@
     const countCell = document.createElement('div');
     countCell.setAttribute('role', 'columnheader');
     const count = document.createElement('span');
-    count.textContent = j4ViewState === 'loading' ? 'Loading' : 'Six supported fixture classes';
+    count.textContent = j4ViewState === 'loading' ? 'Loading' : (isJ6Journey() ? 'One public review fixture' : 'Six supported fixture classes');
     countCell.appendChild(count);
     boardHead.append(titleCell, countCell);
     grid.appendChild(boardHead);
 
-    let fixtures = J4_FIXTURES;
+    let fixtures = isJ6Journey() ? J4_FIXTURES.filter((fixture) => fixture.journey6) : J4_FIXTURES.filter((fixture) => !fixture.journey6);
     if (j4ViewState === 'loading' || j4ViewState === 'error') fixtures = [];
-    else if (j4ViewState === 'empty') fixtures = J4_FIXTURES.filter((fixture) => fixture.kind === 'available');
+    else if (j4ViewState === 'empty') fixtures = isJ6Journey() ? [] : J4_FIXTURES.filter((fixture) => !fixture.journey6 && fixture.kind === 'available');
 
     if (fixtures.length) {
       const board = document.createElement('div');
@@ -1046,6 +1131,414 @@
       endGuidedReview();
     }
   }
+
+  /* ===== Journey 5 private lifecycle candidate — CR-J5-002 through CR-J5-006 ===== */
+
+  const J5_REVIEW_STATES = new Set(['loading', 'loaded', 'partial', 'error', 'denied']);
+  const J5_LIFECYCLE_STATES = new Set(['loading', 'ready', 'empty', 'unavailable', 'error', 'permission-denied', 'success']);
+  const J5_BASE_BOOKING = Object.freeze({
+    reference: 'BK-LOCAL-10482', status: 'Confirmed', customer: 'A. Customer', contact: 'a.customer@example.test',
+    resource: 'Studio 2', date: '2026-08-28', dateLabel: '28 Aug 2026', time: '09:00–13:00', covers: 18,
+    version: 7, total: 2750,
+    items: [
+      { id: 'ITEM-LOCAL-001', name: 'Studio 2 private allocation', target: 'Studio 2', covers: 18, state: 'eligible' },
+      { id: 'ITEM-LOCAL-002', name: 'Lighting package', target: 'Lighting Bay', covers: 12, state: 'eligible' }
+    ]
+  });
+  const J5_REMOVE_FIXTURES = [
+    { id: 'ITEM-LOCAL-001', name: 'Studio 2 private allocation', target: 'Studio 2 · 28 Aug · 09:00–13:00', state: 'eligible' },
+    { id: 'ITEM-LOCAL-DELIVERED', name: 'Delivered/scanned fixture', target: 'Studio 2 · delivered', state: 'delivered' },
+    { id: 'ITEM-LOCAL-LINKED', name: 'Linked standard-item fixture', target: 'Standard item link', state: 'linked' }
+  ];
+  const J5_TARGETS = [
+    { value: 'Studio 2', label: 'Studio 2 · current target', state: 'same' },
+    { value: 'Studio 4', label: 'Studio 4 · eligible local target', state: 'eligible', capacity: 30 },
+    { value: 'Studio 7', label: 'Studio 7 · conflict fixture', state: 'conflict', capacity: 24 },
+    { value: 'Studio 9', label: 'Studio 9 · insufficient-capacity fixture', state: 'capacity', capacity: 10 }
+  ];
+  let J5_BOOKING_FIXTURE = null;
+  let j5ReviewState = 'loaded';
+  let j5LifecycleState = 'ready';
+  let j5Operation = null;
+  let j5WorkflowTrigger = null;
+  let j5WorkflowReturning = false;
+  let j5CommandSerial = 0;
+
+  function j5CloneBooking() { return { ...J5_BASE_BOOKING, items: J5_BASE_BOOKING.items.map((item) => ({ ...item })) }; }
+  function j5LocalResult(text) { return `${text} Local review result — no server request sent; reload resets it.`; }
+
+  function j5SyncReviewControls() {
+    $$('.j5-review-state[data-j5-review-state]').forEach((button) => {
+      const active = button.dataset.j5ReviewState === j5ReviewState;
+      button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+  }
+  function j5SyncLifecycleControls() {
+    $$('.j5-review-state[data-j5-lifecycle-state]').forEach((button) => {
+      const active = button.dataset.j5LifecycleState === j5LifecycleState;
+      button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+  }
+  function j5LifecycleMessage() {
+    return ({
+      loading: 'Lifecycle fixture is loading. No action entry or confirmation is available.',
+      ready: 'Lifecycle fixture ready for local review. No production availability or permission rule is claimed.',
+      empty: 'No eligible private items in this local fixture. Nothing can be confirmed.',
+      unavailable: 'Lifecycle review is unavailable in this local fixture. No success is inferred.',
+      error: 'The local lifecycle fixture failed to load. Retry the review fixture; the original booking is preserved.',
+      'permission-denied': 'Permission denied before action entry. The booking remains unchanged.',
+      success: 'A prior local result is shown for review only. It is not persisted and is not a server outcome.'
+    })[j5LifecycleState];
+  }
+  function j5CanEnterAction() { return j5ReviewState === 'loaded' || j5ReviewState === 'partial'; }
+
+  function j5RenderState() {
+    if (!isJ5Journey()) return;
+    document.body.dataset.j5State = j5ReviewState; document.body.dataset.j5LifecycleState = j5LifecycleState;
+    j5SyncReviewControls(); j5SyncLifecycleControls();
+    const hub = $('#j5-action-hub'); const stateMessage = $('#j5-state-message'); const content = $('#j5-loaded-content'); const total = $('#j5-total'); const itemCount = $('#j5-item-count');
+    if (!hub || !stateMessage || !content || !total) return;
+    if (j5ReviewState === 'loading') hub.setAttribute('aria-busy', 'true'); else hub.removeAttribute('aria-busy');
+    stateMessage.className = `j5-state-message is-${j5ReviewState}`; stateMessage.replaceChildren();
+    const heading = document.createElement('strong'); const copy = document.createElement('span');
+    const states = {
+      loading: ['Loading booking details', ' Current details are unsettled. No lifecycle action is available.'],
+      loaded: ['Booking details loaded', ' Private lifecycle controls are local review flows; previews never write.'],
+      partial: ['Partial details', ' Total is unavailable in this degraded local fixture. No value is inferred.'],
+      error: ['Booking details could not load', ' Original booking state is preserved; no outcome is fabricated.'],
+      denied: ['Permission denied', ' Details are visible for context only; lifecycle entry is unavailable.']
+    };
+    heading.textContent = states[j5ReviewState][0]; copy.textContent = states[j5ReviewState][1]; stateMessage.append(heading, copy);
+    if (j5ReviewState === 'error') {
+      const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'btn-secondary btn-sm'; retry.id = 'j5-retry'; retry.textContent = 'Retry';
+      retry.addEventListener('click', () => { j5SetState('loaded', true); announceLive(j5LocalResult('Details retry returned the local fixture.')); }); stateMessage.appendChild(retry);
+    }
+    const detailsVisible = !['loading', 'error'].includes(j5ReviewState); content.hidden = !detailsVisible; content.inert = !detailsVisible;
+    total.textContent = j5ReviewState === 'partial' ? 'Unavailable — partial fixture' : `${J5_BOOKING_FIXTURE.total.toLocaleString('en-AU', { style: 'currency', currency: 'AUD' })} fixture`;
+    if (itemCount) itemCount.textContent = `${J5_BOOKING_FIXTURE.items.length} local booking item${J5_BOOKING_FIXTURE.items.length === 1 ? '' : 's'}`;
+    const actionsEnabled = detailsVisible && j5CanEnterAction() && j5LifecycleState === 'ready';
+    $$('.j5-action[data-j5-action]').forEach((button) => {
+      button.disabled = !actionsEnabled; button.setAttribute('aria-describedby', 'j5-review-boundary j5-action-announcement'); button.title = actionsEnabled ? `${button.dataset.j5Action} opens a local review flow` : 'Unavailable in the current review fixture state';
+    });
+    const announcement = $('#j5-action-announcement'); if (announcement && !j5Operation) announcement.textContent = actionsEnabled ? j5LifecycleMessage() : `${j5LifecycleMessage()} ${j5LocalResult('No booking data changed.')}`;
+  }
+  function j5SetState(nextState, focusState) {
+    if (!isJ5Journey() || !J5_REVIEW_STATES.has(nextState)) return; j5ReviewState = nextState; j5RenderState(); announceLive(`Journey 5 ${nextState.replace('-', ' ')} review fixture shown. No saved data changed.`); if (focusState) window.requestAnimationFrame(() => $('#j5-state-message')?.focus());
+  }
+  function j5SetLifecycleState(nextState, focusState) {
+    if (!isJ5Journey() || !J5_LIFECYCLE_STATES.has(nextState)) return; j5LifecycleState = nextState; j5RenderState(); announceLive(j5LifecycleMessage()); if (focusState) window.requestAnimationFrame(() => $('#j5-action-announcement')?.focus());
+  }
+
+  function j5DockPlaybackControls() {
+    const dock = $('#j5-playback-controls'); const playBtn = $('#btn-play-journey'); const completeBtn = $('#btn-play-complete'); if (!dock || !playBtn || !completeBtn) return; dock.append(playBtn, completeBtn);
+  }
+  function j5RestorePlaybackControls() {
+    const rail = $('#review-rail'); const stageNav = rail?.querySelector('.stage-nav'); const playBtn = $('#btn-play-journey'); const completeBtn = $('#btn-play-complete'); if (!rail || !stageNav || !playBtn || !completeBtn) return; rail.insertBefore(playBtn, stageNav); rail.insertBefore(completeBtn, stageNav);
+  }
+  function j5OpenActionHub(trigger) {
+    if (!isJ5Journey()) return; const fixture = j4FindFixture('private'); if (!fixture) return; j4OpenDetails(fixture, trigger);
+    const dialog = $('#j4-details-dialog'); $('#j4-only-details').hidden = true; $('#j4-only-details').inert = true; $('#j5-action-hub').hidden = false; $('#j5-action-hub').inert = false; $('#j5-action-hub').removeAttribute('aria-hidden');
+    $('#j4-details-kicker').textContent = 'Existing private booking · local review'; $('#j4-details-title').textContent = J5_BASE_BOOKING.reference; $('#j4-details-close').setAttribute('aria-label', 'Close existing booking details'); $('#j4-details-back').textContent = 'Back to calendar'; dialog.setAttribute('aria-describedby', 'j5-details-intro j5-review-boundary'); dialog.dataset.j5ActionHub = 'true'; j5DockPlaybackControls(); j5RenderState(); announceLive(`${J5_BASE_BOOKING.reference} private details and local lifecycle action hub opened.`);
+  }
+  function j5ReturnFromWorkflow() {
+    if (j5WorkflowReturning) return; j5WorkflowReturning = true; const dialog = $('#j5-workflow-dialog'); if (dialog?.open) dialog.close(); const op = j5Operation; const trigger = j5WorkflowTrigger; const origin = op?.origin; const action = op?.action; j5WorkflowTrigger = null; j5Operation = null;
+    window.setTimeout(() => {
+      if (isJ6Journey()) {
+        const restored = (origin?.openerSelector && $(origin.openerSelector)) || (action === 'PublicReschedule' ? $('#j6-open-public-review') : $(`[data-j6-action="${action}"]`));
+        (restored || trigger)?.focus();
+      } else { j5OpenActionHub(trigger || $('#j4-open-private')); const j5Action = trigger?.dataset?.j5Action; const restored = j5Action ? $(`.j5-action[data-j5-action="${j5Action}"]`) : null; (restored || trigger || $('#j4-details-back'))?.focus(); }
+      j5WorkflowReturning = false;
+    }, 0);
+  }
+  function j5OpenWorkflow(action, trigger) {
+    if (isJ6Journey()) return j6StartOperation(action, trigger);
+    if (!j5CanEnterAction() || j5LifecycleState !== 'ready') { announceLive(j5LifecycleMessage()); const announcement = $('#j5-action-announcement'); if (announcement) announcement.textContent = j5LifecycleMessage(); return; }
+    j5WorkflowTrigger = trigger; j5Operation = { action, stage: action === 'Copy' ? 'guard' : 'setup', commandToken: null, stale: false, permissionChanged: false, previewFailed: false, selectedItem: 'ITEM-LOCAL-001', selectedTarget: 'Studio 4', result: null };
+    const details = $('#j4-details-dialog'); if (details?.open) details.close('workflow'); const dialog = $('#j5-workflow-dialog'); if (!dialog) return; j5RenderWorkflow(); dialog.showModal(); window.setTimeout(() => dialog.querySelector('input, select, button:not(.dialog-close)')?.focus(), 0);
+  }
+  function j5Button(command, text, cls = 'btn-secondary', disabled = false) { return `<button type="button" class="${cls}" data-j5-command="${command}"${disabled ? ' disabled' : ''}>${text}</button>`; }
+  function j5ItemOptions(selected, includeBlocked = false) { const items = includeBlocked ? J5_REMOVE_FIXTURES : J5_BOOKING_FIXTURE.items; return items.map((item) => `<option value="${item.id}"${item.id === selected ? ' selected' : ''}>${item.name}</option>`).join(''); }
+  function j5SelectedRemoveFixture() { return J5_REMOVE_FIXTURES.find((item) => item.id === j5Operation?.selectedItem) || J5_REMOVE_FIXTURES[0]; }
+
+  function j5RenderWorkflow() {
+    if (isJ6Journey()) return j6RenderWorkflow();
+    const op = j5Operation; const stage = $('#j5-workflow-stage'); const preview = $('#j5-workflow-preview'); const footer = $('#j5-workflow-footer'); const title = $('#j5-workflow-title'); const description = $('#j5-workflow-description'); const announcement = $('#j5-workflow-announcement');
+    if (!op || !stage || !preview || !footer || !title || !description || !announcement) return;
+    const names = { Copy: 'Copy private booking', Edit: 'Update existing booking', Remove: 'Remove one booking item', Move: 'Move one private item', Batch: 'Batch move private items' }; title.textContent = names[op.action] || 'Local operation'; description.textContent = 'Review fixture only. Previews are non-writing; no server request is sent; reload resets it.'; preview.hidden = true; preview.replaceChildren(); announcement.textContent = '';
+    let html = ''; let buttons = '';
+    if (op.permissionChanged) {
+      html = `<div class="j5-block-card"><span class="badge badge-evidence">PERMISSION CHANGED</span><h3>Confirmation is no longer available</h3><p>The local permission fixture changed before confirmation. The original booking state is preserved; no operation was applied.</p><p class="j5-result-boundary">${j5LocalResult('Refresh the local permission fixture to review the unchanged preview again.')}</p></div>`;
+      buttons = j5Button('permission-confirm-blocked', 'Confirmation unavailable', 'btn-secondary', true) + j5Button('permission-refresh', 'Refresh permission', 'btn-primary') + j5Button('workflow-cancel', 'Cancel without loss');
+    } else if (op.result) {
+      html = `<div class="j5-result-card"><span class="badge badge-safe">LOCAL RESULT</span><h3>${op.result.title}</h3><p>${op.result.copy}</p><p class="j5-result-boundary">${j5LocalResult('This result exists only in memory.')}</p></div>`;
+      if (op.action === 'Remove' && op.result.mutated) buttons += j5Button('remove-undo', 'Undo local removal'); if (op.action === 'Batch' && op.result.mutated) buttons += j5Button('batch-rollback', 'Rollback local batch'); if (op.action === 'Batch' && op.result.partial) buttons += j5Button('batch-retry', 'Retry partial fixture', 'btn-primary'); buttons += j5Button('workflow-done', 'Done', 'btn-primary');
+    } else if (op.action === 'Copy' && op.stage === 'guard') {
+      html = `<div class="j5-guard-card"><span class="badge badge-decision">STAGED WORK GUARD</span><h3>Local staged work is present</h3><p>Choose whether to preserve this local staged selection or explicitly clear it before copying. This is a review fixture, not persisted work.</p></div>`; buttons = j5Button('copy-preserve', 'Preserve & continue', 'btn-primary') + j5Button('copy-clear', 'Clear & continue') + j5Button('workflow-cancel', 'Cancel');
+    } else if (op.action === 'Copy' && op.stage === 'setup') {
+      html = `<div class="j5-form-grid"><label>New start date<input id="j5-copy-date" type="date" value="2026-09-04"></label><label class="j5-check-row"><input id="j5-copy-customer" type="checkbox" checked> Retain customer/contact</label><label class="j5-check-row"><input id="j5-copy-prices" type="checkbox"> Retain prices <span class="field-hint">off by default</span></label></div><div class="j5-inline-note">Source read-back: fresh local token v${J5_BASE_BOOKING.version}. Package/item graph has ${J5_BASE_BOOKING.items.length} fixture items.</div>`; buttons = j5Button('copy-stale', 'Show stale source') + j5Button('copy-preview', 'Preview copy', 'btn-primary') + j5Button('workflow-cancel', 'Cancel');
+    } else if (op.action === 'Copy' && op.stage === 'preview') {
+      html = `<div class="j5-preview-list"><div><strong>New start</strong><span>${op.date || '04 Sep 2026'}</span></div><div><strong>Customer/contact</strong><span>${op.retainCustomer === false ? 'Reset in local fixture' : 'Retained'}</span></div><div><strong>Prices</strong><span>${op.retainPrices ? 'Retained for comparison only' : 'Reset for comparison only'}</span></div><div><strong>Items</strong><span>${J5_BASE_BOOKING.items.length} copied fixture items</span></div></div><p class="j5-illustrative">Fixture comparison only — this is not a pricing rule.</p>`; buttons = j5Button('copy-confirm', 'Confirm local copy', 'btn-primary', op.stale) + j5Button('copy-refresh', 'Refresh source', 'btn-secondary', !op.stale) + j5Button('workflow-cancel', 'Cancel'); if (op.stale) announcement.textContent = 'Source is stale. Refresh before preview can be confirmed.';
+    } else if (op.action === 'Edit' && op.stage === 'setup') {
+      html = `<div class="j5-form-grid"><label>Scheduled date<input id="j5-edit-date" type="date" value="${J5_BASE_BOOKING.date}"></label><label>Scheduled time<input id="j5-edit-time" type="time" value="09:00" step="1800"></label><label>Attendee/cover quantity<input id="j5-edit-covers" type="number" min="1" max="80" value="${J5_BASE_BOOKING.covers}"></label><label>Existing private item<select id="j5-edit-item">${j5ItemOptions('ITEM-LOCAL-001')}</select></label></div><div class="j5-inline-note">Edit-start version token: v${J5_BASE_BOOKING.version}. The original booking remains unchanged until one local confirmation.</div>`; buttons = j5Button('update-stale', 'Show stale version') + (op.stale ? j5Button('update-refresh', 'Refresh current version', 'btn-primary') : '') + j5Button('update-failure', 'Show preview failure') + j5Button('update-preview', 'Preview update', 'btn-primary', op.stale) + j5Button('workflow-cancel', 'Cancel without loss'); if (op.stale) announcement.textContent = 'Stale version detected. Refresh current version before preview can be confirmed, or cancel without loss.';
+    } else if (op.action === 'Edit' && op.stage === 'preview') {
+      html = `<div class="j5-preview-list"><div><strong>Scheduled date</strong><span>${op.date || J5_BASE_BOOKING.date}</span></div><div><strong>Scheduled time</strong><span>${op.time || '09:00'}</span></div><div><strong>Covers</strong><span>${op.covers || J5_BASE_BOOKING.covers}</span></div><div><strong>Item</strong><span>${op.item || 'Existing private item'}</span></div><div><strong>Illustrative price drift</strong><span>AU$ 2,750.00 → AU$ 2,887.50 fixture comparison</span></div></div><p class="j5-illustrative">Illustrative drift evidence only — not authoritative production pricing.</p>`; buttons = j5Button('update-confirm', 'Confirm local update', 'btn-primary') + j5Button('workflow-cancel', 'Cancel without loss');
+    } else if (op.action === 'Edit' && op.stage === 'error') {
+      html = `<div class="j5-error-card"><span class="badge badge-evidence">RECOVERABLE ERROR</span><h3>Preview failed locally</h3><p>The original booking is preserved. Retry the fixture or cancel without loss.</p></div>`; buttons = j5Button('update-retry', 'Retry preview', 'btn-primary') + j5Button('workflow-cancel', 'Cancel without loss');
+    } else if (op.action === 'Remove' && op.stage === 'setup') {
+      html = `<div class="j5-form-grid"><label>Exact item to remove<select id="j5-remove-item">${j5ItemOptions(op.selectedItem, true)}</select></label><label>Type target reference<input id="j5-remove-reference" type="text" value="" placeholder="ITEM-LOCAL-001" autocomplete="off"></label></div><div class="j5-impact-card"><strong>Impact</strong><span>Selected private booking item/allocation is removed; the Booking shell remains.</span></div>`; buttons = j5Button('remove-preview', 'Review exact impact', 'btn-primary') + j5Button('remove-failure', 'Show failure') + j5Button('workflow-cancel', 'Cancel');
+    } else if (op.action === 'Remove' && op.stage === 'preview') {
+      const item = j5SelectedRemoveFixture(); const blocked = item.state !== 'eligible'; html = `<div class="j5-preview-list"><div><strong>Booking</strong><span>${J5_BASE_BOOKING.reference}</span></div><div><strong>Package/item</strong><span>${item.name}</span></div><div><strong>Private timeslot</strong><span>${item.target}</span></div><div><strong>Resulting impact</strong><span>Item/allocation removed; Booking shell remains</span></div></div>${blocked ? `<div class="j5-block-card"><strong>Blocked fixture: ${item.state === 'delivered' ? 'delivered/scanned' : 'linked standard item'}</strong><span>Cancel or failure preserves the item. No deletion is offered.</span></div>` : `<p class="j5-destructive-warning">Destructive local review action. Type <strong>${item.id}</strong> to confirm the exact target.</p>`}`; buttons = blocked ? j5Button('workflow-cancel', 'Cancel') : j5Button('remove-confirm', 'Confirm local removal', 'btn-danger', op.typed !== item.id) + j5Button('workflow-cancel', 'Cancel'); if (!blocked) announcement.textContent = op.typed === item.id ? 'Exact target matches. One local confirmation is available.' : `Type ${item.id} exactly to enable confirmation.`;
+    } else if (op.action === 'Remove' && op.stage === 'error') {
+      html = `<div class="j5-error-card"><span class="badge badge-evidence">RECOVERABLE ERROR</span><h3>Removal fixture failed</h3><p>The selected item remains present. Retry or cancel; no partial removal is claimed.</p></div>`; buttons = j5Button('remove-retry', 'Retry impact review', 'btn-primary') + j5Button('workflow-cancel', 'Cancel');
+    } else if (op.action === 'Move' && op.stage === 'setup') {
+      html = `<div class="j5-form-grid"><label>Private item<select id="j5-move-item">${j5ItemOptions(op.selectedItem)}</select></label><label>Eligible target<select id="j5-move-target">${J5_TARGETS.map(t => `<option value="${t.value}"${t.value === op.selectedTarget ? ' selected' : ''}${t.state === 'same' ? ' disabled' : ''}>${t.label}${t.state === 'same' ? ' · unavailable' : ''}</option>`).join('')}</select></label><label>Cover distribution<input id="j5-move-covers" type="number" min="1" max="80" value="${J5_BASE_BOOKING.covers}"></label></div><div class="j5-inline-note">Current target is excluded and unavailable. Eligible target capacity is enforced against entered covers; conflict and capacity are deterministic local fixtures.</div>`; buttons = j5Button('move-preview', 'Preview move', 'btn-primary') + j5Button('move-rollback', 'Reset fixture') + j5Button('workflow-cancel', 'Cancel');
+    } else if (op.action === 'Move' && op.stage === 'preview') {
+      const target = J5_TARGETS.find(t => t.value === op.selectedTarget) || J5_TARGETS[0]; const covers = Number(op.covers || J5_BASE_BOOKING.covers); const capacityOk = !target.capacity || covers <= target.capacity; const valid = target.state === 'eligible' && capacityOk; html = `<div class="j5-preview-list"><div><strong>Item</strong><span>${op.item || 'Private booking item'}</span></div><div><strong>Current → proposed</strong><span>Studio 2 → ${target.value}</span></div><div><strong>Cover distribution</strong><span>${covers} covers</span></div><div><strong>Eligibility</strong><span>${target.label}</span></div><div><strong>Capacity check</strong><span>${target.capacity ? `${covers} / ${target.capacity} covers` : 'No eligible capacity'}</span></div></div>${valid ? '<p class="j5-inline-note">Non-writing preview. Confirming changes only this in-memory candidate fixture.</p>' : `<div class="j5-block-card"><strong>Move blocked in local fixture</strong><span>${target.state === 'eligible' && !capacityOk ? `Entered covers exceed ${target.value} fixture capacity (${target.capacity}). Reduce covers or cancel.` : 'Select an eligible target or cancel. No allocation or availability claim is made.'}</span></div>`}`; buttons = j5Button('move-confirm', 'Confirm local move', 'btn-primary', !valid) + j5Button('move-refresh', 'Refresh targets') + j5Button('workflow-cancel', 'Cancel');
+    } else if (op.action === 'Batch' && op.stage === 'setup') {
+      html = `<fieldset class="j5-batch-fieldset"><legend>Select private booking items</legend>${J5_BOOKING_FIXTURE.items.map((item, i) => `<label class="j5-check-row"><input type="checkbox" data-j5-batch-item value="${item.id}"${i === 0 ? ' checked' : ''}> ${item.name} <span class="field-hint">${item.target}</span></label>`).join('')}</fieldset><div class="j5-form-grid"><label>Shared date<input id="j5-batch-date" type="date" value="2026-09-04"></label><label>Shared time<input id="j5-batch-time" type="time" value="09:00" step="1800"></label><label>Shared target<select id="j5-batch-target"><option value="Studio 4">Studio 4 · complete fixture</option><option value="Studio 7">Studio 7 · partial/conflict fixture</option></select></label></div><div class="j5-inline-note">Shared proposed date/time/target and per-item accounting remain visible in the preview. One local confirmation is used for the selected set.</div>`; buttons = j5Button('batch-preview', 'Preview batch', 'btn-primary') + j5Button('batch-rollback', 'Reset fixture') + j5Button('workflow-cancel', 'Cancel');
+    } else if (op.action === 'Batch' && op.stage === 'preview') {
+      const partial = op.selectedTarget === 'Studio 7'; html = `<div class="j5-preview-list"><div><strong>Shared proposed date</strong><span>${op.date || '2026-09-04'}</span></div><div><strong>Shared proposed time</strong><span>${op.time || '09:00'}</span></div><div><strong>Shared proposed target</strong><span>${op.selectedTarget}</span></div></div><div class="j5-batch-table" role="table" aria-label="Batch per-item accounting"><div role="row" class="j5-batch-row j5-batch-head"><span>Item</span><span>Eligibility</span><span>Proposed target</span></div>${(op.items || J5_BOOKING_FIXTURE.items.map(i => i.id)).map(id => { const item = J5_BOOKING_FIXTURE.items.find(i => i.id === id) || J5_BOOKING_FIXTURE.items[0]; return `<div role="row" class="j5-batch-row"><span>${item.name}</span><span>${partial && id === 'ITEM-LOCAL-002' ? 'Conflict' : 'Eligible'}</span><span>${op.selectedTarget}</span></div>`; }).join('')}</div><div class="j5-inline-note">Aggregate preview only. Complete/partial labels describe this deterministic fixture, not atomicity or production allocation.</div>`; buttons = j5Button('batch-confirm', partial ? 'Confirm partial local batch' : 'Confirm complete local batch', 'btn-primary') + j5Button('batch-retry', 'Retry targets') + j5Button('workflow-cancel', 'Cancel');
+    }
+    if (op.stage === 'preview' && !op.result && !op.permissionChanged) buttons += j5Button('permission-change', 'Simulate permission changed');
+    stage.innerHTML = html; footer.innerHTML = buttons;
+    if (op.stage === 'setup' && op.action === 'Remove') {
+      $('#j5-remove-item')?.addEventListener('change', (event) => { op.selectedItem = event.target.value; j5RenderWorkflow(); });
+      $('#j5-remove-reference')?.addEventListener('input', (event) => { op.typed = event.target.value.trim(); const confirm = $('[data-j5-command="remove-confirm"]'); if (confirm) confirm.disabled = event.target.value.trim() !== j5SelectedRemoveFixture().id; });
+    }
+  }
+
+  function j5ReadWorkflowValues() {
+    const op = j5Operation; if (!op) return;
+    if (op.action === 'Copy') { op.date = $('#j5-copy-date')?.value; op.retainCustomer = $('#j5-copy-customer')?.checked; op.retainPrices = $('#j5-copy-prices')?.checked; }
+    if (op.action === 'Edit') { op.date = $('#j5-edit-date')?.value; op.time = $('#j5-edit-time')?.value; op.covers = $('#j5-edit-covers')?.value; op.item = $('#j5-edit-item')?.selectedOptions?.[0]?.textContent; }
+    if (op.action === 'Move') { op.selectedItem = $('#j5-move-item')?.value || op.selectedItem; op.item = $('#j5-move-item')?.selectedOptions?.[0]?.textContent; op.selectedTarget = $('#j5-move-target')?.value || op.selectedTarget; op.covers = $('#j5-move-covers')?.value; }
+    if (op.action === 'Batch') { op.items = Array.from($$('[data-j5-batch-item]:checked')).map(input => input.value); op.selectedTarget = $('#j5-batch-target')?.value || 'Studio 4'; op.date = $('#j5-batch-date')?.value; op.time = $('#j5-batch-time')?.value; }
+  }
+  function j5CommitResult(action) {
+    const op = j5Operation; if (!op || op.commandToken) return; op.commandToken = `J5-LOCAL-${++j5CommandSerial}`;
+    if (action === 'Remove') { const item = j5SelectedRemoveFixture(); J5_BOOKING_FIXTURE.items = J5_BOOKING_FIXTURE.items.filter(i => i.id !== item.id); op.result = { title: 'Private booking item removed locally', copy: `${item.name} was removed from the in-memory candidate. The Booking shell remains.`, mutated: true }; }
+    else if (action === 'Move') { const item = J5_BOOKING_FIXTURE.items.find(i => i.id === op.selectedItem); if (item) item.target = op.selectedTarget; op.result = { title: 'Private item moved locally', copy: `${op.item || 'Selected item'} now previews at ${op.selectedTarget}.`, mutated: true }; }
+    else if (action === 'Batch') { const partial = op.selectedTarget === 'Studio 7'; op.result = { title: partial ? 'Partial batch result shown locally' : 'Complete batch result shown locally', copy: `${(op.items || []).length} selected private item(s) are accounted for at ${op.selectedTarget} on ${op.date || '2026-09-04'} at ${op.time || '09:00'}; ${partial ? 'one conflict remains retryable.' : 'all selected items are eligible in this fixture.'}`, mutated: true, partial }; }
+    else if (action === 'Copy') op.result = { title: 'Copy preview confirmed locally', copy: `A transient copy result ${op.retainCustomer ? 'retaining customer/contact' : 'resetting customer/contact'} was created for ${op.date || 'the selected start date'}; the source booking is unchanged.`, mutated: false };
+    else op.result = { title: 'Update preview confirmed locally', copy: `The requested scheduled date ${op.date || J5_BASE_BOOKING.date} at ${op.time || '09:00'}, cover quantity and existing item selection were accepted as a transient local result; the original booking is unchanged.`, mutated: false };
+    j5RenderWorkflow(); j5RenderState(); announceLive(j5LocalResult(op.result.title));
+  }
+  function j5HandleWorkflowCommand(event) {
+    if (isJ6Journey()) return j6HandleWorkflowCommand(event);
+    const command = event.target.closest('[data-j5-command]')?.dataset.j5Command; if (!command || !j5Operation) return; const op = j5Operation; if (op.stage === 'setup') j5ReadWorkflowValues();
+    if (command === 'permission-change' && op.stage === 'preview' && !op.result) { op.permissionChanged = true; return j5RenderWorkflow(); }
+    if (command === 'permission-refresh' && op.permissionChanged) { op.permissionChanged = false; return j5RenderWorkflow(); }
+    if (command === 'workflow-cancel' || command === 'workflow-done') return j5ReturnFromWorkflow();
+    if (command === 'copy-preserve' || command === 'copy-clear') { op.stage = 'setup'; op.guard = command === 'copy-preserve' ? 'preserved' : 'cleared'; return j5RenderWorkflow(); }
+    if (command === 'copy-stale') { op.stage = 'preview'; op.stale = true; return j5RenderWorkflow(); }
+    if (command === 'copy-preview') { op.stage = 'preview'; op.stale = false; return j5RenderWorkflow(); }
+    if (command === 'copy-refresh') { op.stale = false; op.stage = 'setup'; return j5RenderWorkflow(); }
+    if (command === 'copy-confirm') { if (!op.stale) return j5CommitResult('Copy'); }
+    if (command === 'update-stale') { op.stale = true; return j5RenderWorkflow(); }
+    if (command === 'update-refresh') { op.stale = false; op.stage = 'setup'; return j5RenderWorkflow(); }
+    if (command === 'update-failure') { op.stage = 'error'; return j5RenderWorkflow(); }
+    if (command === 'update-retry') { op.stage = 'setup'; op.stale = false; return j5RenderWorkflow(); }
+    if (command === 'update-preview') { if (!op.stale) { op.stage = 'preview'; j5RenderWorkflow(); } return; }
+    if (command === 'update-confirm') return j5CommitResult('Edit');
+    if (command === 'remove-preview') { op.stage = 'preview'; return j5RenderWorkflow(); }
+    if (command === 'remove-failure') { op.stage = 'error'; return j5RenderWorkflow(); }
+    if (command === 'remove-retry') { op.stage = 'setup'; return j5RenderWorkflow(); }
+    if (command === 'remove-confirm') { if (op.typed === j5SelectedRemoveFixture().id && j5SelectedRemoveFixture().state === 'eligible') return j5CommitResult('Remove'); }
+    if (command === 'remove-undo') { const item = J5_REMOVE_FIXTURES.find(i => i.id === op.selectedItem); if (item && !J5_BOOKING_FIXTURE.items.some(i => i.id === item.id)) J5_BOOKING_FIXTURE.items.push({ id: item.id, name: item.name, target: 'Studio 2', covers: 18, state: 'eligible' }); op.result = { title: 'Removal rolled back locally', copy: 'The selected booking item is present again in the in-memory candidate.', mutated: false }; j5RenderWorkflow(); j5RenderState(); return; }
+    if (command === 'move-preview') { op.stage = 'preview'; return j5RenderWorkflow(); }
+    if (command === 'move-refresh' || command === 'move-rollback') { op.stage = 'setup'; op.selectedTarget = 'Studio 4'; return j5RenderWorkflow(); }
+    if (command === 'move-confirm') { const target = J5_TARGETS.find(t => t.value === op.selectedTarget); const covers = Number(op.covers || J5_BASE_BOOKING.covers); if (target?.state === 'eligible' && covers <= target.capacity) return j5CommitResult('Move'); }
+    if (command === 'batch-preview') { j5ReadWorkflowValues(); op.stage = 'preview'; return j5RenderWorkflow(); }
+    if (command === 'batch-retry') { op.result = null; op.commandToken = null; op.stage = 'setup'; return j5RenderWorkflow(); }
+    if (command === 'batch-rollback') { op.result = null; op.commandToken = null; op.stage = 'setup'; op.selectedTarget = 'Studio 4'; return j5RenderWorkflow(); }
+    if (command === 'batch-confirm') { if ((op.items || []).length) return j5CommitResult('Batch'); }
+  }
+  function j5SetupEvents() {
+    if (isJ5Journey()) $$('.j5-review-state[data-j5-review-state]').forEach((button) => button.addEventListener('click', () => { j5SetState(button.dataset.j5ReviewState, false); if (!$('#j4-details-dialog').open) j5OpenActionHub(button); }));
+    if (isJ5Journey()) $$('.j5-review-state[data-j5-lifecycle-state]').forEach((button) => button.addEventListener('click', () => j5SetLifecycleState(button.dataset.j5LifecycleState, false)));
+    if (isJ5Journey()) $$('.j5-action[data-j5-action]').forEach((button) => button.addEventListener('click', (event) => j5OpenWorkflow(event.currentTarget.dataset.j5Action, event.currentTarget)));
+    if (isJ6Journey()) $$('[data-j6-action]').forEach((button) => button.addEventListener('click', (event) => j5OpenWorkflow(event.currentTarget.dataset.j6Action, event.currentTarget)));
+    if (isJ6Journey()) $$('[data-j6-permission]').forEach((button) => button.addEventListener('click', (event) => { j5ReviewState = event.currentTarget.dataset.j6Permission === 'denied' ? 'denied' : 'loaded'; announceLive(j5ReviewState === 'denied' ? 'Permission denied before action entry.' : 'Permission fixture restored to ready.'); }));
+    document.addEventListener('click', (event) => { if (event.target.closest('#j5-workflow-footer [data-j5-command]')) j5HandleWorkflowCommand(event); }); $('#j5-workflow-close')?.addEventListener('click', j5ReturnFromWorkflow); $('#j5-workflow-dialog')?.addEventListener('cancel', (event) => { event.preventDefault(); j5ReturnFromWorkflow(); }); $('#j5-workflow-dialog')?.addEventListener('close', () => { if (j5WorkflowTrigger && !j5WorkflowReturning) j5ReturnFromWorkflow(); }); $('#j4-details-dialog').addEventListener('close', (event) => { if (event?.returnValue !== 'workflow') j5RestorePlaybackControls(); });
+  }
+  function j5ResetBootState() {
+    j4ResetBootState(); j4ActiveFixtureId = 'private'; J5_BOOKING_FIXTURE = j5CloneBooking(); const overviewTitle = $('#j4-overview-title'); const overviewCopy = $('#j4-overview p'); const caption = $('.calendar-caption');
+    if (overviewTitle) overviewTitle.textContent = 'Review private Existing Booking lifecycle flows'; if (overviewCopy) overviewCopy.textContent = 'CR-J5-002 through CR-J5-006 are deterministic local review fixtures. Copy, update, item removal, Move and Batch never call a server or persist data.'; if (caption) caption.textContent = 'REVIEW FIXTURE — private lifecycle candidate; previews are non-writing and reload resets local results.';
+    j5ReviewState = 'loaded'; j5LifecycleState = 'ready'; j5Operation = null; renderCalendar(); j5RenderState(); window.setTimeout(() => j5OpenActionHub($('#j4-open-private')), 0);
+  }
+  function j5PreparePlayback() { const panel = $('#review-rail-panel'); panel.hidden = false; $('#review-rail-toggle').setAttribute('aria-expanded', 'true'); if (!$('#j4-details-dialog').open) j5OpenActionHub($('#j4-open-private')); else j5RenderState(); }
+  function j5PlaybackCaption(message) { const announcement = $('#j5-action-announcement'); if (announcement) announcement.textContent = message; announceLive(message); }
+  async function j5RunPlayback(mode) {
+    if (playJourneyActive) return; playJourneyActive = true; const playBtn = $('#btn-play-journey'); const completeBtn = $('#btn-play-complete'); playBtn.disabled = true; completeBtn.disabled = true; document.body.dataset.j5Playback = mode; j5PreparePlayback();
+    const fullSequence = [{ state: 'loading', caption: 'Loading — lifecycle actions are unavailable.' }, { state: 'loaded', caption: 'Loaded — private local action hub is visible.' }, { lifecycle: 'permission-denied', caption: 'Permission denied before entry.' }, { lifecycle: 'ready', action: 'Copy', caption: 'Copy opens a local staged-work guard.' }, { action: 'Edit', caption: 'Update opens a non-writing preview flow.' }, { action: 'Remove', caption: 'Remove shows exact target and private Booking-item impact.' }, { action: 'Move', caption: 'Move shows eligible, conflict and capacity target fixtures.' }, { action: 'Batch', caption: 'Batch shows per-item accounting and partial recovery.' }, { state: 'partial', caption: 'Partial details truthfully withhold total.' }, { state: 'error', caption: 'Error + Retry preserves the original fixture.' }, { retry: true, caption: 'Retry returns only to the local loaded presentation.' }];
+    const sequence = mode === 'complete' ? fullSequence.slice(0, 2).concat(fullSequence.slice(8)) : fullSequence;
+    try { for (let index = 0; index < sequence.length; index += 1) { const step = sequence[index]; if (step.state) j5SetState(step.state, false); if (step.lifecycle) j5SetLifecycleState(step.lifecycle, false); if (step.action) { j5LifecycleState = 'ready'; j5RenderState(); const action = $(`.j5-action[data-j5-action="${step.action}"]`); if (action && !action.disabled) { action.click(); if ($('#j5-workflow-dialog')?.open) j5ReturnFromWorkflow(); } } if (step.retry) $('#j5-retry')?.click(); j5PlaybackCaption(`Step ${index + 1} of ${sequence.length}: ${step.caption}`); await waitForPlay(mode === 'complete' ? REVIEW_COMPLETE_STEP_MS : REVIEW_PLAY_STEP_MS); } j5SetState('loaded', false); j5SetLifecycleState('ready', false); j5PlaybackCaption(`${mode === 'complete' ? 'Play complete' : 'Play journey'} finished. Candidate remains local and non-persistent.`); } catch (error) { console.error(error); j5PlaybackCaption('Playback stopped at the last safe local review state.'); } finally { delete document.body.dataset.j5Playback; playJourneyActive = false; playBtn.disabled = false; completeBtn.disabled = false; }
+  }
+  function j5PlayJourney() { return j5RunPlayback('journey'); }
+  function j5PlayComplete() { return j5RunPlayback('complete'); }
+
+  /* ===== Journey 6 isolated candidate — CR-J6-001 through CR-J6-006 ===== */
+
+  const J6_PUBLIC_BANNER = 'REVIEW FIXTURE — this local playback represents one runtime-confirmed public-event timeslot change and restore. It is not Public lifecycle support. Canonical FN-RES-008 remains NOT FOUND in the code trace and OUT OF SCOPE for the current Diary approval boundary. Journey 6 claims no ownership of Public behavior.';
+  const J6_ENTRY_COPY = 'REVIEW FIXTURE — public-event identification and the public context menu are UNVERIFIED (runtime validation 2026-08-04). This entry is a review-only control, not a reproduced menu path.';
+  const J6_DEFECT_COPY = 'DEFECT — duplicate/cancelled availability preparation was observed in the current system. It is described here and deliberately not reproduced.';
+  const J6_RESULT_SUFFIX = 'Local review result — no server request sent; reload resets it.';
+
+  function j6PermissionAllowed() { return j5ReviewState !== 'denied' && j5LifecycleState === 'ready'; }
+  function j6ActionTitle(action) {
+    return ({ PublicReschedule: 'Public timeslot reschedule · review fixture', BookingReschedule: 'Booking reschedule · blocked review', MultiReschedule: 'Multiple reschedule · heterogeneous review', AssetDescription: 'Asset Description → Resources → Resource Booking → Reschedule Booking', Reallocate: 'Resource reallocation · proposed review' })[action] || 'Journey 6 local review';
+  }
+  function j6Duration(start, end) {
+    const mins = (v) => { const [h, m] = String(v || '00:00').split(':').map(Number); return h * 60 + m; };
+    return `${(Math.max(0, mins(end) - mins(start)) / 60).toFixed(2)} HRS`;
+  }
+  function j6Button(command, text, cls = 'btn-secondary', disabled = false) { return j5Button(command, text, cls, disabled); }
+  function j6ReadValues() {
+    const op = j5Operation; if (!op) return;
+    const date = $('#j6-date')?.value;
+    if (date) op.date = date;
+    if (op.timeMode === 'different') {
+      const rows = ['a', 'b'].map((id) => ({ id, start: $(`#j6-start-${id}`)?.value || op.itemTimes?.find((x) => x.id === id)?.start || op.start, end: $(`#j6-end-${id}`)?.value || op.itemTimes?.find((x) => x.id === id)?.end || op.end }));
+      op.itemTimes = rows;
+      op.start = rows[0].start; op.end = rows[0].end;
+      op.duration = rows.map((row) => `${row.id.toUpperCase()}: ${j6Duration(row.start, row.end)}`).join(' · ');
+      op.changed = op.date !== op.baseline.date || rows.some((row, index) => row.start !== op.baselineTimes[index].start || row.end !== op.baselineTimes[index].end);
+      return;
+    }
+    const start = $('#j6-start')?.value, end = $('#j6-end')?.value;
+    if (start) op.start = start; if (end) op.end = end;
+    op.duration = op.selection === 'heterogeneous' ? '0.00 HRS' : j6Duration(op.start, op.end);
+    op.changed = op.date !== op.baseline.date || op.start !== op.baseline.start || op.end !== op.baseline.end;
+  }
+  function j6StartOperation(action, trigger) {
+    if (!isJ6Journey()) return;
+    if (!j6PermissionAllowed()) { announceLive('Permission denied before action entry. The local fixture remains unchanged.'); return; }
+    const publicAction = action === 'PublicReschedule';
+    j5WorkflowTrigger = trigger || document.activeElement;
+    const opener = j5WorkflowTrigger;
+    j5Operation = {
+      action,
+      evidenceClass: publicAction ? 'REVIEW FIXTURE' : action === 'BookingReschedule' ? 'PARTIAL' : 'UNVERIFIED',
+      origin: { openerSelector: opener?.id ? `#${opener.id}` : null, restore: () => opener?.focus?.() },
+      stage: action === 'Reallocate' ? 'preview' : 'setup',
+      substage: action === 'AssetDescription' ? 'summary' : null,
+      timeMode: action === 'MultiReschedule' ? 'different' : 'common', date: '2026-08-28',
+      start: publicAction ? '08:00' : '09:00', end: publicAction ? '19:00' : '13:00',
+      duration: publicAction ? '11.00 HRS' : '4.00 HRS',
+      baseline: { date: '2026-08-28', start: publicAction ? '08:00' : '09:00', end: publicAction ? '19:00' : '13:00' },
+      baselineTimes: [{ id: 'a', start: publicAction ? '08:00' : '09:00', end: publicAction ? '19:00' : '13:00' }, { id: 'b', start: publicAction ? '09:00' : '10:00', end: publicAction ? '18:00' : '14:00' }],
+      itemTimes: [{ id: 'a', start: publicAction ? '08:00' : '09:00', end: publicAction ? '19:00' : '13:00' }, { id: 'b', start: publicAction ? '09:00' : '10:00', end: publicAction ? '18:00' : '14:00' }],
+      changed: false, availability: 'idle', selection: action === 'MultiReschedule' ? 'heterogeneous' : 'homogeneous',
+      resource: { query: '', page: 1, selectedId: null, listState: action === 'AssetDescription' ? 'loaded' : 'loading' },
+      stale: false, permissionChanged: false, commandToken: null, result: null, restored: false, localResultCount: 0
+    };
+    const details = $('#j4-details-dialog'); if (details?.open) details.close('workflow');
+    const dialog = $('#j5-workflow-dialog'); if (!dialog) return;
+    j6RenderWorkflow(); dialog.hidden = false; dialog.inert = false; dialog.removeAttribute('aria-hidden'); dialog.showModal();
+    window.setTimeout(() => dialog.querySelector('input, select, button:not(.dialog-close)')?.focus(), 0);
+    announceLive(`${j6ActionTitle(action)} opened. No server request sent.`);
+  }
+  function j6ResultCard(title, copy, cls = 'j6-open') {
+    const label = cls === 'j6-unverified' ? 'UNVERIFIED' : cls === 'j6-blocked' ? 'BLOCKED/DEFECT-AFFECTED' : 'RUNTIME-CONFIRMED';
+    return `<div class="j6-stage-card ${cls}"><span class="j6-workflow-label">${label}</span><h3>${title}</h3><p>${copy}</p></div>`;
+  }
+  function j6RenderTimeForm(op, heading, extra = '') {
+    const stageModifier = op.stage === 'blocked' ? 'j6-blocked' : op.stage === 'error' ? 'j6-safety' : op.substage === 'reschedule' ? 'j6-unverified' : 'j6-open';
+    const timeFields = op.timeMode === 'different'
+      ? `<div class="j6-different-time-rows" role="group" aria-label="Different time per-item rows"><div class="j6-different-time-row"><strong>Item A · ${op.resource?.selectedId || 'Hall 1'}</strong><label>Start<input id="j6-start-a" type="time" value="${op.itemTimes[0].start}"></label><label>End<input id="j6-end-a" type="time" value="${op.itemTimes[0].end}"></label><label class="j6-field-readonly">Duration (derived)<input id="j6-duration-a" type="text" value="${j6Duration(op.itemTimes[0].start, op.itemTimes[0].end)}" readonly aria-readonly="true"></label></div><div class="j6-different-time-row"><strong>Item B · ${op.resource?.selectedId || 'Studio 2'}</strong><label>Start<input id="j6-start-b" type="time" value="${op.itemTimes[1].start}"></label><label>End<input id="j6-end-b" type="time" value="${op.itemTimes[1].end}"></label><label class="j6-field-readonly">Duration (derived)<input id="j6-duration-b" type="text" value="${j6Duration(op.itemTimes[1].start, op.itemTimes[1].end)}" readonly aria-readonly="true"></label></div></div>`
+      : `<div class="j5-form-grid"><label>Start<input id="j6-start" type="time" value="${op.start}"></label><label>End<input id="j6-end" type="time" value="${op.end}"></label><label class="j6-field-readonly">Duration (derived)<input id="j6-duration" type="text" value="${op.duration}" readonly aria-readonly="true"></label></div>`;
+    return `<div class="j6-stage-card ${stageModifier}"><span class="j6-workflow-label">${op.evidenceClass}</span><h3>${heading}</h3><div class="j5-form-grid"><label>Date<input id="j6-date" type="date" value="${op.date}"></label><label>Time mode<select id="j6-time-mode"><option value="common"${op.timeMode === 'common' ? ' selected' : ''}>Common time</option><option value="different"${op.timeMode === 'different' ? ' selected' : ''}>Different times</option></select></label></div>${timeFields}<p class="j5-inline-note">Before / after preview only. Duration is derived and not independently editable. No pricing, persistence, transaction or concurrency outcome is claimed.</p>${extra}${op.changed ? '' : '<p class="j6-resource-state">Unchanged interval: submit is an exact no-op. The dialog remains open and no result or token is created.</p>'}</div>`;
+  }
+  function j6RenderWorkflow() {
+    const op = j5Operation, stage = $('#j5-workflow-stage'), footer = $('#j5-workflow-footer'), title = $('#j5-workflow-title'), description = $('#j5-workflow-description'), announcement = $('#j5-workflow-announcement');
+    if (!op || !stage || !footer || !title || !description || !announcement) return;
+    $('#j5-workflow-kicker').textContent = 'Journey 6 · UJ-07 · local review'; title.textContent = j6ActionTitle(op.action); description.textContent = 'Review fixture only. Every preview is non-writing; no server request is sent; reload resets it.'; announcement.textContent = '';
+    let html = '', buttons = '';
+    if (op.permissionChanged) {
+      html = j6ResultCard('Permission changed during preview', 'Confirmation and restore are unavailable until the local permission fixture is refreshed. The original in-memory state is preserved.', 'j6-blocked'); buttons = j6Button('permission-refresh', 'Refresh permission', 'btn-primary') + j6Button('workflow-cancel', 'Cancel without loss');
+    } else if (op.result) {
+      html = j6ResultCard(op.result.title, op.result.copy, op.result.kind === 'unverified' ? 'j6-unverified' : 'j6-open');
+      if (op.action === 'PublicReschedule' && op.result.kind === 'change' && !op.restored && op.localResultCount < 2) buttons = j6Button('j6-restore', 'Guarded restore to 08:00–19:00', 'btn-primary') + j6Button('j6-permission-change', 'Permission changed');
+      buttons += j6Button('workflow-done', 'Done', 'btn-primary');
+    } else if (op.action === 'Reallocate') {
+      html = `<div class="j6-stage-card j6-unverified"><span class="j6-workflow-label">UNVERIFIED</span><h3>Proposed before / after preview</h3><p>Resource reallocation is presented as a local proposal only. No save, change-assets persistence or success is shown.</p><div class="j6-indivisible"><strong>DFC + DFCD + Allocation</strong><span>one indivisible displayed row</span></div><p>OWN-ALLOC-01 — OPEN. No backend ownership, atomicity, capacity, rights or rollback decision is implied.</p></div>`;
+      buttons = j6Button('workflow-cancel', 'Cancel without loss');
+    } else if (op.action === 'AssetDescription') {
+      const sub = op.substage || 'summary';
+      const crumbs = `<div class="j6-breadcrumb"><span aria-current="${sub === 'summary' ? 'step' : 'false'}">Asset Description</span><span aria-current="${sub === 'resources' ? 'step' : 'false'}">Resources</span><span aria-current="${sub === 'resource-booking' ? 'step' : 'false'}">Resource Booking</span><span aria-current="${sub === 'reschedule' ? 'step' : 'false'}">Reschedule Booking</span></div>`;
+      if (sub === 'summary') { html = `<div class="j6-stage-card j6-unverified">${crumbs}<span class="j6-workflow-label">UNVERIFIED</span><h3>Asset Description</h3><p>Summary and tabs are available for review. Resource and booking actions remain local and non-persistent.</p><p>Tabs: Summary · Resources · Booking context. No pricing amount or save control is shown.</p></div>`; buttons = j6Button('j6-next-resources', 'Resources', 'btn-primary') + j6Button('workflow-cancel', 'Cancel'); }
+      else if (sub === 'resources') { const state = op.resource.listState; html = `<div class="j6-stage-card j6-unverified">${crumbs}<span class="j6-workflow-label">UNVERIFIED</span><h3>Resources</h3><label>Search resources<input id="j6-resource-query" type="search" value="${op.resource.query}" placeholder="Search local fixtures"></label><p class="j6-resource-state">${state === 'loading' ? 'Resource list loading — no request is sent.' : state === 'empty' ? 'No local resource matches. Empty state only.' : state === 'error' ? 'Resource list error. Retry the local fixture.' : state === 'denied' ? 'Permission denied for resource list. No rights matrix is claimed.' : `Loaded local resources page ${op.resource.page}: Studio 4 · Studio 7 · Hall 1. Selection remains a local fixture.`}</p></div>`; buttons = j6Button('j6-resource-loading', 'Loading') + j6Button('j6-resource-empty', 'Empty') + j6Button('j6-resource-error', 'Error + retry') + j6Button('j6-resource-denied', 'Denied') + j6Button('j6-resource-loaded', 'Loaded') + j6Button('j6-resource-page', 'Next page') + j6Button('j6-resource-select', 'Select Studio 4') + j6Button('j6-next-resource-booking', 'Resource Booking', 'btn-primary', state !== 'loaded') + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
+      else if (sub === 'resource-booking') { html = `<div class="j6-stage-card j6-unverified">${crumbs}<span class="j6-workflow-label">UNVERIFIED</span><h3>Resource Booking</h3><p>Selected resource: ${op.resource.selectedId || 'Studio 4 local fixture'}.</p><p>Apply / Cancel are local navigation only. No resource save, availability write or booking persistence is available.</p></div>`; buttons = j6Button('j6-apply-preview', 'Apply to proposed preview', 'btn-primary') + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
+      else { html = j6RenderTimeForm(op, 'Reschedule Booking', '<p class="j6-resource-state">UNVERIFIED proposed before/after preview. A confirmation success is deliberately unavailable.</p>'); buttons = j6Button('j6-proposed-preview', 'Show proposed preview', 'btn-primary') + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
+    } else if (op.action === 'MultiReschedule') {
+      html = j6RenderTimeForm(op, 'Multiple reschedule', '<p class="j6-resource-state"><strong>Varies</strong> — heterogeneous selection. Duration: 0.00 HRS. Multi-item commit is permanently disabled.</p>'); buttons = j6Button('j6-check', 'Review availability', 'btn-primary', true) + j6Button('workflow-cancel', 'Cancel');
+    } else if (op.action === 'BookingReschedule') {
+      if (op.stage === 'setup') { html = j6RenderTimeForm(op, 'Booking reschedule', `<p class="j6-defect-note">${J6_DEFECT_COPY}</p>`); buttons = j6Button('j6-loading', 'Show availability loading') + j6Button('j6-check', 'Check availability', 'btn-primary') + j6Button('j6-noop-submit', 'Submit unchanged time') + j6Button('workflow-cancel', 'Cancel'); }
+      else if (op.stage === 'availability') { html = j6ResultCard('Availability available for review', 'Availability completed in the local fixture. The next Booking preview is deliberately blocked at the observed HTTP 400 defect boundary.', 'j6-safety') + `<p class="j6-defect-note">${J6_DEFECT_COPY}</p>`; buttons = j6Button('j6-check', 'Continue to preview blocker', 'btn-primary') + j6Button('j6-conflict', 'Show conflict') + j6Button('j6-error', 'Show error') + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
+      else { html = j6ResultCard('Preview blocked — HTTP 400 evidence', 'Availability completed in the local fixture, but Booking preview is BLOCKED/DEFECT-AFFECTED. Commit is never enabled and no Booking PATCH success is simulated.', 'j6-blocked') + `<p class="j6-defect-note">${J6_DEFECT_COPY}</p>`; buttons = j6Button('workflow-cancel', 'Cancel without loss'); }
+    } else if (op.action === 'PublicReschedule') {
+      if (op.stage === 'setup') { html = `<div class="j6-public-banner">${J6_PUBLIC_BANNER}</div>` + j6RenderTimeForm(op, 'Public timeslot change', `<p class="j6-entry-note">${J6_ENTRY_COPY}</p><p class="j6-defect-note">${J6_DEFECT_COPY}</p>`); buttons = j6Button('j6-loading', 'Show availability loading') + j6Button('j6-check', 'Check availability', 'btn-primary') + j6Button('j6-noop-submit', 'Submit unchanged time') + j6Button('workflow-cancel', 'Cancel'); }
+      else if (op.stage === 'availability') { html = `<div class="j6-public-banner">${J6_PUBLIC_BANNER}</div><div class="j6-stage-card ${op.availability === 'error' ? 'j6-blocked' : 'j6-safety'}"><span class="j6-workflow-label">${op.availability.toUpperCase()}</span><h3>Availability review</h3><p>${op.availability === 'loading' ? 'Availability is loading. No duplicate request is reproduced.' : op.availability === 'error' ? 'The local availability fixture returned an error. Retry without reproducing duplicate work.' : op.availability === 'conflict' ? 'Conflict / unavailable fixture. No override or capacity claim is made.' : 'Availability is ready for a non-writing before/after preview.'}</p><p class="j6-defect-note">${J6_DEFECT_COPY}</p></div>`; buttons = j6Button('j6-check', 'Retry availability', 'btn-primary') + j6Button('j6-conflict', 'Show conflict') + j6Button('j6-error', 'Show error') + j6Button('j6-stale', 'Show stale target') + j6Button('j6-permission-change', 'Permission changed') + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
+      else { html = `<div class="j6-public-banner">${J6_PUBLIC_BANNER}</div><div class="j6-stage-card j6-safety"><span class="j6-workflow-label">RUNTIME-CONFIRMED · LOCAL ONLY</span><h3>Before / after preview</h3><div class="j6-indivisible"><strong>${op.baseline.date} · ${op.baseline.start}–${op.baseline.end}</strong><span>before</span></div><div class="j6-indivisible"><strong>${op.date} · ${op.start}–${op.end}</strong><span>proposed · ${op.duration}</span></div><p>No server request is sent. Confirmation is guarded by stale and permission checks.</p></div>`; buttons = j6Button('j6-confirm', 'Confirm one local change', 'btn-primary', op.stale || !op.changed) + j6Button('j6-stale', 'Show stale target') + j6Button('j6-permission-change', 'Permission changed') + j6Button('j6-refresh', 'Refresh target', 'btn-secondary', !op.stale) + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
+    }
+    stage.innerHTML = html; footer.innerHTML = buttons;
+    if ($('#j6-duration')) $('#j6-duration').value = op.duration;
+    $('#j6-time-mode')?.addEventListener('change', (event) => { op.timeMode = event.target.value; j6ReadValues(); return j6RenderWorkflow(); });
+    ['#j6-date', '#j6-start', '#j6-end', '#j6-start-a', '#j6-end-a', '#j6-start-b', '#j6-end-b'].forEach((selector) => $(selector)?.addEventListener('input', () => { j6ReadValues(); if ($('#j6-duration')) $('#j6-duration').value = op.duration; if ($('#j6-duration-a')) $('#j6-duration-a').value = j6Duration(op.itemTimes[0].start, op.itemTimes[0].end); if ($('#j6-duration-b')) $('#j6-duration-b').value = j6Duration(op.itemTimes[1].start, op.itemTimes[1].end); }));
+    $('#j6-resource-query')?.addEventListener('input', (event) => { op.resource.query = event.target.value; });
+  }
+  function j6CommitResult(kind) {
+    const op = j5Operation; if (!op || op.commandToken || op.localResultCount >= 2) return;
+    if (!j6PermissionAllowed()) { op.permissionChanged = true; return j6RenderWorkflow(); }
+    op.commandToken = `J6-LOCAL-${++j5CommandSerial}`; op.localResultCount += 1;
+    if (kind === 'change') { j6PublicInterval = { start: op.start, end: op.end }; op.result = { kind: 'change', title: 'Public timeslot changed locally', copy: `One local review update changed ${op.baseline.start}–${op.baseline.end} to ${op.start}–${op.end}. ${J6_RESULT_SUFFIX}` }; renderCalendar(); }
+    else { j6PublicInterval = { start: op.baseline.start, end: op.baseline.end }; op.restored = true; op.result = { kind: 'restore', title: 'Public timeslot restored locally', copy: `The local review fixture returned to ${op.baseline.start}–${op.baseline.end}. ${J6_RESULT_SUFFIX}` }; renderCalendar(); }
+    j6RenderWorkflow(); announceLive(op.result.copy);
+  }
+  function j6HandleWorkflowCommand(event) {
+    const command = event.target.closest('[data-j5-command]')?.dataset.j5Command, op = j5Operation;
+    if (!command || !op) return;
+    if (command === 'workflow-cancel' || command === 'workflow-done') return j5ReturnFromWorkflow();
+    if (command === 'permission-change' || command === 'j6-permission-change') { op.permissionChanged = true; return j6RenderWorkflow(); }
+    if (command === 'permission-refresh') { op.permissionChanged = false; return j6RenderWorkflow(); }
+    if (command === 'j6-noop-submit') { j6ReadValues(); if (!op.changed) { const a = $('#j5-workflow-announcement'); if (a) a.textContent = `Unchanged time submitted — no transition or result. ${J6_RESULT_SUFFIX}`; announceLive('Unchanged time submitted; no local result was created and the dialog remains open.'); } return; }
+    if (command === 'j6-loading') { op.availability = 'loading'; op.stage = 'availability'; return j6RenderWorkflow(); }
+    if (command === 'j6-check') { j6ReadValues(); if (!op.changed && op.availability !== 'loading') { const a = $('#j5-workflow-announcement'); if (a) a.textContent = `Unchanged time submitted — no transition or result. ${J6_RESULT_SUFFIX}`; announceLive('Unchanged time submitted; no local result was created.'); return; } if (op.availability === 'loading') { op.availability = 'available'; op.stage = 'availability'; return j6RenderWorkflow(); } if (op.action === 'BookingReschedule' && op.stage === 'availability') { op.availability = 'available'; op.stage = 'blocked'; return j6RenderWorkflow(); } op.availability = 'available'; op.stage = op.action === 'BookingReschedule' ? 'availability' : 'preview'; return j6RenderWorkflow(); }
+    if (command === 'j6-conflict') { op.availability = 'conflict'; op.stage = 'availability'; return j6RenderWorkflow(); }
+    if (command === 'j6-error') { op.availability = 'error'; op.stage = 'availability'; return j6RenderWorkflow(); }
+    if (command === 'j6-stale') { op.stale = true; op.stage = op.action === 'PublicReschedule' ? 'preview' : op.stage; return j6RenderWorkflow(); }
+    if (command === 'j6-refresh') { op.stale = false; op.permissionChanged = false; op.stage = 'setup'; op.timeMode = 'common'; op.date = op.baseline.date; op.start = op.baseline.start; op.end = op.baseline.end; op.itemTimes = op.baselineTimes.map((row) => ({ ...row })); op.duration = op.selection === 'heterogeneous' ? '0.00 HRS' : j6Duration(op.start, op.end); op.changed = false; return j6RenderWorkflow(); }
+    if (command === 'j6-confirm') { j6ReadValues(); if (op.stale || !op.changed || op.permissionChanged) return j6RenderWorkflow(); return j6CommitResult('change'); }
+    if (command === 'j6-restore') { if (op.restored || op.permissionChanged || !j6PermissionAllowed()) { op.permissionChanged = true; return j6RenderWorkflow(); } op.commandToken = null; return j6CommitResult('restore'); }
+    if (command === 'j6-back') { if (op.action === 'AssetDescription') op.substage = op.substage === 'reschedule' ? 'resource-booking' : op.substage === 'resource-booking' ? 'resources' : 'summary'; else { op.stage = 'setup'; op.availability = 'idle'; } return j6RenderWorkflow(); }
+    if (command === 'j6-next-resources') { op.substage = 'resources'; return j6RenderWorkflow(); }
+    if (command === 'j6-resource-loading') { op.resource.listState = 'loading'; return j6RenderWorkflow(); }
+    if (command === 'j6-resource-empty') { op.resource.listState = 'empty'; return j6RenderWorkflow(); }
+    if (command === 'j6-resource-error') { op.resource.listState = 'error'; return j6RenderWorkflow(); }
+    if (command === 'j6-resource-denied') { op.resource.listState = 'denied'; return j6RenderWorkflow(); }
+    if (command === 'j6-resource-loaded') { op.resource.listState = 'loaded'; return j6RenderWorkflow(); }
+    if (command === 'j6-resource-page') { op.resource.page += 1; return j6RenderWorkflow(); }
+    if (command === 'j6-resource-select') { op.resource.selectedId = 'Studio 4'; return j6RenderWorkflow(); }
+    if (command === 'j6-next-resource-booking') { if (op.resource.listState === 'loaded') { op.resource.selectedId = 'Studio 4'; op.substage = 'resource-booking'; return j6RenderWorkflow(); } return; }
+    if (command === 'j6-next-reschedule' || command === 'j6-apply-preview') { op.substage = 'reschedule'; op.evidenceClass = 'UNVERIFIED'; return j6RenderWorkflow(); }
+    if (command === 'j6-proposed-preview') { op.stage = 'preview'; op.evidenceClass = 'UNVERIFIED'; return j6RenderWorkflow(); }
+  }
+  function j6ResetBootState() {
+    j4ResetBootState();
+    const j6Controls = $('#j6-review-controls');
+    if (j6Controls) { j6Controls.hidden = false; j6Controls.inert = false; j6Controls.removeAttribute('aria-hidden'); }
+    const j6RailPanel = $('#review-rail-panel');
+    const j6RailToggle = $('#review-rail-toggle');
+    if (j6RailPanel) { j6RailPanel.hidden = false; j6RailPanel.inert = false; j6RailPanel.removeAttribute('aria-hidden'); }
+    if (j6RailToggle) j6RailToggle.setAttribute('aria-expanded', 'true');
+    j4ActiveFixtureId = 'public-review'; j4EnabledFilters = new Set(J6_FILTER_ORDER); j6PublicInterval = { start: '08:00', end: '19:00' }; j5ReviewState = 'loaded'; j5LifecycleState = 'ready'; j5Operation = null;
+    const overview = $('#j4-overview');
+    if (overview) { overview.hidden = false; overview.inert = false; overview.removeAttribute('aria-hidden'); overview.innerHTML = `<div><span class="j4-kicker">Journey 6 · UJ-07 · Maintenance / Public Events</span><h1 id="j4-overview-title">Reschedule timeslots and reallocate resources</h1></div><div><p class="j6-public-banner">${J6_PUBLIC_BANNER}</p><p class="j6-defect-note">${J6_DEFECT_COPY}</p><p class="j6-entry-note">${J6_ENTRY_COPY}</p><p class="j6-entry-note"><strong>Evidence labels:</strong> RUNTIME-CONFIRMED · PARTIAL · BLOCKED/DEFECT-AFFECTED · UNVERIFIED · REVIEW FIXTURE.</p></div>`; }
+    const caption = $('.calendar-caption'); if (caption) caption.textContent = 'REVIEW FIXTURE — Journey 6 local reschedule/reallocation candidate; no server request sent and reload resets it.'; renderCalendar();
+  }
+  async function j6RunPlayback(mode) { if (!isJ6Journey() || playJourneyActive) return; playJourneyActive = true; const playBtn = $('#btn-play-journey'), completeBtn = $('#btn-play-complete'); playBtn.disabled = true; completeBtn.disabled = true; try { const trigger = $('#j6-open-public-review') || $('#j6-open-booking'); if (trigger) { j6StartOperation('PublicReschedule', trigger); announceLive(`${mode === 'complete' ? 'Play complete' : 'Play journey'} opened the bounded local review fixture.`); } } finally { playJourneyActive = false; playBtn.disabled = false; completeBtn.disabled = false; } }
+  function j6PlayJourney() { return j6RunPlayback('journey'); }
+  function j6PlayComplete() { return j6RunPlayback('complete'); }
 
   /* ===== Journey 3 candidate — CR-J3-003 / CR-J3-004 / CR-J3-005 ===== */
 
@@ -2779,6 +3272,8 @@
   let pickerPrev = '';
   let filteredPicker = [];
   let pickerHost = null;
+  let pickerParentBeforeOpen = null;
+  let pickerStyleBeforeOpen = null;
   let inlinePickerLineId = null;
   let inlinePickerField = null;
   const debounceTimers = {};
@@ -2799,6 +3294,7 @@
   let editingLineId = null;
   let removeTargetId = null;
   let dragState = null;
+  let hoverCrosshair = null;
   let lastDialogTrigger = null;
   let playJourneyStep = 0;
   let playJourneyActive = false;
@@ -2835,7 +3331,7 @@
   let contextualCartDismissed = false;
 
   function isContextualWorkspace() {
-    return document.body.dataset.contextualWorkspace === 'true' && document.body.dataset.journey === '1';
+    return document.body.dataset.contextualWorkspace === 'true' && ['1', '7'].includes(document.body.dataset.journey);
   }
 
   function contextualIsMobile() {
@@ -3286,6 +3782,10 @@
 
   function setCommitted(field, id, opts) {
     const notify = !opts || opts.notify !== false;
+    if (isJourney7Route() && notify && !j7AllowedCatalogValue(field, id)) {
+      j7BlockReview(`Journey 7 keeps the ${field} choice inside the accepted local fixture.`);
+      return;
+    }
     const host = $(FIELD_HOSTS[field]);
     if (host) host.value = id;
     syncFieldDisplay(field);
@@ -3296,6 +3796,11 @@
   }
 
   function getCatalog(type) {
+    if (isJourney7Route()) {
+      if (type === 'item') return reviewItems.filter((record) => record.id === 'community-hall' || record.id === 'studio-lighting');
+      if (type === 'package') return reviewPackages.filter((record) => record.id === 'private-day');
+      if (type === 'concession') return reviewConcessions.filter((record) => record.id === 'review-fixture');
+    }
     if (type === 'item') return reviewItems;
     if (type === 'package') return reviewPackages;
     if (type === 'concession') return reviewConcessions;
@@ -3338,6 +3843,31 @@
     picker.style.bottom = 'auto';
   }
 
+  function positionStagedPackagePicker() {
+    const picker = $('#large-data-picker');
+    const dialog = getCartItemEditorDialog();
+    const trigger = $('#package-picker-btn');
+    if (!picker || !dialog || !trigger) return;
+    const dialogRect = dialog.getBoundingClientRect();
+    const triggerRect = trigger.getBoundingClientRect();
+    const padding = 16;
+    const width = Math.max(0, Math.min(520, dialogRect.width - padding * 2, window.innerWidth - padding * 2));
+    const height = Math.max(120, Math.min(360, window.innerHeight - padding * 2, dialogRect.height - padding * 2));
+    const minTop = dialogRect.top + padding;
+    const maxTop = Math.max(minTop, dialogRect.bottom - padding - height);
+    const requestedTop = triggerRect.bottom + 8;
+    const top = Math.max(minTop, Math.min(requestedTop, maxTop));
+    const left = Math.max(padding, Math.min(triggerRect.left, window.innerWidth - width - padding));
+    const setImportant = (property, value) => picker.style.setProperty(property, value, 'important');
+    setImportant('position', 'fixed');
+    setImportant('width', `${width}px`);
+    setImportant('left', `${left}px`);
+    setImportant('top', `${top}px`);
+    setImportant('right', 'auto');
+    setImportant('bottom', 'auto');
+    setImportant('max-height', `${height}px`);
+  }
+
   function setPickerAria(open, type) {
     const filterEl = $('#large-data-filter');
     const inp = type ? getPickerInputEl(type) : null;
@@ -3364,22 +3894,49 @@
   }
 
   function openPicker(type, opts) {
-    if (pickerOpen && pickerType !== type) closePicker({ restore: false, refocus: false });
+    const nextHost = (opts && opts.host) || null;
+    const nextContext = (opts && opts.context) || null;
+    const nextField = (opts && opts.field) || null;
+    const equivalentRequest = pickerOpen
+      && pickerType === type
+      && pickerContext === nextContext
+      && pickerHost === nextHost
+      && inlinePickerField === nextField;
+    if (equivalentRequest) {
+      const dialog = getCartItemEditorDialog();
+      const stagedPackageEditor = pickerContext === 'package-editor'
+        && cartItemEditorTargetsStagedSelection()
+        && !!dialog?.open;
+      if (stagedPackageEditor) positionStagedPackagePicker();
+      $('#large-data-filter')?.focus();
+      return;
+    }
+    if (pickerOpen) closePicker({ restore: false, refocus: false });
     pickerType = type;
     pickerOpen = true;
     pickerQuery = '';
     pickerActive = 0;
-    pickerHost = (opts && opts.host) || null;
-    pickerContext = (opts && opts.context) || null;
+    pickerHost = nextHost;
+    pickerContext = nextContext;
     inlinePickerLineId = pickerHost && !pickerContext ? pickerHost.id : null;
-    inlinePickerField = (opts && opts.field) || null;
+    inlinePickerField = nextField;
     const inp = getPickerInputEl(type);
     pickerPrev = inp ? inp.value : '';
     $('#large-data-filter').value = '';
     filteredPicker = filterCatalog(type, '');
     const picker = $('#large-data-picker');
+    const dialog = getCartItemEditorDialog();
+    const stagedPackageEditor = pickerContext === 'package-editor'
+      && cartItemEditorTargetsStagedSelection()
+      && !!dialog?.open;
+    pickerParentBeforeOpen = picker.parentElement;
+    pickerStyleBeforeOpen = picker.getAttribute('style');
     picker.classList.add('open');
-    if (!isNarrowViewport()) {
+    if (stagedPackageEditor) {
+      dialog.appendChild(picker);
+      $('#large-data-picker-backdrop').classList.remove('open');
+      positionStagedPackagePicker();
+    } else if (!isNarrowViewport()) {
       $('#booking-cart').appendChild(picker);
       positionPicker(type);
       $('#large-data-picker-backdrop').classList.remove('open');
@@ -3424,20 +3981,31 @@
     pickerContext = null;
     inlinePickerLineId = null;
     inlinePickerField = null;
-    $('#large-data-picker').classList.remove('open');
+    const picker = $('#large-data-picker');
+    picker.classList.remove('open');
     $('#large-data-picker-backdrop').classList.remove('open');
-    const cart = $('#booking-cart');
-    if (cart && $('#large-data-picker').parentElement !== cart) cart.appendChild($('#large-data-picker'));
+    if (pickerParentBeforeOpen) pickerParentBeforeOpen.appendChild(picker);
+    if (pickerStyleBeforeOpen == null) picker.removeAttribute('style');
+    else picker.setAttribute('style', pickerStyleBeforeOpen);
+    pickerParentBeforeOpen = null;
+    pickerStyleBeforeOpen = null;
     if (context === 'package-editor' && restore && packageEditor) {
       renderPackageEditor();
-      reopenCartItemEditor('package');
-      $('#package-picker-btn').focus();
+      if (opts?.reopenParent !== false) {
+        reopenCartItemEditor('package');
+        $('#package-picker-btn').focus();
+      }
     } else if (refocus && type) pickerFocusReturn(type);
   }
 
   function commitPicker(idx) {
     const rec = filteredPicker[idx];
     if (!rec || !pickerType) return;
+    if (isJourney7Route() && !j7AllowedCatalogValue(pickerType, rec.id)) {
+      closePicker({ restore: true, refocus: true });
+      j7BlockReview(`Journey 7 cannot apply this ${pickerType} review choice.`);
+      return;
+    }
     const context = pickerContext;
     if (context === 'package-editor' && packageEditor) {
       packageEditor.package = rec.id;
@@ -3718,7 +4286,13 @@
     $('#large-data-picker-backdrop').addEventListener('click', () => closePicker({ restore: true, refocus: true }));
     $('#large-data-picker-cancel').addEventListener('click', () => closePicker({ restore: true, refocus: true }));
     window.addEventListener('resize', () => {
-      if (pickerOpen && pickerType && !isNarrowViewport()) positionPicker(pickerType);
+      if (!pickerOpen || !pickerType) return;
+      const dialog = getCartItemEditorDialog();
+      const stagedPackageEditor = pickerContext === 'package-editor'
+        && cartItemEditorTargetsStagedSelection()
+        && !!dialog?.open;
+      if (stagedPackageEditor) positionStagedPackagePicker();
+      else if (!isNarrowViewport()) positionPicker(pickerType);
     });
   }
 
@@ -3998,6 +4572,126 @@
     return { startSlot, endSlot: Math.max(startSlot + 1, endSlot) };
   }
 
+  function formatSlotDuration(startSlot, endSlotExclusive) {
+    const minutes = Math.max(30, (endSlotExclusive - startSlot) * 30);
+    const hours = Math.floor(minutes / 60);
+    const remainder = minutes % 60;
+    if (hours && remainder) return `${hours} h ${remainder} min`;
+    if (hours) return `${hours} h`;
+    return `${minutes} min`;
+  }
+
+  function activeColumnRange(assetId, dk) {
+    if (dragState && dragState.asset === assetId && dragState.date === dk) {
+      const startSlot = Math.min(dragState.startSlot, dragState.endSlot);
+      return { startSlot, endSlot: Math.max(startSlot + 1, Math.max(dragState.startSlot, dragState.endSlot) + 1) };
+    }
+    if (stagedSelection && stagedSelection.asset === assetId && stagedSelection.date === dk) {
+      return slotRangeForSelection(stagedSelection);
+    }
+    return null;
+  }
+
+  function isGenericColumnCrosshairRoute() {
+    return slotLayout === 'column' && ['1', '3', '7', '8', '9'].includes(document.body.dataset.journey);
+  }
+
+  function clearColumnCrosshair() {
+    const grid = $('#calendar-grid');
+    if (grid) {
+      grid.querySelectorAll('.crosshair-row, .crosshair-column, .crosshair-intersection, .crosshair-lane, .crosshair-gutter').forEach((node) => {
+        node.classList.remove('crosshair-row', 'crosshair-column', 'crosshair-intersection', 'crosshair-lane', 'crosshair-gutter');
+        if (node.dataset.crosshairOriginal !== undefined) {
+          node.textContent = node.dataset.crosshairOriginal;
+          delete node.dataset.crosshairOriginal;
+        }
+      });
+    }
+    hoverCrosshair = null;
+  }
+
+  function applyColumnCrosshair(assetId, dk, slot) {
+    if (!isGenericColumnCrosshairRoute()) {
+      clearColumnCrosshair();
+      return;
+    }
+    const grid = $('#calendar-grid');
+    if (!grid) return;
+    clearColumnCrosshair();
+    const laneColumns = grid.querySelectorAll(`.cal-day-col[data-asset="${assetId}"]`);
+    laneColumns.forEach((col) => {
+      col.classList.add('crosshair-lane');
+      const rowSlot = col.querySelector(`.cal-slot[data-slot="${slot}"]`);
+      if (rowSlot) rowSlot.classList.add('crosshair-row');
+    });
+    grid.querySelectorAll(`.cal-day-col[data-date="${dk}"]`).forEach((col) => col.classList.add('crosshair-column'));
+    grid.querySelectorAll(`.cal-day-header[data-date="${dk}"]`).forEach((header) => header.classList.add('crosshair-column'));
+    const currentCol = grid.querySelector(`.cal-day-col[data-asset="${assetId}"][data-date="${dk}"]`);
+    const currentBody = currentCol ? currentCol.closest('.cal-lane-body') : null;
+    if (currentBody) {
+      currentBody.classList.add('crosshair-lane');
+      const gutter = currentBody.querySelector(`.cal-time-gutter .time-label[data-slot="${slot}"]`);
+      if (gutter) {
+        gutter.dataset.crosshairOriginal = gutter.textContent;
+        gutter.textContent = formatTime(slotToTime(slot).h, slotToTime(slot).m);
+        gutter.classList.add('crosshair-gutter');
+      }
+    }
+    const intersection = currentCol ? currentCol.querySelector(`.cal-slot[data-slot="${slot}"]`) : null;
+    if (intersection) intersection.classList.add('crosshair-intersection');
+    hoverCrosshair = { assetId, date: dk, slot };
+  }
+
+  function refreshColumnSelectionDom(assetId, dk) {
+    if (slotLayout !== 'column') return;
+    const col = document.querySelector(`.cal-day-col[data-asset="${assetId}"][data-date="${dk}"]`);
+    if (!col) return;
+    const range = activeColumnRange(assetId, dk);
+    col.querySelectorAll('.cal-slot').forEach((slotEl) => {
+      const slot = Number(slotEl.dataset.slot);
+      const selected = !!range && slot >= range.startSlot && slot < range.endSlot;
+      slotEl.classList.toggle('selected-range', selected);
+      slotEl.classList.toggle('range-start', selected && slot === range.startSlot);
+      slotEl.classList.toggle('range-end', selected && slot === range.endSlot - 1);
+    });
+    refreshColumnRangeLabel(assetId, dk);
+  }
+
+  function renderColumnRangeLabel(col, assetId, dk, slotH) {
+    if (slotLayout !== 'column') return;
+    const range = activeColumnRange(assetId, dk);
+    if (!range) return;
+    const start = slotToTime(range.startSlot);
+    const end = slotToTime(range.endSlot);
+    const label = document.createElement('div');
+    label.className = 'timeslot-context-label';
+    label.setAttribute('aria-hidden', 'true');
+    label.dataset.rangeStart = String(range.startSlot);
+    label.dataset.rangeEnd = String(range.endSlot);
+    label.style.top = `${Math.max(2, range.startSlot * slotH + 2)}px`;
+    const time = document.createElement('span');
+    time.className = 'timeslot-context-label-time';
+    time.textContent = `${formatTime(start.h, start.m)} – ${formatTime(end.h, end.m)}`;
+    const duration = document.createElement('span');
+    duration.className = 'timeslot-context-label-duration';
+    duration.textContent = `Duration · ${formatSlotDuration(range.startSlot, range.endSlot)}`;
+    label.append(time, duration);
+    col.appendChild(label);
+    const lowerBound = 2;
+    const requestedTop = Math.max(lowerBound, range.startSlot * slotH + lowerBound);
+    const maxTop = Math.max(lowerBound, col.clientHeight - label.offsetHeight - lowerBound);
+    label.style.top = `${Math.min(requestedTop, maxTop)}px`;
+  }
+
+  function refreshColumnRangeLabel(assetId, dk) {
+    if (slotLayout !== 'column') return;
+    const col = document.querySelector(`.cal-day-col[data-asset="${assetId}"][data-date="${dk}"]`);
+    if (!col) return;
+    col.querySelectorAll('.timeslot-context-label').forEach((label) => label.remove());
+    const slotH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--slot-h') || '10');
+    renderColumnRangeLabel(col, assetId, dk, slotH);
+  }
+
   function getEventAtSlot(assetId, dk, slot) {
     for (const ev of EVENTS) {
       if (ev.asset !== assetId || ev.date !== dk) continue;
@@ -4113,6 +4807,13 @@
 
   function updatePrimaryAction() {
     const btn = $('#cart-primary-action');
+    if (isJourney9Route()) {
+      btn.hidden = true;
+      btn.disabled = true;
+      btn.inert = true;
+      btn.setAttribute('aria-hidden', 'true');
+      return;
+    }
     const ctx = getPrimaryContext();
     btn.className = 'btn-primary';
     btn.disabled = false;
@@ -4126,21 +4827,27 @@
         btn.textContent = 'Add to cart';
         const item = getCommitted('item');
         const pkg = getCommitted('package');
-        btn.disabled = !isCompatible(item, pkg) || !isJourneyItem(item) || !isJourneyPackage(pkg) || !getStagedPackageState(false).valid;
+        btn.disabled = isJourney7Route()
+          ? !j7IsAcceptedGraph(stagedSelection).ok
+          : !isCompatible(item, pkg) || !isJourneyItem(item) || !isJourneyPackage(pkg) || !getStagedPackageState(false).valid;
         break;
       }
       case 'edit': {
         btn.textContent = 'Update item';
         const item = getCommitted('item');
         const pkg = getCommitted('package');
-        btn.disabled = !isCompatible(item, pkg) || !isJourneyItem(item) || !isJourneyPackage(pkg) || !getStagedPackageState(false).valid;
+        btn.disabled = isJourney7Route()
+          ? !j7IsAcceptedGraph(stagedSelection).ok
+          : !isCompatible(item, pkg) || !isJourneyItem(item) || !isJourneyPackage(pkg) || !getStagedPackageState(false).valid;
         break;
       }
       case 'another':
         btn.textContent = 'Add another';
+        if (isJourney7Route()) btn.disabled = true;
         break;
       case 'unavailable':
         btn.textContent = 'Choose an available time';
+        if (isJourney7Route()) btn.disabled = true;
         break;
       case 'journey':
         btn.hidden = true;
@@ -4256,6 +4963,7 @@
     }
     const fieldLabel = meta.type === 'quantity' ? 'Quantity' : 'Attendees';
     const inputId = meta.type === 'quantity' ? 'cfg-package-quantity' : 'cfg-package-attendees';
+    const selectedIncluded = new Set(stagedSelection?.includedItems || meta.includedItems || []);
     host.innerHTML = `
       <div class="field package-value-field">
         <label for="${inputId}">${fieldLabel}</label>
@@ -4264,7 +4972,7 @@
       </div>
       <fieldset class="included-items compact-included-items">
         <legend>Included Package Items</legend>
-        ${(meta.includedItems || []).map((id) => `<label><input type="checkbox" data-staged-included="${id}" checked> ${escapeHtml(getItemRecord(id).label)}</label>`).join('')}
+        ${(meta.includedItems || []).map((id) => `<label><input type="checkbox" data-staged-included="${id}" ${selectedIncluded.has(id) ? 'checked' : ''}> ${escapeHtml(getItemRecord(id).label)}</label>`).join('')}
       </fieldset>`;
     const valueInput = host.querySelector('input[type="number"]');
     if (valueInput) {
@@ -4396,12 +5104,24 @@
 
   function updateJourneyUI() {
     const phase = draft.phase;
+    if (isJourney9Route()) {
+      const success = $('#cart-success');
+      const confirm = $('#confirm-booking-btn');
+      const helper = $('#confirm-helper');
+      if (success) { success.hidden = true; success.inert = true; success.setAttribute('aria-hidden', 'true'); }
+      if (confirm) { confirm.hidden = true; confirm.disabled = true; confirm.inert = true; confirm.setAttribute('aria-hidden', 'true'); }
+      if (helper) { helper.hidden = true; helper.inert = true; helper.setAttribute('aria-hidden', 'true'); }
+      draft.created = null;
+      document.body.dataset.created = 'false';
+      return;
+    }
     $('#cart-success').hidden = phase !== 'success';
     $('#cart-unavailable').hidden = phase !== 'unavailable';
 
     const confirmBtn = $('#confirm-booking-btn');
     const helper = $('#confirm-helper');
-    const bookReady = cartLines.length >= 1 && !stagedSelection && !editingLineId &&
+    const j7BookReady = !isJourney7Route() || (cartLines.length === 1 && j7LineMatchesAcceptedGraph(cartLines[0]));
+    const bookReady = j7BookReady && cartLines.length >= 1 && !stagedSelection && !editingLineId &&
       ['select', 'configure', 'cart'].includes(phase);
     confirmBtn.hidden = !bookReady;
     confirmBtn.disabled = !bookReady;
@@ -4439,19 +5159,30 @@
     document.body.dataset.editing = isEditing ? 'true' : 'false';
     document.body.dataset.stress = draft.stressCount === count ? String(count) : '';
 
-    $('#cart-count').textContent = projection.itemLabel;
-    $('#sheet-count').textContent = String(count);
-    $('#clear-cart-btn').hidden = count === 0 && !hasSelection;
+    $('#cart-count').textContent = isJourney9Route() ? (hasSelection ? '1 staged selection' : 'No staged selection') : projection.itemLabel;
+    $('#sheet-count').textContent = isJourney9Route() ? (hasSelection ? '1' : '0') : String(count);
     const cartToolbar = $('#cart-toolbar');
-    if (cartToolbar) cartToolbar.hidden = count === 0 && !hasSelection;
     const confirmBookBtn = $('#confirm-booking-btn');
-    if (confirmBookBtn) confirmBookBtn.textContent = projection.bookLabel;
     const selectedCount = selectedLineIds.size;
-    $('#selected-lines-count').textContent = `${selectedCount} selected`;
-    $('#selected-lines-count').hidden = selectedCount === 0;
-    $('#cart-bulk-actions').hidden = selectedCount < 2;
-    $('#bulk-time-btn').disabled = selectedCount < 2;
-    $('#bulk-config-btn').disabled = selectedCount < 2;
+    if (isJourney9Route()) {
+      const clear = $('#clear-cart-btn');
+      if (clear) { clear.hidden = true; clear.disabled = true; clear.inert = true; clear.setAttribute('aria-hidden', 'true'); }
+      if (cartToolbar) { cartToolbar.hidden = true; cartToolbar.inert = true; cartToolbar.setAttribute('aria-hidden', 'true'); }
+      if (confirmBookBtn) { confirmBookBtn.hidden = true; confirmBookBtn.disabled = true; confirmBookBtn.inert = true; confirmBookBtn.setAttribute('aria-hidden', 'true'); }
+      $('#cart-amount-context').hidden = true;
+      $('#cart-added-items').hidden = true;
+      $('#cart-bulk-actions').hidden = true;
+      $('#selected-lines-count').hidden = true;
+    } else {
+      $('#clear-cart-btn').hidden = count === 0 && !hasSelection;
+      if (cartToolbar) cartToolbar.hidden = count === 0 && !hasSelection;
+      if (confirmBookBtn) confirmBookBtn.textContent = projection.bookLabel;
+      $('#selected-lines-count').textContent = `${selectedCount} selected`;
+      $('#selected-lines-count').hidden = selectedCount === 0;
+      $('#cart-bulk-actions').hidden = selectedCount < 2;
+      $('#bulk-time-btn').disabled = selectedCount < 2;
+      $('#bulk-config-btn').disabled = selectedCount < 2;
+    }
 
     $('#cart-empty-guidance').hidden = hasSelection || count > 0 || phase !== 'select';
     $('#cart-current-selection').hidden = !hasSelection || phase === 'unavailable';
@@ -4483,6 +5214,7 @@
     updateJourneyUI();
     positionCartForViewport();
     contextualRefreshFromCart();
+    j7SyncRouteState();
   }
 
   function renderCartTotals() {
@@ -4881,6 +5613,17 @@
     const form = $('#configure-form');
     const toggle = $('#current-selection-details-toggle');
     if (!form || !toggle) return;
+    if (isJourney9Route()) {
+      currentSelectionDetailsExpanded = false;
+      form.hidden = true;
+      form.inert = true;
+      form.setAttribute('aria-hidden', 'true');
+      toggle.hidden = true;
+      toggle.disabled = true;
+      toggle.inert = true;
+      toggle.setAttribute('aria-hidden', 'true');
+      return;
+    }
     const open = !!expanded && !!stagedSelection;
     currentSelectionDetailsExpanded = open;
     document.body.dataset.currentSelectionDetails = open ? 'expanded' : 'collapsed';
@@ -4910,6 +5653,16 @@
     const s = stagedSelection;
     const asset = ASSETS.find((entry) => entry.id === s.asset);
     if (!asset) return;
+    if (isJourney9Route()) {
+      const hours = selectionDurationHours(s);
+      const endDate = s.endDate || s.date;
+      const endDateSuffix = endDate !== s.date ? ` ${formatShortDate(new Date(endDate + 'T12:00:00'))}` : '';
+      const when = `${formatShortDate(new Date(s.date + 'T12:00:00'))} · ${formatSelectionTime(s.startH, s.startM)}–${endDateSuffix}${formatSelectionTime(s.endH, s.endM)} · ${hours} hour${hours !== 1 ? 's' : ''}`;
+      const item = getItemRecord(getCommitted('item')).label;
+      const row = (label, value) => `<div class="current-selection-summary-row" data-summary-row="${label.toLowerCase()}"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`;
+      host.innerHTML = `<div class="current-selection-resource"><strong>${escapeHtml(asset.name)}</strong><span>${escapeHtml(asset.venue)}</span></div><dl>${row('When', when)}${row('Item', item)}</dl>`;
+      return;
+    }
     const hours = selectionDurationHours(s);
     const endDate = s.endDate || s.date;
     const endDateSuffix = endDate !== s.date ? ` ${formatShortDate(new Date(endDate + 'T12:00:00'))}` : '';
@@ -4953,9 +5706,9 @@
     const item = getCommitted('item');
     const pkg = getCommitted('package');
     const compatible = isCompatible(item, pkg) && isJourneyItem(item) && isJourneyPackage(pkg);
-    $('#amount-region').hidden = !compatible;
+    $('#amount-region').hidden = isJourney9Route() || !compatible;
     const amountEl = $('#amount-region .amount-value');
-    if (amountEl) {
+    if (amountEl && !isJourney9Route()) {
       if (!isJourneyItem(item) || !isJourneyPackage(pkg)) amountEl.textContent = 'Quote pending';
       else if (compatible) amountEl.textContent = 'AU$ 2,750.00';
       else amountEl.textContent = 'AU$ 2,750.00';
@@ -4969,6 +5722,7 @@
     }
 
     updatePrimaryAction();
+    j7SyncRouteState();
   }
 
   function openMismatchDialog(trigger) {
@@ -5011,7 +5765,13 @@
   }
 
   function addToCart() {
+    if (isJourney9Route()) { j9BlockReview('Journey 9 cannot add a staged selection to the Booking Cart; only recurring review is actionable.'); return; }
     if (!stagedSelection) return;
+    if (isJourney7Route() && !j7IsAcceptedGraph(stagedSelection).ok) {
+      j7BlockReview('Journey 7 cannot stage an incomplete or stale accepted graph.');
+      j7SyncRouteState();
+      return;
+    }
     const packageState = getStagedPackageState(true);
     if (!packageState.valid) return;
     const wasEdit = !!editingLineId;
@@ -5077,6 +5837,7 @@
   }
 
   function confirmRemove() {
+    if (isJourney9Route()) { j9BlockReview('Journey 9 item removal is unavailable.'); return; }
     cartLines = cartLines.filter((l) => l.id !== removeTargetId);
     selectedLineIds.delete(removeTargetId);
     if (editingLineId === removeTargetId) {
@@ -5115,8 +5876,37 @@
   }
 
   function getEditorTargetRecord(id) {
-    if (id === STAGED_SELECTION_EDITOR_ID && cartItemEditorTargetsStagedSelection()) return stagedSelection;
     return cartLines.find((entry) => entry.id === id);
+  }
+
+  function getTimeEditorRecord(id) {
+    if (cartItemEditorTargetsStagedSelection() && id === STAGED_SELECTION_EDITOR_ID) return stagedSelection;
+    return getEditorTargetRecord(id);
+  }
+
+  function setStagedPricingSurface(stagedTarget) {
+    const stagedOnly = [
+      $('#pricing-configuration')?.closest('.dialog-field'),
+      $('#pricing-option')?.closest('.dialog-field'),
+      $('.price-type-mode'),
+      $('#changed-price-fields'),
+      $('.price-review')
+    ];
+    stagedOnly.forEach((el) => {
+      if (!el) return;
+      el.hidden = stagedTarget;
+      if (stagedTarget) el.setAttribute('aria-hidden', 'true');
+      else el.removeAttribute('aria-hidden');
+      el.querySelectorAll('select, input, button').forEach((control) => { control.disabled = stagedTarget; });
+    });
+    const description = $('#pricing-desc');
+    if (description) description.textContent = stagedTarget
+      ? 'Review the existing staged Concession fixture. Cart-line pricing controls are not available for a new selection.'
+      : 'The control structure is Diary-proven. All option names, amounts and formulas are local review fixtures.';
+    const title = $('#pricing-title');
+    if (title) title.textContent = stagedTarget ? 'Concession review' : 'Change pricing';
+    const apply = $('#pricing-apply');
+    if (apply) apply.textContent = stagedTarget ? 'Apply concession' : 'Apply pricing';
   }
 
   function setCartItemEditorContext(target) {
@@ -5132,7 +5922,7 @@
       : 'Edit, review live availability and confirm on this one surface. The same staged Cart line is updated.';
     const tablist = dialog.querySelector('.cart-item-editor-tabs');
     if (tablist) {
-      tablist.setAttribute('role', draftTarget ? 'toolbar' : 'tablist');
+      tablist.setAttribute('role', 'tablist');
       tablist.setAttribute('aria-label', draftTarget ? 'New selection editor sections' : 'Cart item editor sections');
     }
     const controls = {
@@ -5142,27 +5932,14 @@
       pricing: 'cie-panel-pricing',
       more: 'cie-panel-more'
     };
-    const draftLabels = {
-      time: 'Edit draft time',
-      config: 'Open existing configuration controls',
-      package: 'Open existing package controls',
-      pricing: 'Open existing pricing controls'
-    };
     $$('.cart-item-editor-tab').forEach((tab) => {
       const name = tab.dataset.editorTab;
-      if (draftTarget) {
-        tab.setAttribute('role', 'button');
-        tab.removeAttribute('aria-controls');
-        tab.removeAttribute('aria-selected');
-        tab.setAttribute('aria-label', draftLabels[name] || tab.textContent.trim());
-        tab.tabIndex = 0;
-      } else {
-        tab.setAttribute('role', 'tab');
-        tab.setAttribute('aria-controls', controls[name]);
-        tab.removeAttribute('aria-label');
-        tab.removeAttribute('aria-pressed');
-      }
+      tab.setAttribute('role', 'tab');
+      tab.setAttribute('aria-controls', controls[name]);
+      tab.removeAttribute('aria-label');
+      tab.removeAttribute('aria-pressed');
     });
+    setStagedPricingSurface(draftTarget);
   }
 
   function updateEditorTabLabels(lineId) {
@@ -5176,18 +5953,11 @@
   function setEditorTab(tab) {
     const tabs = $$('.cart-item-editor-tab');
     const panels = $$('.editor-tabpanel');
-    const draftTarget = cartItemEditorTargetsStagedSelection();
     tabs.forEach((btn) => {
       const active = btn.dataset.editorTab === tab;
-      if (draftTarget) {
-        btn.removeAttribute('aria-selected');
-        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
-        btn.tabIndex = 0;
-      } else {
-        btn.removeAttribute('aria-pressed');
-        btn.setAttribute('aria-selected', active ? 'true' : 'false');
-        btn.tabIndex = active ? 0 : -1;
-      }
+      btn.removeAttribute('aria-pressed');
+      btn.setAttribute('aria-selected', active ? 'true' : 'false');
+      btn.tabIndex = active ? 0 : -1;
     });
     panels.forEach((panel) => {
       panel.hidden = panel.id !== `cie-panel-${tab}`;
@@ -5199,7 +5969,7 @@
     if (tab === 'time') $('#time-start-date').focus();
     else if (tab === 'config') $('#configuration-choice').focus();
     else if (tab === 'package') $('#package-picker-btn').focus();
-    else if (tab === 'pricing') $('#pricing-configuration').focus();
+    else if (tab === 'pricing') (cartItemEditorTargetsStagedSelection() ? $('#pricing-concession') : $('#pricing-configuration'))?.focus();
     else if (tab === 'more') {
       const panel = $('#cie-panel-more');
       if (panel) panel.focus();
@@ -5240,6 +6010,7 @@
     const dialog = getCartItemEditorDialog();
     const wasDraftTarget = cartItemEditorTargetsStagedSelection();
     const focusOrigin = restore !== false && lastDialogTrigger ? captureFocusOrigin(lastDialogTrigger) : null;
+    if (pickerOpen) closePicker({ restore: true, refocus: false, reopenParent: false });
     timeEditor = null;
     configurationEditor = null;
     packageEditor = null;
@@ -5291,15 +6062,18 @@
   }
 
   function initTimeEditor(ids) {
-    const uniqueIds = Array.from(new Set(ids)).filter((id) => !!getEditorTargetRecord(id));
+    const draftTarget = cartItemEditorTargetsStagedSelection();
+    const uniqueIds = draftTarget
+      ? (stagedSelection ? [STAGED_SELECTION_EDITOR_ID] : [])
+      : Array.from(new Set(ids)).filter((id) => !!getEditorTargetRecord(id));
     if (!uniqueIds.length) return false;
     const drafts = {};
     uniqueIds.forEach((id) => {
-      const line = getEditorTargetRecord(id);
+      const line = draftTarget ? stagedSelection : getEditorTargetRecord(id);
       drafts[id] = { candidate: { ...line }, checked: true };
     });
-    timeEditor = { ids: uniqueIds, mode: 'common', drafts, candidates: {}, target: cartItemEditorTargetsStagedSelection() ? 'staged-selection' : 'cart-line' };
-    const first = getEditorTargetRecord(uniqueIds[0]);
+    timeEditor = { ids: uniqueIds, mode: 'common', drafts, candidates: {}, target: draftTarget ? 'staged-selection' : 'cart-line' };
+    const first = draftTarget ? stagedSelection : getEditorTargetRecord(uniqueIds[0]);
     const start = toDateAndTime(lineInterval(first).start);
     const end = toDateAndTime(lineInterval(first).end);
     $('#time-start-date').value = start.date;
@@ -5318,16 +6092,38 @@
   }
 
   function initConfigurationEditor(ids) {
-    const uniqueIds = Array.from(new Set(ids)).filter((id) => cartLines.some((line) => line.id === id));
+    const draftTarget = cartItemEditorTargetsStagedSelection();
+    if (draftTarget) {
+      if (!stagedSelection) return false;
+      configurationEditor = { ids: [STAGED_SELECTION_EDITOR_ID], selected: new Set([STAGED_SELECTION_EDITOR_ID]), configuration: $('#cfg-configuration')?.value || (CONFIGURATIONS[stagedSelection.asset] || [])[0] };
+      renderConfigurationEditor();
+      return true;
+    }
+    const uniqueIds = Array.from(new Set(ids)).filter((id) => !!getEditorTargetRecord(id));
     if (!uniqueIds.length) return false;
-    const first = cartLines.find((line) => line.id === uniqueIds[0]);
+    const first = getEditorTargetRecord(uniqueIds[0]);
     configurationEditor = { ids: uniqueIds, selected: new Set(uniqueIds), configuration: first.configuration || (CONFIGURATIONS[first.asset] || [])[0] };
     renderConfigurationEditor();
     return true;
   }
 
   function initPackageEditor(id) {
-    const line = cartLines.find((entry) => entry.id === id);
+    if (cartItemEditorTargetsStagedSelection()) {
+      if (!stagedSelection) return false;
+      const packageId = getCommitted('package');
+      const packageState = getStagedPackageState(false);
+      packageEditor = {
+        lineId: STAGED_SELECTION_EDITOR_ID,
+        target: 'staged-selection',
+        package: packageId,
+        quantity: packageState.quantity == null ? '' : packageState.quantity,
+        attendees: packageState.attendees == null ? '' : packageState.attendees,
+        includedItems: packageState.includedItems.size ? packageState.includedItems : new Set(packageMeta(packageId).includedItems || [])
+      };
+      renderPackageEditor();
+      return true;
+    }
+    const line = getEditorTargetRecord(id);
     if (!line) return false;
     packageEditor = {
       lineId: id,
@@ -5341,7 +6137,14 @@
   }
 
   function initPricingEditor(id) {
-    const line = cartLines.find((entry) => entry.id === id);
+    if (cartItemEditorTargetsStagedSelection()) {
+      if (!stagedSelection) return false;
+      setStagedPricingSurface(true);
+      pricingEditor = { lineId: STAGED_SELECTION_EDITOR_ID, target: 'staged-selection', concession: getCommitted('concession') };
+      $('#pricing-concession').value = getCommitted('concession') || 'review-fixture';
+      return true;
+    }
+    const line = getEditorTargetRecord(id);
     if (!line) return false;
     pricingEditor = { lineId: id };
     const configs = CONFIGURATIONS[line.asset] || [];
@@ -5362,7 +6165,6 @@
 
   function ensureEditorTabInitialized(tab) {
     if (!cartItemEditor) return false;
-    if (cartItemEditorTargetsStagedSelection() && tab !== 'time') return false;
     const ids = cartItemEditor.ids;
     switch (tab) {
       case 'time':
@@ -5407,10 +6209,7 @@
 
   function switchCartItemEditorTab(tab) {
     if (!cartItemEditor) return;
-    if (cartItemEditorTargetsStagedSelection() && tab !== 'time') {
-      openStagedConfigurePath(tab);
-      return;
-    }
+    if (pickerOpen) closePicker({ restore: true, refocus: false });
     if (!ensureEditorTabInitialized(tab)) return;
     setEditorTab(tab);
     focusEditorTab(tab);
@@ -5418,6 +6217,7 @@
   }
 
   function openCartItemEditor(tab, idsOrId, trigger) {
+    if (isJourney9Route()) { j9BlockReview('Journey 9 item and pricing editors are unavailable.'); return; }
     const ids = (Array.isArray(idsOrId) ? idsOrId : [idsOrId]).filter((id) => cartLines.some((line) => line.id === id));
     if (!ids.length) return;
     const dialog = getCartItemEditorDialog();
@@ -5466,8 +6266,7 @@
   function handleEditorTabKeydown(event) {
     const tabs = Array.from($$('.cart-item-editor-tab')).filter((tab) => !tab.hidden);
     if (!tabs.length) return;
-    const draftTarget = cartItemEditorTargetsStagedSelection();
-    const currentIndex = draftTarget ? Math.max(0, tabs.indexOf(document.activeElement)) : tabs.findIndex((tab) => tab.getAttribute('aria-selected') === 'true');
+    const currentIndex = tabs.findIndex((tab) => tab.getAttribute('aria-selected') === 'true');
     let nextIndex = currentIndex;
     if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % tabs.length;
     else if (event.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
@@ -5475,10 +6274,6 @@
     else if (event.key === 'End') nextIndex = tabs.length - 1;
     else return;
     event.preventDefault();
-    if (draftTarget) {
-      tabs[nextIndex].focus();
-      return;
-    }
     const nextTab = tabs[nextIndex].dataset.editorTab;
     switchCartItemEditorTab(nextTab);
     tabs[nextIndex].focus();
@@ -5509,7 +6304,7 @@
 
   function syncCommonDuration() {
     if (!timeEditor || !$('#time-keep-duration').checked) return;
-    const first = getEditorTargetRecord(timeEditor.ids[0]);
+    const first = getTimeEditorRecord(timeEditor.ids[0]);
     if (!first) return;
     const duration = lineDurationMinutes(first);
     const start = new Date(`${$('#time-start-date').value}T${$('#time-start-time').value}:00`);
@@ -5523,7 +6318,7 @@
   function syncDifferentDuration(id) {
     if (!timeEditor || !$('#time-keep-duration').checked) return;
     const row = $(`[data-time-row="${id}"]`);
-    const original = getEditorTargetRecord(id);
+    const original = getTimeEditorRecord(id);
     if (!row || !original) return;
     const start = new Date(`${row.querySelector('[data-time-field="startDate"]').value}T${row.querySelector('[data-time-field="startTime"]').value}:00`);
     if (Number.isNaN(start.getTime())) return;
@@ -5538,7 +6333,7 @@
     if (!timeEditor) return result;
     if (timeEditor.mode === 'common') {
       timeEditor.ids.forEach((id) => {
-        const line = getEditorTargetRecord(id);
+        const line = getTimeEditorRecord(id);
         if (!line) return;
         result[id] = candidateFromParts(line, $('#time-start-date').value, $('#time-start-time').value, $('#time-end-date').value, $('#time-end-time').value);
       });
@@ -5548,7 +6343,7 @@
         const checked = !!row.querySelector(`[data-time-check="${id}"]`).checked;
         timeEditor.drafts[id].checked = checked;
         if (!checked) return;
-        const line = getEditorTargetRecord(id);
+        const line = getTimeEditorRecord(id);
         if (!line) return;
         result[id] = candidateFromParts(
           line,
@@ -5604,10 +6399,13 @@
         endH: candidate.endH,
         endM: candidate.endM
       };
-      closeCartItemEditor();
+      timeEditor = null;
+      ensureEditorTabInitialized('time');
+      setEditorTab('time');
       showToast('Current selection time updated · Add to cart is still required');
       updateCartUI();
       renderCalendar();
+      focusEditorTab('time');
       return;
     }
     Object.entries(timeEditor.candidates).forEach(([id, candidate]) => {
@@ -5638,14 +6436,17 @@
 
   function availableConfigurationsFor(ids) {
     return Array.from(new Set(ids.flatMap((id) => {
-      const line = cartLines.find((entry) => entry.id === id);
+      const line = getEditorTargetRecord(id);
       return line ? (CONFIGURATIONS[line.asset] || []) : [];
     })));
   }
 
   function renderConfigurationEditor() {
     if (!configurationEditor) return;
-    const choices = availableConfigurationsFor(configurationEditor.ids);
+    const stagedTarget = cartItemEditorTargetsStagedSelection();
+    const choices = stagedTarget && stagedSelection
+      ? (CONFIGURATIONS[stagedSelection.asset] || [])
+      : availableConfigurationsFor(configurationEditor.ids);
     const select = $('#configuration-choice');
     select.innerHTML = choices.map((id) => `<option value="${id}">${escapeHtml(configurationLabel(id))}</option>`).join('');
     if (!choices.includes(configurationEditor.configuration)) configurationEditor.configuration = choices[0];
@@ -5655,7 +6456,7 @@
     $('#configuration-select-all-row').hidden = !isBulk;
     let compatibleCount = 0;
     $('#configuration-targets').innerHTML = configurationEditor.ids.map((id) => {
-      const line = cartLines.find((entry) => entry.id === id);
+      const line = stagedTarget ? stagedSelection : getEditorTargetRecord(id);
       const asset = ASSETS.find((entry) => entry.id === line.asset);
       const compatible = (CONFIGURATIONS[line.asset] || []).includes(configurationEditor.configuration);
       if (compatible) compatibleCount += 1; else configurationEditor.selected.delete(id);
@@ -5665,7 +6466,7 @@
       </label>`;
     }).join('');
     const compatibleIds = configurationEditor.ids.filter((id) => {
-      const line = cartLines.find((entry) => entry.id === id);
+      const line = stagedTarget ? stagedSelection : getEditorTargetRecord(id);
       return (CONFIGURATIONS[line.asset] || []).includes(configurationEditor.configuration);
     });
     $('#configuration-select-all').checked = compatibleIds.length > 0 && compatibleIds.every((id) => configurationEditor.selected.has(id));
@@ -5676,8 +6477,27 @@
 
   function applyConfigurationUpdate() {
     if (!configurationEditor || !configurationEditor.selected.size) return;
+    if (isJourney7Route() && configurationEditor.configuration !== 'theatre') {
+      j7BlockReview('Journey 7 can apply only the accepted Theatre configuration.');
+      return;
+    }
+    if (cartItemEditorTargetsStagedSelection()) {
+      const configuration = configurationEditor.configuration;
+      if (!(CONFIGURATIONS[stagedSelection?.asset] || []).includes(configuration)) return;
+      const control = $('#cfg-configuration');
+      if (control) {
+        control.value = configuration;
+        control.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      configurationEditor.configuration = configuration;
+      renderConfigurationEditor();
+      setEditorTab('config');
+      showToast('Configuration updated for the current selection draft · Add to cart is still required');
+      updateCartUI();
+      return;
+    }
     configurationEditor.selected.forEach((id) => {
-      const line = cartLines.find((entry) => entry.id === id);
+      const line = getEditorTargetRecord(id);
       if (line && (CONFIGURATIONS[line.asset] || []).includes(configurationEditor.configuration)) line.configuration = configurationEditor.configuration;
     });
     const count = configurationEditor.selected.size;
@@ -5730,8 +6550,40 @@
 
   function applyPackageUpdate() {
     if (!validatePackageEditor()) return;
-    const line = cartLines.find((entry) => entry.id === packageEditor.lineId);
+    if (cartItemEditorTargetsStagedSelection()) {
+      if (isJourney7Route() && packageEditor.package !== 'private-day') {
+        j7BlockReview('Journey 7 can apply only the accepted Private Day Hire package.');
+        return;
+      }
+      const meta = packageMeta(packageEditor.package);
+      const quantity = meta.type === 'quantity' ? packageEditor.quantity : null;
+      const attendees = meta.type === 'attendees' ? packageEditor.attendees : null;
+      const includedItems = Array.from($$('[data-package-included]:checked')).map((input) => input.dataset.packageIncluded);
+      setCommitted('package', packageEditor.package, { notify: false });
+      stagedSelection.packageQuantity = quantity;
+      stagedSelection.packageAttendees = attendees;
+      stagedSelection.includedItems = includedItems;
+      updateConfigureForm();
+      const valueInput = $('#cfg-package-quantity') || $('#cfg-package-attendees');
+      if (valueInput) valueInput.value = meta.type === 'quantity' ? String(quantity ?? '') : meta.type === 'attendees' ? String(attendees ?? '') : '';
+      $$('[data-staged-included]').forEach((input) => { input.checked = includedItems.includes(input.dataset.stagedIncluded); });
+      packageEditor.quantity = quantity == null ? '' : quantity;
+      packageEditor.attendees = attendees == null ? '' : attendees;
+      packageEditor.includedItems = new Set(includedItems);
+      renderCurrentSelectionSummary();
+      updatePrimaryAction();
+      renderPackageEditor();
+      setEditorTab('package');
+      showToast('Package and included Items updated for the current selection draft · Add to cart is still required');
+      updateCartUI();
+      return;
+    }
+    const line = getEditorTargetRecord(packageEditor.lineId);
     if (!line) return;
+    if (isJourney7Route() && packageEditor.package !== 'private-day') {
+      j7BlockReview('Journey 7 can apply only the accepted Private Day Hire package.');
+      return;
+    }
     const meta = packageMeta(packageEditor.package);
     line.package = packageEditor.package;
     line.packageQuantity = meta.type === 'quantity' ? packageEditor.quantity : null;
@@ -5743,21 +6595,97 @@
     updateCartUI();
   }
 
+  function j7ReviewSnapshot() {
+    if (!isJourney7Route()) return null;
+    const clone = (value) => JSON.parse(JSON.stringify(value));
+    const editorSnapshot = (editor) => editor ? {
+      ...editor,
+      includedItems: editor.includedItems instanceof Set ? Array.from(editor.includedItems) : editor.includedItems
+    } : null;
+    return {
+      cartLines: clone(cartLines),
+      phase: draft.phase,
+      stagedSelection: clone(stagedSelection),
+      draft: clone(draft),
+      editors: {
+        time: clone(timeEditor),
+        configuration: clone(configurationEditor),
+        package: editorSnapshot(packageEditor),
+        pricing: clone(pricingEditor),
+        cartItem: clone(cartItemEditor)
+      },
+      created: clone(draft.created)
+    };
+  }
+
+  function j7ReviewInvokeForbiddenPackageGuard() {
+    if (!isJourney7Route()) return { invoked: false, blocked: false, reason: 'not-journey-7' };
+    const original = packageEditor;
+    const lineId = original?.lineId || cartLines[0]?.id;
+    if (!lineId) return { invoked: false, blocked: false, reason: 'no-stored-line' };
+    const before = j7ReviewSnapshot();
+    packageEditor = {
+      lineId,
+      package: 'forbidden-review-package',
+      quantity: null,
+      attendees: 25,
+      includedItems: new Set()
+    };
+    let message = '';
+    try {
+      applyPackageUpdate();
+      message = $('#toast-region')?.textContent || '';
+    } finally {
+      packageEditor = original;
+    }
+    const after = j7ReviewSnapshot();
+    return {
+      invoked: true,
+      blocked: before && after && JSON.stringify(before) === JSON.stringify(after),
+      message,
+      before,
+      after
+    };
+  }
+
   function openPricingEditor(id, trigger) {
+    if (isJourney9Route()) { j9BlockReview('Journey 9 pricing and item editors are outside the local recurrence review.'); return; }
+    if (isJourney7Route()) {
+      j7BlockReview('Journey 7 alternate pricing/editor choices are unavailable; the accepted local pricing fixture is read-only.');
+      return;
+    }
     openCartItemEditor('pricing', id, trigger);
   }
 
   function applyPricingUpdate() {
+    if (isJourney9Route()) { j9BlockReview('Journey 9 pricing updates are unavailable.'); return; }
     if (!pricingEditor) return;
-    const line = cartLines.find((entry) => entry.id === pricingEditor.lineId);
+    if (cartItemEditorTargetsStagedSelection()) {
+      const concession = $('#pricing-concession').value;
+      pricingEditor.concession = concession;
+      setCommitted('concession', concession);
+      setEditorTab('pricing');
+      showToast('Concession applied to the current selection draft · Add to cart is still required');
+      updateCartUI();
+      return;
+    }
+    const line = getEditorTargetRecord(pricingEditor.lineId);
     if (!line) return;
     const mode = $('input[name="price-mode"]:checked').value;
+    const pricingOption = $('#pricing-option').value;
+    const concession = $('#pricing-concession').value;
+    const priceType = mode === 'change' ? $('#pricing-type').value : 'default';
+    const pricingUnit = mode === 'change' ? $('#pricing-unit').value : null;
+    if (isJourney7Route() && (mode !== 'default' || pricingOption !== 'standard' || concession !== 'review-fixture' || priceType !== 'default' || pricingUnit !== null)) {
+      j7BlockReview('Journey 7 cannot apply alternate pricing type, unit, Item option or concession choices.');
+      return;
+    }
     line.configuration = $('#pricing-configuration').value;
-    line.pricingOption = $('#pricing-option').value;
-    line.concession = $('#pricing-concession').value;
+    line.pricingOption = pricingOption;
+    line.concession = concession;
     line.priceMode = mode;
-    line.priceType = mode === 'change' ? $('#pricing-type').value : 'default';
-    line.pricingUnit = mode === 'change' ? $('#pricing-unit').value : null;
+    line.priceType = priceType;
+    line.pricingUnit = pricingUnit;
     line.amountPending = false;
     line.priceStatus = 'Pricing choices applied · local review fixture; formula open';
     closeCartItemEditor();
@@ -5766,6 +6694,7 @@
   }
 
   function handlePrimaryAction() {
+    if (isJourney9Route()) { j9BlockReview(); return; }
     const ctx = getPrimaryContext();
     switch (ctx) {
       case 'empty':
@@ -5804,6 +6733,12 @@
   }
 
   function confirmBooking() {
+    if (isJourney9Route()) { j9BlockReview('Journey 9 cannot create a Booking or show a Booking-created success state.'); return; }
+    if (isJourney7Route()) {
+      j7BlockReview('Journey 7 cannot create a Booking or open an external handoff.');
+      j7SyncRouteState();
+      return;
+    }
     if (!cartLines.length || stagedSelection || editingLineId) return;
     const line = cartLines[0];
     draft.created = {
@@ -5918,13 +6853,21 @@
       const s = stagedSelection;
       if (s.asset === assetId && s.date === dk) {
         const range = slotRangeForSelection(s);
-        if (slot >= range.startSlot && slot < range.endSlot) classes.push('selected-range');
+        if (slot >= range.startSlot && slot < range.endSlot) {
+          classes.push('selected-range');
+          if (slot === range.startSlot) classes.push('range-start');
+          if (slot === range.endSlot - 1) classes.push('range-end');
+        }
       }
     }
     if (dragState && dragState.asset === assetId && dragState.date === dk) {
       const minS = Math.min(dragState.startSlot, dragState.endSlot);
       const maxS = Math.max(dragState.startSlot, dragState.endSlot);
-      if (slot >= minS && slot <= maxS) classes.push('selected-range');
+      if (slot >= minS && slot <= maxS) {
+        classes.push('selected-range');
+        if (slot === minS) classes.push('range-start');
+        if (slot === maxS) classes.push('range-end');
+      }
     }
     return classes.join(' ');
   }
@@ -6121,8 +7064,9 @@
   }
 
   function renderCalendar() {
+    clearColumnCrosshair();
     if (document.body.dataset.journey === '2') { j2RenderCalendar(); return; }
-    if (document.body.dataset.journey === '4') { j4RenderCalendar(); return; }
+    if (document.body.dataset.journey === '4' || document.body.dataset.journey === '5' || document.body.dataset.journey === '6') { j4RenderCalendar(); return; }
     const grid = $('#calendar-grid');
     grid.innerHTML = '';
     grid.classList.remove('j4-calendar-grid');
@@ -6160,6 +7104,7 @@
     days.forEach((day, di) => {
       const hdr = document.createElement('div');
       hdr.className = 'cal-day-header';
+      hdr.dataset.date = dateKey(day);
       hdr.setAttribute('role', 'columnheader');
       if (dateKey(day) === dateKey(TODAY) && isCheckpointWeek()) {
         hdr.classList.add('is-today');
@@ -6177,6 +7122,9 @@
       const laneEl = document.createElement('section');
       laneEl.className = 'cal-lane';
       laneEl.setAttribute('aria-label', lane.name);
+      laneEl.addEventListener('mouseleave', () => {
+        if (!hoverCrosshair || hoverCrosshair.assetId === lane.id) clearColumnCrosshair();
+      });
 
       const title = document.createElement('div');
       title.className = 'cal-lane-title';
@@ -6198,6 +7146,7 @@
           for (let half = 0; half < SLOTS_PER_HOUR; half++) {
             const lbl = document.createElement('div');
             lbl.className = 'time-label';
+            lbl.dataset.slot = String((h - HOUR_START) * SLOTS_PER_HOUR + half);
             lbl.textContent = half === 0 ? `${String(h).padStart(2, '0')}:00` : '';
             gutter.appendChild(lbl);
           }
@@ -6221,6 +7170,7 @@
         for (let slot = 0; slot < (HOUR_END - HOUR_START) * SLOTS_PER_HOUR; slot++) {
           const slotEl = document.createElement('div');
           slotEl.className = buildSlotClasses(lane.id, dk, slot);
+          if (slot % SLOTS_PER_HOUR === 0) slotEl.classList.add('hour-boundary');
           slotEl.dataset.slot = String(slot);
           const ev = getEventAtSlot(lane.id, dk, slot);
           const canSelect = isFreeSlot(lane.id, dk, slot) || isOccupiedEvent(ev);
@@ -6283,6 +7233,7 @@
           col.appendChild(evEl);
         }
 
+        renderColumnRangeLabel(col, lane.id, dk, slotH);
         body.appendChild(col);
       });
 
@@ -6361,23 +7312,27 @@
     e.preventDefault();
     const anchor = getFixtureFreeRange(assetId, dk, slot);
     dragState = { asset: assetId, date: dk, startSlot: anchor.startSlot, endSlot: anchor.endSlot - 1 };
+    applyColumnCrosshair(assetId, dk, slot);
+    refreshColumnSelectionDom(assetId, dk);
     const onUp = () => {
       document.removeEventListener('mouseup', onUp);
       if (!dragState) return;
       const minS = Math.min(dragState.startSlot, dragState.endSlot);
       const maxS = Math.max(dragState.startSlot, dragState.endSlot);
       dragState = null;
+      clearColumnCrosshair();
       createSelection(assetId, dk, minS, maxS + 1);
-      renderCalendar();
     };
     document.addEventListener('mouseup', onUp);
   }
 
   function onSlotMouseEnter(assetId, dk, slot) {
+    if (isFreeSlot(assetId, dk, slot)) applyColumnCrosshair(assetId, dk, slot);
+    else clearColumnCrosshair();
     if (!dragState || dragState.asset !== assetId || dragState.date !== dk) return;
     if (!isFreeSlot(assetId, dk, slot)) return;
     dragState.endSlot = slot;
-    renderCalendar();
+    refreshColumnSelectionDom(assetId, dk);
   }
 
   function captureFocusOrigin(trigger) {
@@ -6474,6 +7429,11 @@
   }
 
   function applyStageTarget(target) {
+    if (isJourney9Route()) { j9BlockReview('Journey 9 stage playback is unavailable; use the recurring review entry.'); return; }
+    if (isJourney7Route()) {
+      j7BlockReview('Journey 7 stage controls are review-only and unavailable on this route.');
+      return;
+    }
     if (target === 'a') {
       resetJourney();
       return;
@@ -6735,6 +7695,11 @@
   }
 
   async function playJourney() {
+    if (isJourney9Route()) { j9BlockReview('Journey 9 playback is unavailable; use the recurring review entry.'); return; }
+    if (isJourney7Route()) {
+      j7BlockReview('Journey 7 playback is bounded to the existing selector and Cart review; no Journey 1 playback fallthrough is available.');
+      return;
+    }
     if (playJourneyActive) return;
     playJourneyActive = true;
     const playBtn = $('#btn-play-journey');
@@ -6791,6 +7756,11 @@
   }
 
   async function playCompleteJourney() {
+    if (isJourney9Route()) { j9BlockReview('Journey 9 complete playback is unavailable; use the recurring review entry.'); return; }
+    if (isJourney7Route()) {
+      j7BlockReview('Journey 7 Play complete is unavailable; Booking creation remains outside this candidate.');
+      return;
+    }
     if (playJourneyActive) return;
     playJourneyActive = true;
     const playBtn = $('#btn-play-journey');
@@ -6821,6 +7791,11 @@
   }
 
   function applyStressCount(count) {
+    if (isJourney9Route()) { j9BlockReview('Journey 9 stress fixtures are unavailable.'); return; }
+    if (isJourney7Route()) {
+      j7BlockReview('Journey 7 generated Cart stress fixtures are unavailable; only the accepted local graph is reviewable.');
+      return;
+    }
     const prevPhase = draft.phase;
     draft.stressCount = count;
     $$('.stress-btn').forEach((b) => b.classList.toggle('active', Number(b.dataset.stress) === count));
@@ -6838,6 +7813,7 @@
   function trapDialogFocus(dialog) {
     dialog.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        if (e.defaultPrevented) return;
         if (dialog.id === 'cart-item-editor-dialog') closeCartItemEditor();
         else if (dialog.id === 'j4-details-dialog') {
           e.preventDefault();
@@ -6864,10 +7840,345 @@
     });
   }
 
+  const J7_SALES_CHANNEL_CONTEXT = 'accepted-local';
+  const J7_ALLOWED_CATALOG = Object.freeze({
+    item: new Set(['community-hall', 'studio-lighting']),
+    package: new Set(['private-day']),
+    concession: new Set(['review-fixture'])
+  });
+
+  function isJourney7Route() {
+    return document.body.dataset.journey === '7';
+  }
+
+  function isJourney9Route() {
+    return document.body.dataset.journey === '9';
+  }
+
+  function j9BlockReview(message = 'Journey 9 is limited to the local recurring-availability review; this action is unavailable.') {
+    if (!isJourney9Route()) return;
+    announceAlert(message);
+    showToast(message);
+  }
+
+  function j7AllowedCatalogValue(field, id) {
+    return !isJourney7Route() || !!J7_ALLOWED_CATALOG[field]?.has(id);
+  }
+
+  function j7BlockReview(message) {
+    if (!isJourney7Route()) return;
+    announceAlert(message);
+    showToast(message);
+  }
+
+  function j7GraphState(selection, lineMode = false) {
+    const failures = [];
+    const s = selection || {};
+    const item = lineMode ? s.item : getCommitted('item');
+    const pkg = lineMode ? s.package : getCommitted('package');
+    const concession = lineMode ? s.concession : getCommitted('concession');
+    const configuration = lineMode ? s.configuration : $('#cfg-configuration')?.value;
+    const attendees = lineMode ? Number(s.packageAttendees) : getStagedPackageState(false).attendees;
+    if (!isJourney7Route()) failures.push('Journey 7 route');
+    if (s.asset !== 'hall1') failures.push('asset Hall 1');
+    if (s.date !== '2026-08-29') failures.push('date 2026-08-29');
+    if (s.endDate && s.endDate !== s.date) failures.push('same-day interval');
+    if (Number(s.startH) !== 10 || Number(s.startM) !== 0 || Number(s.endH) !== 12 || Number(s.endM) !== 0) failures.push('interval 10:00–12:00');
+    if (configuration !== 'theatre') failures.push('Theatre configuration');
+    if (item !== 'community-hall') failures.push('Community Hall Hire Item');
+    if (pkg !== 'private-day') failures.push('Private Day Hire package');
+    if (concession !== 'review-fixture') failures.push('Review fixture concession');
+    if (attendees !== 25) failures.push('25 attendees');
+    const packageValid = lineMode
+      ? pkg === 'private-day' && Number.isFinite(attendees) && attendees >= 5 && attendees <= 500
+      : getStagedPackageState(false).valid;
+    if (!packageValid) failures.push('valid Package state');
+    if (J7_SALES_CHANNEL_CONTEXT !== 'accepted-local' || $('#j7-sales-channel')?.dataset.j7SalesChannel !== J7_SALES_CHANNEL_CONTEXT) failures.push('accepted local sales-channel context');
+    return { ok: failures.length === 0, failures, item, pkg, concession, configuration, attendees };
+  }
+
+  function j7IsAcceptedGraph(selection) {
+    return j7GraphState(selection, false);
+  }
+
+  function j7LineMatchesAcceptedGraph(line) {
+    return !!line && j7GraphState(line, true).ok && line.amountPending !== true && Number(line.amount) === 2750 && line.pricingOption === 'standard' && line.priceMode === 'default' && line.priceType === 'standard-rate' && line.pricingUnit === 'hour';
+  }
+
+  function j7CurrentControlsMatchAcceptedGraph() {
+    if (!isJourney7Route()) return false;
+    const packageState = getStagedPackageState(false);
+    return getCommitted('item') === 'community-hall' &&
+      getCommitted('package') === 'private-day' &&
+      getCommitted('concession') === 'review-fixture' &&
+      $('#cfg-configuration')?.value === 'theatre' &&
+      packageState.attendees === 25 &&
+      packageState.valid &&
+      J7_SALES_CHANNEL_CONTEXT === 'accepted-local' &&
+      $('#j7-sales-channel')?.dataset.j7SalesChannel === J7_SALES_CHANNEL_CONTEXT;
+  }
+
+  function j7HandoffReady() {
+    return isJourney7Route() && !stagedSelection && !editingLineId && cartLines.length === 1 &&
+      j7LineMatchesAcceptedGraph(cartLines[0]) && j7CurrentControlsMatchAcceptedGraph();
+  }
+
+  function j7WriteStatus(selector, text) {
+    const node = $(selector);
+    if (node && node.textContent !== text) node.textContent = text;
+  }
+
+  function j7SyncRouteState() {
+    if (!isJourney7Route()) return;
+    const staged = j7IsAcceptedGraph(stagedSelection);
+    const controlsReady = j7CurrentControlsMatchAcceptedGraph();
+    const handoff = j7HandoffReady();
+    const amount = $('#amount-region');
+    if (amount) amount.hidden = !staged.ok;
+    const graphReady = staged.ok || (handoff && controlsReady);
+    const itemStatus = graphReady ? 'Complete · accepted Item graph' : `Blocked · ${staged.failures.find((x) => /Item|asset|date|interval|configuration/.test(x)) || 'accepted graph dependency'}`;
+    const packageStatus = graphReady ? 'Complete · accepted Package graph' : `Blocked · ${staged.failures.find((x) => /Package|attendees|concession/.test(x)) || 'accepted graph dependency'}`;
+    j7WriteStatus('#j7-item-status', itemStatus);
+    j7WriteStatus('#j7-package-status', packageStatus);
+    const note = handoff
+      ? 'Valid accepted graph is staged in the existing Booking Cart. Ready for Journey 1 Booking-creation handoff; Journey 7 does not create a Booking.'
+      : staged.ok
+        ? 'Accepted graph is ready to stage through the existing Cart action. Journey 7 stops before Booking creation.'
+        : `Journey 7 blocked: ${staged.failures.join('; ')}. No Total, Cart staging or Booking handoff is actionable.`;
+    j7WriteStatus('#j7-route-note', note);
+    const book = $('#confirm-booking-btn');
+    if (book) { book.hidden = true; book.disabled = true; book.inert = true; book.setAttribute('aria-hidden', 'true'); }
+    const helper = $('#confirm-helper');
+    if (helper) { helper.hidden = false; helper.textContent = 'Journey 7 stops at the accepted Journey 1 Booking-creation handoff; no Booking is created here.'; }
+    const primary = $('#cart-primary-action');
+    if (primary && !staged.ok) primary.disabled = true;
+  }
+
+  function j7RenderRouteStatus() {
+    const section = $('#j7-route-status');
+    if (!section || !isJourney7Route()) return;
+    section.hidden = false;
+    section.inert = false;
+    section.removeAttribute('aria-hidden');
+    j7SyncRouteState();
+  }
+
+  function j7ResetBootState() {
+    resetJourney();
+    createSelection('hall1', '2026-08-29', timeToSlot(10, 0), timeToSlot(12, 0));
+    setCommitted('item', 'community-hall', { notify: false });
+    setCommitted('package', 'private-day', { notify: false });
+    setCommitted('concession', 'review-fixture', { notify: false });
+    syncFieldDisplay('item');
+    syncFieldDisplay('package');
+    syncFieldDisplay('concession');
+    updateConfigureForm();
+    setSheetExpanded(isNarrowViewport());
+    const attendees = $('#cfg-package-attendees');
+    if (attendees) { attendees.value = '25'; attendees.dispatchEvent(new Event('input', { bubbles: true })); }
+    setCurrentSelectionDetailsExpanded(true, { moveFocus: false });
+    ['#cfg-item', '#cfg-package', '#cfg-concession', '#cfg-configuration', '#cfg-package-attendees'].forEach((selector) => {
+      const field = $(selector);
+      field?.addEventListener('change', () => window.setTimeout(j7SyncRouteState, 0));
+      field?.addEventListener('input', j7SyncRouteState);
+    });
+    $('#cart-primary-action')?.addEventListener('click', () => window.setTimeout(j7SyncRouteState, 0));
+    window.addEventListener('resize', j7SyncRouteState);
+    document.addEventListener('input', (event) => {
+      if (event.target.matches('#cfg-package-attendees, #cfg-package-quantity')) j7SyncRouteState();
+    });
+    document.addEventListener('change', (event) => {
+      if (event.target.matches('#cfg-item, #cfg-package, #cfg-concession, #cfg-configuration, #cfg-package-attendees, #cfg-package-quantity')) window.setTimeout(j7SyncRouteState, 0);
+    });
+    j7RenderRouteStatus();
+  }
+
+  function initJ9() {
+    const dialog = $('#j9-dialog');
+    const form = $('#j9-form');
+    const openButton = $('#j9-open-review');
+    const closeButton = $('#j9-close');
+    const cancelButton = $('#j9-cancel');
+    const checkButton = $('#j9-check');
+    const errors = $('#j9-errors');
+    const dialogResult = $('#j9-dialog-result');
+    const panelTitle = $('#j9-panel-title');
+    const panelCopy = $('#j9-panel-copy');
+    const panelResult = $('#j9-result');
+    const statusPill = $('#j9-status-pill');
+    const state = { outcome: 'available', timer: null, hasResult: false, operation: 0 };
+    const patternInputs = Array.from(document.querySelectorAll('input[name="j9-pattern"]'));
+    const rangeInputs = Array.from(document.querySelectorAll('input[name="j9-range"]'));
+    const pattern = () => document.querySelector('input[name="j9-pattern"]:checked')?.value || 'daily';
+    const range = () => document.querySelector('input[name="j9-range"]:checked')?.value || 'after';
+    const readyText = 'Ready to check local availability.';
+    const changedText = 'Configuration changed — check local availability again.';
+    const setReadySurfaces = () => {
+      errors.textContent = '';
+      dialogResult.className = 'j9-dialog-result';
+      dialogResult.textContent = readyText;
+      panelTitle.textContent = readyText;
+      panelCopy.textContent = 'Configure the recurrence, then check the deterministic local availability fixture.';
+      panelResult.textContent = 'No availability result has been checked.';
+      statusPill.textContent = 'Ready to check';
+    };
+    const invalidateReview = () => {
+      if (state.timer) window.clearTimeout(state.timer);
+      state.timer = null;
+      state.hasResult = false;
+      checkButton.disabled = false;
+      errors.textContent = '';
+      dialogResult.className = 'j9-dialog-result';
+      dialogResult.textContent = changedText;
+      panelTitle.textContent = 'Configuration changed';
+      panelCopy.textContent = changedText;
+      panelResult.textContent = changedText;
+      statusPill.textContent = 'Needs recheck';
+    };
+    const syncConditionalFields = ({ invalidate = true } = {}) => {
+      const value = pattern();
+      $('#j9-weekly-fields').hidden = value !== 'weekly';
+      $('#j9-monthly-fields').hidden = value !== 'monthly';
+      $('#j9-yearly-fields').hidden = value !== 'yearly';
+      $('#j9-after-field').hidden = range() !== 'after';
+      $('#j9-by-field').hidden = range() !== 'by';
+      if (invalidate) invalidateReview();
+      else if (!state.hasResult) setReadySurfaces();
+    };
+    const validate = () => {
+      const issues = [];
+      const interval = Number($('#j9-interval').value);
+      const start = $('#j9-start-date').value;
+      if (!Number.isInteger(interval) || interval < 1) issues.push('Interval must be a positive whole number.');
+      if (!start) issues.push('Start date is required.');
+      if (pattern() === 'weekly' && !document.querySelector('input[name="j9-weekday"]:checked')) issues.push('Choose at least one weekday for a weekly pattern.');
+      if (pattern() === 'monthly') {
+        const day = Number($('#j9-month-day').value);
+        if (!Number.isInteger(day) || day < 1 || day > 31) issues.push('Monthly day must be between 1 and 31.');
+      }
+      if (pattern() === 'yearly') {
+        const month = Number($('#j9-year-month').value);
+        const day = Number($('#j9-year-day').value);
+        if (!Number.isInteger(day) || day < 1 || day > 31) issues.push('Yearly day must be between 1 and 31.');
+        else if (Number.isInteger(month) && day > new Date(2000, month, 0).getDate()) issues.push('Yearly day is not valid for the selected month.');
+      }
+      if (range() === 'after') {
+        const occurrences = Number($('#j9-occurrences').value);
+        if (!Number.isInteger(occurrences) || occurrences < 1) issues.push('End-after occurrences must be a positive whole number.');
+      } else if (!$('#j9-end-date').value || ($('#j9-start-date').value && $('#j9-end-date').value < $('#j9-start-date').value)) {
+        issues.push('End-by date must be on or after the start date.');
+      }
+      return issues;
+    };
+    const setOutcome = (outcome) => {
+      state.outcome = outcome;
+      invalidateReview();
+      document.querySelectorAll('[data-j9-outcome]').forEach((button) => {
+        const active = button.dataset.j9Outcome === outcome;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
+    };
+    const cancelPending = () => {
+      state.operation += 1;
+      if (state.timer) window.clearTimeout(state.timer);
+      state.timer = null;
+      checkButton.disabled = false;
+    };
+    const close = () => {
+      cancelPending();
+      if (dialog.open) dialog.close('cancel');
+    };
+    const resetDialogForOpen = () => {
+      cancelPending();
+      errors.textContent = '';
+      dialogResult.className = 'j9-dialog-result';
+      dialogResult.textContent = readyText;
+    };
+    const open = () => {
+      lastDialogTrigger = openButton;
+      syncConditionalFields({ invalidate: false });
+      resetDialogForOpen();
+      if (typeof dialog.showModal === 'function') dialog.showModal();
+      else dialog.setAttribute('open', '');
+      window.setTimeout(() => $('#j9-interval').focus(), 0);
+    };
+    patternInputs.forEach((input) => input.addEventListener('change', syncConditionalFields));
+    rangeInputs.forEach((input) => input.addEventListener('change', syncConditionalFields));
+    form.addEventListener('input', invalidateReview);
+    form.addEventListener('change', (event) => {
+      if (event.target.matches('input, select')) invalidateReview();
+    });
+    document.querySelectorAll('[data-j9-outcome]').forEach((button) => button.addEventListener('click', () => setOutcome(button.dataset.j9Outcome)));
+    openButton.addEventListener('click', open);
+    closeButton.addEventListener('click', close);
+    cancelButton.addEventListener('click', close);
+    dialog.addEventListener('cancel', (event) => { event.preventDefault(); close(); });
+    dialog.addEventListener('close', () => { cancelPending(); restoreFocus(); });
+    checkButton.addEventListener('click', () => {
+      const issues = validate();
+      if (issues.length) {
+        errors.textContent = issues.join(' ');
+        dialogResult.className = 'j9-dialog-result is-error';
+        dialogResult.textContent = 'Local review blocked until the configuration is valid.';
+        return;
+      }
+      errors.textContent = '';
+      checkButton.disabled = true;
+      state.hasResult = false;
+      const operation = ++state.operation;
+      dialogResult.className = 'j9-dialog-result';
+      dialogResult.textContent = 'Checking local availability…';
+      state.timer = window.setTimeout(() => {
+        if (operation !== state.operation || !dialog.open) {
+          if (operation === state.operation) {
+            state.timer = null;
+            checkButton.disabled = false;
+          }
+          return;
+        }
+        checkButton.disabled = false;
+        const messages = {
+          available: ['Available in local review fixture.', 'Available · local review fixture', 'The configured recurrence has a deterministic available fixture. No series was created.'],
+          conflict: ['Conflict / unavailable in local review fixture.', 'Conflict · local review fixture', 'The configured recurrence meets validation but overlaps the deterministic unavailable fixture.'],
+          error: ['Local review error fixture.', 'Error · local review fixture', 'The deterministic error fixture represents an unavailable review response; no request was sent.']
+        };
+        const [dialogText, statusText, panelText] = messages[state.outcome];
+        state.hasResult = true;
+        dialogResult.className = `j9-dialog-result ${state.outcome === 'available' ? 'is-available' : state.outcome === 'conflict' ? 'is-conflict' : 'is-error'}`;
+        dialogResult.textContent = dialogText;
+        panelTitle.textContent = statusText;
+        statusPill.textContent = statusText;
+        panelResult.textContent = panelText;
+        panelCopy.textContent = 'Configuration remains staged locally. Close or cancel returns here without loss.';
+        if (operation === state.operation) state.timer = null;
+      }, 450);
+    });
+    createSelection('hall1', '2026-08-29', 2, 4);
+    setReadySurfaces();
+    $('#j9-review-launch').hidden = false;
+    window.__j9Review = Object.freeze({ validate, getOutcome: () => state.outcome, reset: () => window.location.reload(), cancelDuringLoading: () => { close(); return !checkButton.disabled; } });
+  }
+
   function init() {
+    const isJ9 = document.body.dataset.journey === '9';
     const isJ2 = document.body.dataset.journey === '2';
     const isJ3 = document.body.dataset.journey === '3';
     const isJ4 = document.body.dataset.journey === '4';
+    const isJ5 = document.body.dataset.journey === '5';
+    const isJ6 = document.body.dataset.journey === '6';
+    const isJ7 = document.body.dataset.journey === '7';
+    const isJ8 = document.body.dataset.journey === '8';
+    const calendarGrid = $('#calendar-grid');
+    if (calendarGrid) {
+      calendarGrid.addEventListener('mouseleave', clearColumnCrosshair);
+      calendarGrid.addEventListener('mouseover', (event) => {
+        if (!isGenericColumnCrosshairRoute() || dragState) return;
+        const target = event.target instanceof Element ? event.target : null;
+        const freeSlot = target ? target.closest('.cal-slot.free') : null;
+        if (!freeSlot || !calendarGrid.contains(freeSlot)) clearColumnCrosshair();
+      });
+    }
     if (!isJ2) document.body.dataset.surface = 'week';
 
     $('#date-prev').addEventListener('click', () => {
@@ -6947,7 +8258,7 @@
     $$('.mode-nav .mode-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         if (btn.dataset.mode === 'booking') return;
-        showToast(isJ4 ? 'Maintenance is outside the Journey 4 review fixture.' : 'Maintenance is not Journey 1');
+        showToast(isJ4 || isJ5 || isJ6 ? `Maintenance is outside the Journey ${isJ6 ? '6' : isJ5 ? '5' : '4'} review fixture.` : 'Maintenance is not Journey 1');
       });
     });
 
@@ -6957,6 +8268,7 @@
     $('#cfg-concession').addEventListener('change', renderCurrentSelectionSummary);
 
     $('#current-selection-details-toggle').addEventListener('click', (event) => {
+      if (isJourney9Route()) { event.preventDefault(); event.stopImmediatePropagation(); j9BlockReview('Journey 9 item editing is unavailable; use the recurring review entry.'); return; }
       if (stagedSelection && !editingLineId && !currentSelectionDetailsExpanded) {
         openStagedSelectionEditor(event.currentTarget);
         return;
@@ -6975,6 +8287,23 @@
       setCurrentSelectionDetailsExpanded(false, { restoreFocus: true });
     }, true);
 
+    const j9ExcludedActionSelector = '#cart-primary-action, #confirm-booking-btn, #clear-cart-btn, #clear-confirm, #current-selection-details-toggle, #btn-play-journey, #btn-play-complete, #review-rail-toggle, #review-rail-panel, .stage-chip, .cart-item-editor-tab, [data-line-actions-toggle], #bulk-time-btn, #bulk-config-btn, #cart-view-compact, #cart-view-detailed, #contextual-cart-open, #j4-details-dialog, #j4-context-menu, #j5-workflow-dialog';
+    document.addEventListener('click', (event) => {
+      if (!isJourney9Route()) return;
+      const target = event.target instanceof Element ? event.target.closest(j9ExcludedActionSelector) : null;
+      if (!target) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      j9BlockReview();
+    }, true);
+    document.addEventListener('keydown', (event) => {
+      if (!isJourney9Route() || !['Enter', ' ', 'Spacebar'].includes(event.key)) return;
+      const target = event.target instanceof Element ? event.target.closest(j9ExcludedActionSelector) : null;
+      if (!target) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      j9BlockReview();
+    }, true);
     $('#cart-primary-action').addEventListener('click', handlePrimaryAction);
     $('#confirm-booking-btn').addEventListener('click', confirmBooking);
 
@@ -7102,7 +8431,8 @@
     $('#configuration-select-all').addEventListener('change', () => {
       if (!configurationEditor) return;
       configurationEditor.ids.forEach((id) => {
-        const line = cartLines.find((entry) => entry.id === id);
+        const line = cartItemEditorTargetsStagedSelection() ? stagedSelection : getEditorTargetRecord(id);
+        if (!line) return;
         const compatible = (CONFIGURATIONS[line.asset] || []).includes(configurationEditor.configuration);
         if (compatible && $('#configuration-select-all').checked) configurationEditor.selected.add(id);
         else configurationEditor.selected.delete(id);
@@ -7121,7 +8451,7 @@
     $('#package-picker-btn').addEventListener('click', () => {
       if (!packageEditor) return;
       const dialog = getCartItemEditorDialog();
-      if (dialog && dialog.open) dialog.close();
+      if (dialog && dialog.open && !cartItemEditorTargetsStagedSelection()) dialog.close();
       openPicker('package', { host: packageEditor, field: 'package', context: 'package-editor' });
     });
     $('#package-editor-fields').addEventListener('input', (event) => {
@@ -7198,12 +8528,16 @@
       if (document.body.dataset.journey === '2') j2PlayJourney();
       else if (document.body.dataset.journey === '3') j3PlayJourney();
       else if (document.body.dataset.journey === '4') j4PlayJourney();
+      else if (document.body.dataset.journey === '5') j5PlayJourney();
+      else if (document.body.dataset.journey === '6') j6PlayJourney();
       else playJourney();
     });
     $('#btn-play-complete').addEventListener('click', () => {
       if (document.body.dataset.journey === '2') j2PlayComplete();
       else if (document.body.dataset.journey === '3') j3PlayComplete();
       else if (document.body.dataset.journey === '4') j4PlayComplete();
+      else if (document.body.dataset.journey === '5') j5PlayComplete();
+      else if (document.body.dataset.journey === '6') j6PlayComplete();
       else playCompleteJourney();
     });
 
@@ -7220,9 +8554,10 @@
       });
     });
 
-    ['#mismatch-dialog', '#remove-dialog', '#clear-dialog', '#date-picker-dialog', '#cart-item-editor-dialog', '#j4-details-dialog'].forEach((sel) => {
+    ['#mismatch-dialog', '#remove-dialog', '#clear-dialog', '#date-picker-dialog', '#cart-item-editor-dialog', '#j4-details-dialog', '#j5-workflow-dialog'].forEach((sel) => {
       trapDialogFocus($(sel));
     });
+    trapDialogFocus($('#j9-dialog'));
 
     window.addEventListener('resize', () => {
       if (document.body.dataset.journey !== '2') positionCartForViewport();
@@ -7239,7 +8574,9 @@
     reviewConcessions = generateReviewConcessions();
     setupContextualWorkspace();
     setupPickerEvents();
-    if (isJ4) j4SetupEvents();
+    if (isJ8) j8BindEvents();
+    if (isJ4 || isJ5 || isJ6) j4SetupEvents();
+    if (isJ5 || isJ6) j5SetupEvents();
     if (!isJ2) {
       setupAssetExplorerEvents();
       if (!isJ3) {
@@ -7259,9 +8596,545 @@
       loadTimeslotVisualOptions().then(() => j3ResetBootState());
     } else if (isJ4) {
       loadTimeslotVisualOptions().then(() => j4ResetBootState());
+    } else if (isJ5) {
+      loadTimeslotVisualOptions().then(() => j5ResetBootState());
+    } else if (isJ6) {
+      loadTimeslotVisualOptions().then(() => j6ResetBootState());
+    } else if (isJ7) {
+      loadTimeslotVisualOptions().then(() => j7ResetBootState());
+    } else if (isJ8) {
+      loadTimeslotVisualOptions().then(() => j8ResetBootState());
+    } else if (isJ9) {
+      loadTimeslotVisualOptions().then(() => { resetJourney(); initJ9(); });
     } else {
       loadTimeslotVisualOptions().then(() => resetJourney());
     }
+  }
+
+  /* ===== Journey 8 isolated UJ-09 existing item/package/pricing change ===== */
+
+  const J8_BOUNDARY = 'PARTIAL · REVIEW FIXTURE · NO SERVER REQUEST';
+  const J8_TOTAL_UNAVAILABLE = 'Proposed total unavailable — calculation unverified for the change flow; formula open.';
+  const J8_BLOCKED_COPY = 'BLOCKED/DEFECT-AFFECTED — Booking preview returned HTTP 400; no Booking PATCH follows. No successful Booking update is claimed or simulated.';
+  const J8_ITEMS = [
+    { id: 'current-item', label: 'Studio 2 private allocation', current: true },
+    { id: 'alternate-item', label: 'Studio lighting review fixture', current: false }
+  ];
+  const J8_PACKAGES = [
+    { id: 'current-package', label: 'Private day package · current fixture', current: true },
+    { id: 'alternate-package', label: 'Private evening package · local fixture', current: false },
+    { id: 'upsell-package', label: 'Private package add-on · local fixture', current: false }
+  ];
+  let j8State = 'hub';
+  let j8Operation = null;
+  let j8Subject = null;
+  let j8Baseline = null;
+  let j8Trigger = null;
+  let j8PickerKind = null;
+  let j8PickerTrigger = null;
+  let j8PickerSuspendedWorkflow = false;
+  let j8PickerBackgroundSnapshot = [];
+  let j8PickerSemanticsSnapshot = null;
+  let j8Closing = false;
+
+  function isJ8Journey() { return document.body.dataset.journey === '8'; }
+  function j8Clone(value) { return JSON.parse(JSON.stringify(value)); }
+  function j8Equal(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+  function j8Announce(message) {
+    const workflow = $('#j5-workflow-dialog');
+    if (workflow?.open || j8PickerSuspendedWorkflow) {
+      const live = $('#j5-workflow-announcement');
+      if (live) live.textContent = message;
+    } else {
+      const hub = $('#j5-action-announcement');
+      if (hub) hub.textContent = message;
+    }
+  }
+  function j8Footer(html) {
+    const footer = $('#j5-workflow-footer');
+    if (footer) footer.innerHTML = html;
+  }
+  function j8Button(command, text, cls = 'btn-secondary', disabled = false) {
+    return `<button type="button" class="${cls}" data-j8-command="${command}"${disabled ? ' disabled' : ''}>${text}</button>`;
+  }
+  function j8HideWorkflowClose(hidden) {
+    const close = $('#j5-workflow-close');
+    if (close) { close.hidden = hidden; close.inert = hidden; close.setAttribute('aria-hidden', String(hidden)); }
+  }
+  function j8HideHubDismissControls(hidden) {
+    ['#j4-details-close', '#j4-details-back'].forEach((selector) => {
+      const control = $(selector);
+      if (control) { control.hidden = hidden; control.inert = hidden; control.setAttribute('aria-hidden', String(hidden)); }
+    });
+  }
+  function j8HubFocusables() {
+    const details = $('#j4-details-dialog');
+    if (!details || !isJ8Journey() || j8State !== 'hub') return [];
+    return Array.from(details.querySelectorAll('.j5-action-grid [data-j8-action]')).filter((el) => !el.hidden && !el.disabled && el.getClientRects().length > 0);
+  }
+  function j8FocusTerminalCancel() {
+    const cancel = $('#j5-workflow-dialog [data-j8-command="terminal-cancel"]');
+    if (cancel && !cancel.hidden && !cancel.disabled) cancel.focus();
+  }
+  function j8GuardWorkflowClose() {
+    const workflow = $('#j5-workflow-dialog');
+    if (!workflow || workflow.dataset.j8CloseGuarded) return;
+    const nativeClose = workflow.close.bind(workflow);
+    workflow.close = (...args) => {
+      if (isJ8Journey() && j8State === 'persist_blocked' && !j8Closing && !j8PickerSuspendedWorkflow) {
+        workflow.hidden = false;
+        workflow.inert = false;
+        workflow.removeAttribute('aria-hidden');
+        if (!workflow.open) workflow.showModal();
+        j8FocusTerminalCancel();
+        return;
+      }
+      return nativeClose(...args);
+    };
+    workflow.dataset.j8CloseGuarded = 'true';
+  }
+  function j8OpenHub(trigger) {
+    if (!isJ8Journey()) return;
+    j8Subject = j8Clone(J5_BASE_BOOKING);
+    j8Operation = null;
+    j8State = 'hub';
+    j8Trigger = trigger || j8Trigger || document.activeElement;
+    const details = $('#j4-details-dialog');
+    if (!details) return;
+    if (!details.dataset.j8CloseGuarded) {
+      const nativeClose = details.close.bind(details);
+      details.close = (...args) => {
+        if (isJ8Journey() && j8State === 'hub' && !j8Operation) {
+          j8OpenHub(j8Trigger || $('#j4-open-private'));
+          return;
+        }
+        return nativeClose(...args);
+      };
+      details.dataset.j8CloseGuarded = 'true';
+    }
+    details.hidden = false; details.inert = false; details.removeAttribute('aria-hidden');
+    $('#j4-only-details').hidden = true;
+    $('#j4-only-details').inert = true;
+    $('#j5-action-hub').hidden = false;
+    $('#j5-action-hub').inert = false;
+    $('#j5-action-hub').removeAttribute('aria-hidden');
+    $('#j4-details-kicker').textContent = 'Existing Booking · review-only entry';
+    $('#j4-details-title').textContent = j8Subject.reference;
+    $('#j4-details-close').setAttribute('aria-label', 'Close existing Booking review');
+    j8HideHubDismissControls(true);
+    details.setAttribute('aria-describedby', 'j5-details-intro j5-review-boundary');
+    $('#j4-details-back').textContent = 'Close review';
+    $('#j5-total').textContent = 'Amount not asserted · change-flow calculation unverified';
+    const totalLabel = $('#j5-total')?.parentElement?.querySelector('dt');
+    if (totalLabel) totalLabel.textContent = 'Pricing evidence';
+    $('#j5-state-message').textContent = `${J8_BOUNDARY} · UJ-09 existing item/package/pricing change.`;
+    $('#j5-state-message').className = 'j5-state-message is-partial';
+    $('#j5-review-boundary').innerHTML = '<strong>Review-only entry</strong> — Product navigation into this existing Booking is not runtime-proven. Local fixture only; no server request; reload resets the review.<br><span class="j8-scope-exclusions"><strong>OUT OF SCOPE:</strong> reallocation/change-assets · recurrence/occurrences · strict/lenient concession outcome · public packages/price bands.</span>';
+    $('#j5-actions-title').textContent = 'Existing Booking changes';
+    $('#j5-actions-title').nextElementSibling.textContent = 'Review the bounded local change surfaces; no Booking mutation is available.';
+    const grid = $('.j5-action-grid');
+    if (grid) {
+      grid.innerHTML = [
+        '<button type="button" class="j5-action" data-j8-action="item">Change item</button>',
+        '<button type="button" class="j5-action" data-j8-action="package">Change private package</button>',
+        '<button type="button" class="j5-action" data-j8-action="pricing">Change pricing</button>'
+      ].join('');
+    }
+    $('#j5-action-announcement').textContent = 'No Journey 8 change has been requested.';
+    $('#j5-workflow-announcement').textContent = '';
+    $('#ldp-live').textContent = '';
+    if (!details.open) details.showModal();
+    window.setTimeout(() => $('.j5-action-grid [data-j8-action]')?.focus(), 0);
+  }
+  function j8CloseHub() {
+    if (isJ8Journey()) {
+      j8OpenHub(j8Trigger || $('#j4-open-private'));
+      return;
+    }
+    const details = $('#j4-details-dialog');
+    if (details?.open) details.close();
+    if (details) { details.hidden = true; details.inert = true; details.setAttribute('aria-hidden', 'true'); }
+    $('#j5-action-hub').hidden = true;
+    $('#j5-action-hub').inert = true;
+    $('#j5-action-hub').setAttribute('aria-hidden', 'true');
+    const target = j8Trigger;
+    j8Trigger = null;
+    target?.focus?.();
+  }
+  function j8Start(action, trigger) {
+    j8Trigger = trigger || document.activeElement;
+    j8Operation = {
+      action,
+      itemChoice: 'current-item',
+      packageChoice: 'current-package',
+      configuration: 'theatre',
+      concession: 'none',
+      priceMode: 'default',
+      priceType: 'daily',
+      unit: 'day',
+      attendeeCount: 12,
+      packageMore: false,
+      selectedIncluded: new Set(['standard-room']),
+      validationError: false
+    };
+    j8State = action === 'pricing' ? 'pricing_setup' : action === 'item' ? 'item_change' : 'pkg_step_one';
+    const details = $('#j4-details-dialog');
+    $('#j5-action-announcement').textContent = '';
+    $('#j5-state-message').textContent = '';
+    $('#ldp-live').textContent = '';
+    if (details?.open) details.close('workflow');
+    if (details) { details.hidden = true; details.inert = true; details.setAttribute('aria-hidden', 'true'); }
+    const dialog = $('#j5-workflow-dialog');
+    if (!dialog) return;
+    dialog.hidden = false; dialog.inert = false; dialog.removeAttribute('aria-hidden');
+    j8Render();
+    dialog.showModal();
+    window.setTimeout(() => dialog.querySelector('[data-j8-autofocus], input, select, button:not(.dialog-close)')?.focus(), 0);
+    j8Announce(`Journey 8 ${j8State.replaceAll('_', ' ')} opened.`);
+  }
+  function j8SetState(next, message) {
+    j8State = next;
+    j8Render();
+    if (message) j8Announce(message);
+  }
+  function j8SnapshotPickerSemantics(picker) {
+    const attrs = ['role', 'aria-modal', 'aria-label', 'aria-labelledby', 'aria-describedby'];
+    j8PickerSemanticsSnapshot = Object.fromEntries(attrs.map((name) => [name, { present: picker.hasAttribute(name), value: picker.getAttribute(name) }]));
+  }
+  function j8RestorePickerSemantics(picker) {
+    if (!picker || !j8PickerSemanticsSnapshot) return;
+    Object.entries(j8PickerSemanticsSnapshot).forEach(([name, entry]) => {
+      if (entry.present) picker.setAttribute(name, entry.value);
+      else picker.removeAttribute(name);
+    });
+    j8PickerSemanticsSnapshot = null;
+  }
+  function j8SnapshotPickerBackground() {
+    j8PickerBackgroundSnapshot = Array.from(document.body.children).filter((el) => {
+      return el.id !== 'large-data-picker' && el.id !== 'large-data-picker-backdrop' && el.tagName !== 'SCRIPT';
+    }).map((el) => ({
+      el,
+      inert: el.inert,
+      ariaHiddenPresent: el.hasAttribute('aria-hidden'),
+      ariaHidden: el.getAttribute('aria-hidden')
+    }));
+    j8PickerBackgroundSnapshot.forEach(({ el }) => {
+      el.inert = true;
+      el.setAttribute('aria-hidden', 'true');
+    });
+  }
+  function j8RestorePickerBackground() {
+    j8PickerBackgroundSnapshot.forEach(({ el, inert, ariaHiddenPresent, ariaHidden }) => {
+      el.inert = inert;
+      if (ariaHiddenPresent) el.setAttribute('aria-hidden', ariaHidden);
+      else el.removeAttribute('aria-hidden');
+    });
+    j8PickerBackgroundSnapshot = [];
+  }
+  function j8PickerFocusables() {
+    const picker = $('#large-data-picker');
+    if (!picker) return [];
+    return Array.from(picker.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')).filter((el) => !el.hidden && el.getClientRects().length > 0);
+  }
+  function j8HandlePickerKeydown(event) {
+    if (!j8PickerKind) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      j8ClosePicker();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusables = j8PickerFocusables();
+    if (!focusables.length) { event.preventDefault(); return; }
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (event.shiftKey && (document.activeElement === first || !focusables.includes(document.activeElement))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || !focusables.includes(document.activeElement))) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+  function j8ResumeWorkflowAfterPicker(focusSelector) {
+    if (!j8PickerSuspendedWorkflow) {
+      $(focusSelector)?.focus();
+      return;
+    }
+    j8PickerSuspendedWorkflow = false;
+    const dialog = $('#j5-workflow-dialog');
+    if (!dialog) return;
+    dialog.hidden = false; dialog.inert = false; dialog.removeAttribute('aria-hidden');
+    j8Render();
+    dialog.showModal();
+    window.setTimeout(() => $(focusSelector)?.focus(), 0);
+  }
+  function j8ClosePicker(refocus) {
+    const picker = $('#large-data-picker');
+    const backdrop = $('#large-data-picker-backdrop');
+    if (picker) { picker.hidden = true; picker.inert = true; picker.setAttribute('aria-hidden', 'true'); j8RestorePickerSemantics(picker); }
+    if (backdrop) { backdrop.hidden = true; backdrop.inert = true; backdrop.setAttribute('aria-hidden', 'true'); }
+    j8RestorePickerBackground();
+    const kind = j8PickerKind;
+    const target = refocus || j8PickerTrigger;
+    const focusSelector = `[data-j8-open-picker="${kind}"]`;
+    const resumeWorkflow = j8PickerSuspendedWorkflow;
+    j8PickerKind = null; j8PickerTrigger = null;
+    if (resumeWorkflow) j8ResumeWorkflowAfterPicker(focusSelector);
+    else target?.focus?.();
+  }
+  function j8RenderPicker() {
+    const list = $('#large-data-listbox');
+    const filter = ($('#large-data-filter')?.value || '').toLowerCase();
+    if (!list) return;
+    const source = j8PickerKind === 'item' ? J8_ITEMS : J8_PACKAGES;
+    list.innerHTML = source.filter((entry) => entry.label.toLowerCase().includes(filter)).map((entry) => `<button type="button" class="j8-picker-row" data-j8-pick="${entry.id}" role="option" aria-selected="false">${entry.label}</button>`).join('') || '<p class="picker-empty">No local fixture matches.</p>';
+  }
+  function j8OpenPicker(kind, trigger) {
+    j8PickerKind = kind;
+    j8PickerTrigger = trigger || document.activeElement;
+    const workflow = $('#j5-workflow-dialog');
+    if (workflow?.open) {
+      j8PickerSuspendedWorkflow = true;
+      workflow.close('picker-suspend');
+    }
+    const picker = $('#large-data-picker');
+    const backdrop = $('#large-data-picker-backdrop');
+    if (!picker || !backdrop) return;
+    j8SnapshotPickerSemantics(picker);
+    j8SnapshotPickerBackground();
+    picker.setAttribute('role', 'dialog');
+    picker.setAttribute('aria-modal', 'true');
+    picker.setAttribute('aria-label', `${kind === 'item' ? 'Item' : 'Private package'} picker · Journey 8 review fixture`);
+    picker.hidden = false; picker.inert = false; picker.removeAttribute('aria-hidden');
+    backdrop.hidden = false; backdrop.inert = false; backdrop.removeAttribute('aria-hidden');
+    $('#large-data-picker-meta').textContent = `${kind === 'item' ? 'Item' : 'Private package'} · REVIEW FIXTURE · local list only`;
+    $('#large-data-filter').value = '';
+    j8RenderPicker();
+    window.setTimeout(() => $('#large-data-filter')?.focus(), 0);
+  }
+  function j8DismissMismatch() {
+    const dialog = $('#mismatch-dialog');
+    if (dialog?.open) dialog.close();
+    j8State = 'pricing_setup';
+    j8Announce('Mismatch dismissed. Prior Journey 8 pricing values remain unchanged; no package swap occurred.');
+    $('#j8-configuration')?.focus();
+  }
+  function j8RenderCommon(title, eyebrow) {
+    const workflowTitle = $('#j5-workflow-title');
+    const kicker = $('#j5-workflow-kicker');
+    const description = $('#j5-workflow-description');
+    const stage = $('#j5-workflow-stage');
+    if (workflowTitle) workflowTitle.textContent = title;
+    if (kicker) kicker.textContent = eyebrow;
+    if (description) description.textContent = `${J8_BOUNDARY} · UJ-09. Local fixture only; reload resets this review.`;
+    if (stage) { stage.setAttribute('aria-live', 'off'); stage.innerHTML = `<p class="j8-boundary"><strong>${J8_BOUNDARY}</strong> · UJ-09 existing item/package/pricing change.</p>`; }
+    $('#j5-workflow-preview').hidden = true;
+    $('#j5-workflow-preview').replaceChildren();
+    j8HideWorkflowClose(j8State === 'persist_blocked');
+  }
+  function j8RenderPricing() {
+    const op = j8Operation;
+    const custom = op.priceMode === 'custom';
+    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel" aria-labelledby="j8-pricing-heading">
+      <h3 id="j8-pricing-heading">Change pricing</h3>
+      <p class="j8-evidence">UNVERIFIED · pricing result unverified for this change flow.</p>
+      <fieldset class="j8-fieldset"><legend>Price mode</legend><label><input type="radio" name="j8-price-mode" value="default" ${!custom ? 'checked' : ''}> Default</label><label><input type="radio" name="j8-price-mode" value="custom" ${custom ? 'checked' : ''}> Custom</label></fieldset>
+      <div class="j8-grid"><label>Configuration<select id="j8-configuration"><option value="theatre" ${op.configuration === 'theatre' ? 'selected' : ''}>Theatre</option><option value="mismatch">Incompatible configuration · test mismatch</option></select></label><label>Concession<select id="j8-concession"><option value="none" ${op.concession === 'none' ? 'selected' : ''}>None</option><option value="review" ${op.concession === 'review' ? 'selected' : ''}>Review fixture concession</option></select></label><label class="j8-custom-only" ${custom ? '' : 'hidden'}>Price type<select id="j8-price-type" ${custom ? '' : 'disabled'}><option value="daily" ${op.priceType === 'daily' ? 'selected' : ''}>Daily</option><option value="session">Session</option><option value="hourly">Hourly</option></select></label><label class="j8-custom-only" ${custom ? '' : 'hidden'}>Pricing unit<select id="j8-unit" ${custom ? '' : 'disabled'}><option value="day" ${op.unit === 'day' ? 'selected' : ''}>Day</option><option value="session">Session</option><option value="hour">Hour</option></select></label></div>
+      <p class="j8-total-unavailable">${J8_TOTAL_UNAVAILABLE}</p><p id="j8-apply-reason" class="j8-reason" ${op.validationError ? '' : 'hidden'}>Apply disabled: an item or validation state is not available.</p>
+    </section>`);
+    j8Footer(`${j8Button('cancel', 'Cancel without loss')} ${j8Button('apply-pricing', 'Review proposed change', 'btn-primary', op.validationError)}`);
+  }
+  function j8RenderItem() {
+    const current = j8Operation.itemChoice === 'current-item';
+    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel" aria-labelledby="j8-item-heading"><h3 id="j8-item-heading">Change item</h3><p class="j8-evidence">REVIEW FIXTURE · local item search and selection only.</p><button type="button" class="btn-secondary" data-j8-open-picker="item" data-j8-autofocus>Search local items</button><fieldset class="j8-list-fieldset"><legend>Item selection</legend>${J8_ITEMS.map((item) => `<label><input type="radio" name="j8-item" value="${item.id}" ${j8Operation.itemChoice === item.id ? 'checked' : ''}> ${item.label}${item.current ? ' · current' : ''}</label>`).join('')}</fieldset><p class="j8-selection-note">Apply is unavailable while the selected item is the current item.</p></section>`);
+    j8Footer(`${j8Button('cancel', 'Cancel without loss')} ${j8Button('item-apply', 'Apply replacement', 'btn-primary', current)}`);
+  }
+  function j8RenderPackageOne() {
+    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel" aria-labelledby="j8-package-one-heading"><h3 id="j8-package-one-heading">Change private package · step one</h3><p class="j8-evidence">UNVERIFIED · package search and load-more presentation.</p><button type="button" class="btn-secondary" data-j8-open-picker="package" data-j8-autofocus>Search local packages</button><fieldset class="j8-list-fieldset"><legend>Private package selection</legend>${J8_PACKAGES.slice(0, j8Operation.packageMore ? 3 : 2).map((pkg) => `<label><input type="radio" name="j8-package" value="${pkg.id}" ${j8Operation.packageChoice === pkg.id ? 'checked' : ''}> ${pkg.label}${pkg.current ? ' · current' : ''}</label>`).join('')}</fieldset><button type="button" class="btn-ghost" data-j8-command="package-more">More…</button><p class="j8-selection-note">Load more is a local presentation only; no catalog claim is made.</p></section>`);
+    j8Footer(`${j8Button('cancel', 'Cancel without loss')} ${j8Button('package-continue', 'Continue to step two', 'btn-primary')}`);
+  }
+  function j8RenderPackageTwo() {
+    const all = j8Operation.selectedIncluded.size === 2;
+    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel" aria-labelledby="j8-package-two-heading"><h3 id="j8-package-two-heading">Change private package · step two</h3><p class="j8-evidence">UNVERIFIED · attendees and package items are local fixture bounds, not production rules.</p><label>Attendees <input id="j8-attendees" type="number" min="1" max="18" value="${j8Operation.attendeeCount}" aria-describedby="j8-attendee-bound"></label><p id="j8-attendee-bound" class="j8-selection-note">Local fixture bound: 1–18 attendees; no universal default is claimed.</p><fieldset class="j8-list-fieldset"><legend>Package items</legend><label><input type="checkbox" data-j8-included="standard-room" ${j8Operation.selectedIncluded.has('standard-room') ? 'checked' : ''}> Standard item · local fixture</label><label><input type="checkbox" data-j8-included="upsell-item" ${j8Operation.selectedIncluded.has('upsell-item') ? 'checked' : ''}> Upsell item · local fixture</label><label><input type="checkbox" id="j8-select-all" ${all ? 'checked' : ''}> Select all</label></fieldset></section>`);
+    j8Footer(`${j8Button('cancel', 'Cancel without loss')} ${j8Button('package-back', 'Back')} ${j8Button('package-apply', 'Apply package to proposal', 'btn-primary')}`);
+  }
+  function j8RenderConfirm(kind) {
+    const sales = kind === 'sales_category_confirm';
+    j8RenderCommon(sales ? 'Confirm sales category' : 'Confirm proposed branch', sales ? 'Sales category review' : 'Branch review');
+    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel j8-confirm-panel"><h3>${sales ? 'Sales category confirmation' : 'Generic branch confirmation'}</h3><p>${sales ? 'Confirm or cancel only. This review performs no validation, branching rule or persistence.' : 'Confirm the proposed local branch. No branch taxonomy or Booking mutation is claimed.'}</p><span class="j8-evidence">${sales ? 'UNVERIFIED' : 'PARTIAL'}</span></section>`);
+    j8Footer(`${j8Button('cancel', 'Cancel')} ${j8Button(sales ? 'sales-proceed' : 'branch-confirm', sales ? 'Proceed' : 'Confirm', 'btn-primary')}`);
+  }
+  function j8RenderProposed() {
+    j8RenderCommon('Proposed local change', 'Proposed result');
+    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel j8-proposed" aria-labelledby="j8-proposed-heading"><h3 id="j8-proposed-heading">PROPOSED · LOCAL ONLY · NOT PERSISTED</h3><dl class="j8-proposal-facts"><div><dt>Original Booking</dt><dd>${j8Subject.reference} · version ${j8Subject.version}</dd></div><div><dt>Current fixture</dt><dd>${j8Subject.resource} · ${j8Subject.dateLabel} · ${j8Subject.time}</dd></div><div><dt>Proposed change</dt><dd>${j8Operation.itemChoice === 'current-item' ? 'Current item retained' : 'Alternate item selected'} · ${j8Operation.packageChoice === 'current-package' ? 'Current package retained' : 'Alternate package selected'}</dd></div></dl><p class="j8-total-unavailable">${J8_TOTAL_UNAVAILABLE}</p><p class="j8-evidence">UNVERIFIED · local comparison only; original Booking remains unchanged.</p></section>`);
+    j8Footer(`${j8Button('proposed-back', 'Back')} ${j8Button('patch-preview', 'Review patch preview', 'btn-primary')}`);
+  }
+  function j8RenderBlocked() {
+    j8RenderCommon('Preview blocked', 'Terminal blocker');
+    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel j8-blocked" aria-labelledby="j8-blocked-heading"><h3 id="j8-blocked-heading">${J8_BLOCKED_COPY}</h3><p>Original Booking remains unchanged. This terminal state has no retry, override, confirm or update-success action.</p><span class="j8-evidence">BLOCKED/DEFECT-AFFECTED</span></section>`);
+    j8Footer(j8Button('terminal-cancel', 'Cancel without loss', 'btn-primary'));
+  }
+  function j8Render() {
+    if (!j8Operation) return;
+    if (j8State === 'pricing_setup' || j8State === 'mismatch') { j8RenderCommon('Change pricing', 'Existing Booking pricing'); j8RenderPricing(); return; }
+    if (j8State === 'item_change') { j8RenderCommon('Change item', 'Existing Booking item'); j8RenderItem(); return; }
+    if (j8State === 'pkg_step_one') { j8RenderCommon('Change private package', 'Existing Booking package'); j8RenderPackageOne(); return; }
+    if (j8State === 'pkg_step_two') { j8RenderCommon('Change private package', 'Existing Booking package'); j8RenderPackageTwo(); return; }
+    if (j8State === 'sales_category_confirm' || j8State === 'branch_confirm') { j8RenderConfirm(j8State); return; }
+    if (j8State === 'proposed') { j8RenderProposed(); return; }
+    if (j8State === 'persist_blocked') { j8RenderBlocked(); return; }
+  }
+  function j8CancelToHub() {
+    if (j8Closing) return;
+    j8Closing = true;
+    const workflow = $('#j5-workflow-dialog');
+    if (workflow?.open) workflow.close('cancel-without-loss');
+    j8Operation = null;
+    j8State = 'hub';
+    j8HideWorkflowClose(false);
+    j8OpenHub(j8Trigger || $('#j4-open-private'));
+    j8Closing = false;
+    j8Announce('Cancelled without loss. Original Booking fixture remains unchanged.');
+  }
+  function j8HandleCommand(command) {
+    if (!j8Operation) return;
+    if (command === 'cancel') return j8CancelToHub();
+    if (command === 'terminal-cancel') return j8CancelToHub();
+    if (j8State === 'pricing_setup' && command === 'apply-pricing') return j8SetState('sales_category_confirm', 'Sales category confirmation opened. No validation or branching logic is asserted.');
+    if (j8State === 'item_change' && command === 'item-apply') return j8SetState('pricing_setup', 'Alternate item selected for the local proposal.');
+    if (j8State === 'pkg_step_one' && command === 'package-more') { j8Operation.packageMore = true; return j8Render(); }
+    if (j8State === 'pkg_step_one' && command === 'package-continue') return j8SetState('pkg_step_two', 'Package step two opened; step-one selection is preserved.');
+    if (j8State === 'pkg_step_two' && command === 'package-back') return j8SetState('pkg_step_one', 'Returned to package step one with selection preserved.');
+    if (j8State === 'pkg_step_two' && command === 'package-apply') return j8SetState('pricing_setup', 'Package selection added to the local proposal.');
+    if (j8State === 'sales_category_confirm' && command === 'sales-proceed') return j8SetState('branch_confirm', 'Generic branch confirmation opened.');
+    if (j8State === 'branch_confirm' && command === 'branch-confirm') return j8SetState('proposed', 'Local proposed result opened; no Booking mutation occurred.');
+    if (j8State === 'proposed' && command === 'proposed-back') return j8SetState('pricing_setup', 'Returned to pricing setup for revision.');
+    if (j8State === 'proposed' && command === 'patch-preview') return j8SetState('persist_blocked', 'Patch preview is blocked by the observed HTTP 400; the terminal state exposes only Cancel without loss.');
+  }
+  function j8HandleChange(event) {
+    const target = event.target;
+    if (!j8Operation) return;
+    if (target.name === 'j8-price-mode') { j8Operation.priceMode = target.value; return j8Render(); }
+    if (target.id === 'j8-configuration') {
+      if (target.value === 'mismatch') {
+        target.value = j8Operation.configuration;
+        j8State = 'mismatch';
+        openMismatchDialog(target);
+        j8Announce('Incompatible configuration detected. Existing values are preserved; no package swap occurred.');
+      } else j8Operation.configuration = target.value;
+      return;
+    }
+    if (target.id === 'j8-concession') { j8Operation.concession = target.value; return; }
+    if (target.id === 'j8-price-type') { j8Operation.priceType = target.value; return; }
+    if (target.id === 'j8-unit') { j8Operation.unit = target.value; return; }
+    if (target.name === 'j8-item') { j8Operation.itemChoice = target.value; return j8Render(); }
+    if (target.name === 'j8-package') { j8Operation.packageChoice = target.value; return; }
+    if (target.id === 'j8-attendees') { j8Operation.attendeeCount = Math.max(1, Math.min(18, Number(target.value) || 1)); return; }
+    if (target.dataset.j8Included) { if (target.checked) j8Operation.selectedIncluded.add(target.dataset.j8Included); else j8Operation.selectedIncluded.delete(target.dataset.j8Included); return; }
+    if (target.id === 'j8-select-all') { ['standard-room', 'upsell-item'].forEach((id) => target.checked ? j8Operation.selectedIncluded.add(id) : j8Operation.selectedIncluded.delete(id)); return j8Render(); }
+  }
+  function j8HandleClick(event) {
+    const action = event.target.closest('[data-j8-action]');
+    if (action) return j8Start(action.dataset.j8Action, action);
+    const command = event.target.closest('[data-j8-command]');
+    if (command && (command.closest('#j5-workflow-footer') || command.closest('#j5-workflow-stage'))) return j8HandleCommand(command.dataset.j8Command);
+    const pickerOpen = event.target.closest('[data-j8-open-picker]');
+    if (pickerOpen) return j8OpenPicker(pickerOpen.dataset.j8OpenPicker, pickerOpen);
+    const picked = event.target.closest('[data-j8-pick]');
+    if (picked && j8PickerKind) {
+      if (j8PickerKind === 'item') j8Operation.itemChoice = picked.dataset.j8Pick;
+      else j8Operation.packageChoice = picked.dataset.j8Pick;
+      j8ClosePicker();
+      j8Render();
+    }
+  }
+  function j8BindEvents() {
+    document.addEventListener('click', j8HandleClick);
+    $('#j5-workflow-stage').addEventListener('change', j8HandleChange);
+    $('#large-data-filter').addEventListener('input', j8RenderPicker);
+    $('#large-data-picker').addEventListener('keydown', j8HandlePickerKeydown);
+    $('#large-data-picker-cancel').addEventListener('click', (event) => { event.preventDefault(); event.stopImmediatePropagation(); j8ClosePicker(); }, true);
+    $('#large-data-picker-backdrop').addEventListener('click', (event) => { event.preventDefault(); event.stopImmediatePropagation(); j8ClosePicker(); }, true);
+    $('#mismatch-close').addEventListener('click', (event) => { event.preventDefault(); event.stopImmediatePropagation(); j8DismissMismatch(); }, true);
+    $('#mismatch-fix').addEventListener('click', (event) => { event.preventDefault(); event.stopImmediatePropagation(); j8DismissMismatch(); }, true);
+    $('#mismatch-dialog').addEventListener('cancel', (event) => { event.preventDefault(); j8DismissMismatch(); }, true);
+    const details = $('#j4-details-dialog');
+    details.addEventListener('keydown', (event) => {
+      if (!isJ8Journey() || j8State !== 'hub' || event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      j8OpenHub(j8Trigger || $('#j4-open-private'));
+    }, true);
+    details.addEventListener('cancel', (event) => {
+      if (!isJ8Journey()) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (j8Operation) j8CancelToHub();
+      else j8OpenHub(j8Trigger || $('#j4-open-private'));
+    }, true);
+    details.addEventListener('close', () => {
+      if (isJ8Journey() && j8State === 'hub' && !j8Operation) j8OpenHub(j8Trigger || $('#j4-open-private'));
+    });
+    $('#j4-details-close').addEventListener('click', () => j8CloseHub());
+    $('#j4-details-back').addEventListener('click', () => j8CloseHub());
+    const detailsFocusGuard = $('#j4-details-dialog');
+    detailsFocusGuard.addEventListener('focusin', (event) => {
+      if (!isJ8Journey() || j8State !== 'hub') return;
+      const focusables = j8HubFocusables();
+      if (focusables.length && !focusables.includes(event.target)) {
+        event.stopImmediatePropagation();
+        focusables[0].focus();
+      }
+    }, true);
+    detailsFocusGuard.addEventListener('keydown', (event) => {
+      if (!isJ8Journey() || j8State !== 'hub' || event.key !== 'Tab') return;
+      const focusables = j8HubFocusables();
+      if (!focusables.length) { event.preventDefault(); event.stopImmediatePropagation(); return; }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if ((event.shiftKey && (document.activeElement === first || !focusables.includes(document.activeElement))) || (!event.shiftKey && (document.activeElement === last || !focusables.includes(document.activeElement)))) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        (event.shiftKey ? last : first).focus();
+      }
+    }, true);
+    j8GuardWorkflowClose();
+    const workflow = $('#j5-workflow-dialog');
+    workflow.addEventListener('keydown', (event) => {
+      if (!isJ8Journey() || event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (j8State === 'persist_blocked') { j8FocusTerminalCancel(); return; }
+      j8CancelToHub();
+    }, true);
+    workflow.addEventListener('cancel', (event) => {
+      if (!isJ8Journey()) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (j8State === 'persist_blocked') { j8FocusTerminalCancel(); return; }
+      j8CancelToHub();
+    }, true);
+    $('#j5-workflow-close').addEventListener('click', () => { if (j8State !== 'persist_blocked') j8CancelToHub(); });
+    $('#j5-workflow-dialog').addEventListener('cancel', (event) => { event.preventDefault(); if (j8State !== 'persist_blocked') j8CancelToHub(); });
+    $('#j5-workflow-dialog').addEventListener('close', () => { if (j8PickerSuspendedWorkflow) return; if (!j8Closing && j8State !== 'persist_blocked' && j8Operation) j8CancelToHub(); });
+  }
+  function j8ResetBootState() {
+    j8Baseline = j8Clone(J5_BASE_BOOKING);
+    j8Subject = j8Clone(j8Baseline);
+    $('#amount-region').textContent = '';
+    renderCalendar();
+    $('#ldp-live').textContent = '';
+    window.setTimeout(() => j8OpenHub($('#j4-open-private')), 0);
+    window.__j8Review = {
+      getState: () => j8State,
+      getSubject: () => j8Clone(j8Subject),
+      getBaseline: () => j8Clone(j8Baseline),
+      sourceUnchanged: () => j8Equal(j8Subject, j8Baseline),
+      boundary: J8_BOUNDARY,
+      blockedCopy: J8_BLOCKED_COPY,
+      setMissingItem: () => { if (j8Operation) { j8Operation.itemChoice = null; j8Operation.validationError = true; j8State = 'pricing_setup'; j8Render(); } }
+    };
   }
 
   function boot() {
@@ -7276,6 +9149,20 @@
       document.title = 'Optimo Diary — Journey 3 Asset Search, Hierarchy and Selection';
     } else if (journey === 4) {
       document.title = 'Optimo Diary — Journey 4 Timeslot Rendering and Calendar Interaction';
+    } else if (journey === 5) {
+      document.title = 'Optimo Diary — Journey 5 Private Lifecycle Candidate';
+    } else if (journey === 6) {
+      document.title = 'Optimo Diary — Journey 6 Reschedule and Reallocation Candidate';
+    } else if (journey === 7) {
+      document.title = 'Optimo Diary — Journey 7 New-Booking Pricing Candidate';
+      window.__j7Review = Object.freeze({
+        snapshot: j7ReviewSnapshot,
+        invokeForbiddenPackageGuard: j7ReviewInvokeForbiddenPackageGuard
+      });
+    } else if (journey === 8) {
+      document.title = 'Optimo Diary — Journey 8 Existing Pricing Change Candidate';
+    } else if (journey === 9) {
+      document.title = 'Optimo Diary — Journey 9 / UJ-11 Recurring Booking Candidate';
     }
     init();
   }

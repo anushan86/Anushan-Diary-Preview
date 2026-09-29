@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Optimo Diary — Contextual Workspace Candidate</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=j6-candidate-01">
 </head>
 <body data-stage="a" data-phase="select" data-lines="0" data-has-selection="false" data-editing="false" data-week="checkpoint" data-created="false">
   <a class="skip-link" id="skip-calendar" href="#calendar">Skip to calendar</a>
@@ -78,6 +78,42 @@
           <button type="button" class="j4-review-state" data-j4-review-state="varies" aria-pressed="false">Varies</button>
         </div>
         <p>Review fixtures only — not Product navigation or a rights matrix.</p>
+      </fieldset>
+      <fieldset class="j5-review-controls" id="j5-review-controls" hidden inert aria-hidden="true">
+        <legend>Journey 5 action-hub state</legend>
+        <div class="j5-review-state-list" role="group" aria-label="Review-only booking details state">
+          <button type="button" class="j5-review-state" data-j5-review-state="loading" aria-pressed="false">Loading</button>
+          <button type="button" class="j5-review-state is-active" data-j5-review-state="loaded" aria-pressed="true">Loaded</button>
+          <button type="button" class="j5-review-state" data-j5-review-state="partial" aria-pressed="false">Partial / degraded</button>
+          <button type="button" class="j5-review-state" data-j5-review-state="error" aria-pressed="false">Error + Retry</button>
+          <button type="button" class="j5-review-state" data-j5-review-state="denied" aria-pressed="false">Permission denied</button>
+        </div>
+        <p>Review fixtures only — these switches do not change saved data.</p>
+      </fieldset>
+      <fieldset class="j5-lifecycle-review-controls" id="j5-lifecycle-review-controls" hidden inert aria-hidden="true">
+        <legend>Journey 5 lifecycle fixture</legend>
+        <div class="j5-review-state-list" role="group" aria-label="Review-only lifecycle state">
+          <button type="button" class="j5-review-state" data-j5-lifecycle-state="loading" aria-pressed="false">Loading</button>
+          <button type="button" class="j5-review-state is-active" data-j5-lifecycle-state="ready" aria-pressed="true">Ready</button>
+          <button type="button" class="j5-review-state" data-j5-lifecycle-state="empty" aria-pressed="false">Empty</button>
+          <button type="button" class="j5-review-state" data-j5-lifecycle-state="unavailable" aria-pressed="false">Unavailable</button>
+          <button type="button" class="j5-review-state" data-j5-lifecycle-state="error" aria-pressed="false">Error + Retry</button>
+          <button type="button" class="j5-review-state" data-j5-lifecycle-state="permission-denied" aria-pressed="false">Permission denied</button>
+          <button type="button" class="j5-review-state" data-j5-lifecycle-state="success" aria-pressed="false">Local success</button>
+        </div>
+        <p>Review fixture only — not a rights matrix or production outcome.</p>
+      </fieldset>
+      <fieldset class="j6-review-controls" id="j6-review-controls" hidden inert aria-hidden="true">
+        <legend>Journey 6 reschedule and reallocation review</legend>
+        <p id="j6-review-boundary">Local in-memory review fixtures only. No server request, persistence, pricing, rights or concurrency outcome is claimed.</p>
+        <div class="j6-action-grid" role="group" aria-label="Journey 6 review flows">
+          <button type="button" class="j6-action" id="j6-open-booking" data-j6-action="BookingReschedule">Booking reschedule</button>
+          <button type="button" class="j6-action" id="j6-open-multi" data-j6-action="MultiReschedule">Multiple reschedule</button>
+          <button type="button" class="j6-action" id="j6-open-assets" data-j6-action="AssetDescription">Asset description</button>
+          <button type="button" class="j6-action" id="j6-open-reallocate" data-j6-action="Reallocate">Reallocate review</button>
+          <button type="button" class="j6-action" id="j6-permission-denied" data-j6-permission="denied">Permission denied fixture</button>
+          <button type="button" class="j6-action" id="j6-permission-ready" data-j6-permission="ready">Restore permission fixture</button>
+        </div>
       </fieldset>
       <p class="review-note">Review rail only — not product navigation</p>
     </div>
@@ -257,6 +293,19 @@
           </div>
           <p>Six labelled local fixtures. Direct details are read-only; More actions stops at context; Public and lifecycle execution are excluded.</p>
         </section>
+        <section class="j7-route-status" id="j7-route-status" hidden inert aria-hidden="true" aria-labelledby="j7-route-status-title">
+          <div class="j7-status-heading">
+            <div><span class="j4-kicker">Journey 7 · UJ-08 · New-Booking pricing</span><h1 id="j7-route-status-title">Select Items and private Packages in the existing Booking Cart</h1></div>
+            <span class="j7-boundary-chip">PARTIAL · LOCAL REVIEW FIXTURE · NO SERVER REQUEST</span>
+          </div>
+          <div class="j7-status-grid" role="status" aria-live="polite" aria-atomic="true">
+            <div><strong>Item calculation</strong><span id="j7-item-status">Pending existing selector flow</span></div>
+            <div><strong>Package calculation</strong><span id="j7-package-status">Pending existing selector flow</span></div>
+            <div><strong>Sales channel</strong><span id="j7-sales-channel" data-j7-sales-channel="accepted-local">Accepted sales-channel fixture — read-only</span></div>
+            <div><strong>Concession</strong><span>Accepted concession fixture</span></div>
+          </div>
+          <p class="j7-route-note" id="j7-route-note">The accepted Master Item, Package, Concession, configuration, Total, picker, mismatch dialog and single Cart controls are the only Product interaction source. Journey 7 stops before Booking creation.</p>
+        </section>
         <div class="timeslot-legend-wrap">
           <div id="timeslot-colours-legend" class="timeslot-colours-legend" role="region" aria-label="Timeslot colours"></div>
         </div>
@@ -338,6 +387,14 @@
               <div><span class="eyebrow">Current selection</span><h3 class="current-selection-title" id="current-selection-title">New selection</h3></div>
               <button type="button" class="btn-ghost btn-sm current-selection-details-toggle" id="current-selection-details-toggle" aria-expanded="false" aria-controls="configure-form">Edit details</button>
             </div>
+            <div class="j9-review-launch" id="j9-review-launch" hidden>
+              <p class="field-caption quiet">Journey 9 / UJ-11 — PARTIAL · local review only. Recurrence is reviewed from this staged selection.</p>
+              <button type="button" class="btn-secondary" id="j9-open-review">Open Recurring Booking review</button>
+              <span class="j9-status-pill" id="j9-status-pill">Ready for configuration</span>
+              <p class="field-caption quiet" id="j9-panel-title">No review requested</p>
+              <p class="field-caption quiet" id="j9-panel-copy">Open the review to choose a recurrence pattern, interval and end rule.</p>
+              <div class="availability-result" id="j9-result" role="status" aria-live="polite" aria-atomic="true">The local fixture has not been checked.</div>
+            </div>
             <div class="staged-summary current-selection-summary" id="staged-summary" aria-live="polite"></div>
             <form id="configure-form" class="configure-form" hidden inert aria-hidden="true" tabindex="-1">
               <div class="field" id="field-item">
@@ -387,6 +444,7 @@
                 <p class="amount-value">AU$ 2,750.00</p>
               </div>
             </form>
+
           </section>
 
           <section class="cart-region cart-success" id="cart-success" hidden aria-label="Booking created and external handoff">
@@ -501,6 +559,31 @@
     </div>
   </aside>
 
+  <dialog class="modal workflow-dialog j9-dialog" id="j9-dialog" aria-modal="true" aria-labelledby="j9-dialog-title" aria-describedby="j9-dialog-description">
+    <div class="dialog-head">
+      <div><span class="eyebrow">UJ-11 · new-series configuration</span><h2 id="j9-dialog-title">Recurring Booking review</h2></div>
+      <button type="button" class="dialog-close" id="j9-close" aria-label="Close Recurring Booking review">×</button>
+    </div>
+    <form id="j9-form" novalidate>
+      <p id="j9-dialog-description" class="dialog-intro">Configure the request, then check the deterministic local availability fixture. Nothing is sent or saved.</p>
+      <fieldset class="segmented" id="j9-pattern-fieldset"><legend>Pattern</legend><label><input type="radio" name="j9-pattern" value="daily" checked> Daily</label><label><input type="radio" name="j9-pattern" value="weekly"> Weekly</label><label><input type="radio" name="j9-pattern" value="monthly"> Monthly</label><label><input type="radio" name="j9-pattern" value="yearly"> Yearly</label></fieldset>
+      <div class="dialog-grid">
+        <label class="dialog-field">Every interval<input id="j9-interval" type="number" min="1" step="1" value="1" inputmode="numeric" aria-describedby="j9-interval-help j9-errors"><small id="j9-interval-help">Use a positive whole number.</small></label>
+        <label class="dialog-field">Start date<input id="j9-start-date" type="date" value="2026-08-29" aria-describedby="j9-errors"></label>
+        <fieldset class="segmented j9-conditional" id="j9-weekly-fields" hidden><legend>Weekday</legend><label><input type="checkbox" name="j9-weekday" value="MO"> Mon</label><label><input type="checkbox" name="j9-weekday" value="TU"> Tue</label><label><input type="checkbox" name="j9-weekday" value="WE"> Wed</label><label><input type="checkbox" name="j9-weekday" value="TH"> Thu</label><label><input type="checkbox" name="j9-weekday" value="FR"> Fri</label><label><input type="checkbox" name="j9-weekday" value="SA"> Sat</label><label><input type="checkbox" name="j9-weekday" value="SU"> Sun</label></fieldset>
+        <label class="dialog-field j9-conditional" id="j9-monthly-fields" hidden>Day of month<input id="j9-month-day" type="number" min="1" max="31" value="1" inputmode="numeric" aria-describedby="j9-errors"></label>
+        <div class="dialog-grid j9-conditional" id="j9-yearly-fields" hidden><label class="dialog-field">Month<select id="j9-year-month"><option value="1">January</option><option value="2">February</option><option value="3">March</option><option value="4">April</option><option value="5">May</option><option value="6">June</option><option value="7">July</option><option value="8">August</option><option value="9" selected>September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option></select></label><label class="dialog-field">Day<input id="j9-year-day" type="number" min="1" max="31" value="1" inputmode="numeric" aria-describedby="j9-errors"></label></div>
+        <fieldset class="segmented"><legend>Range</legend><label><input type="radio" name="j9-range" value="after" checked> End after</label><label><input type="radio" name="j9-range" value="by"> End by</label></fieldset>
+        <label class="dialog-field" id="j9-after-field">Occurrences<input id="j9-occurrences" type="number" min="1" step="1" value="4" inputmode="numeric" aria-describedby="j9-errors"></label>
+        <label class="dialog-field" id="j9-by-field" hidden>End date<input id="j9-end-date" type="date" value="2026-09-26" aria-describedby="j9-errors"></label>
+      </div>
+      <fieldset class="segmented j9-fixture-controls" aria-label="Review-only result fixture"><legend>Review-only fixture outcome</legend><button type="button" class="j9-fixture-button is-active" data-j9-outcome="available" aria-pressed="true">Available</button><button type="button" class="j9-fixture-button" data-j9-outcome="conflict" aria-pressed="false">Conflict / unavailable</button><button type="button" class="j9-fixture-button" data-j9-outcome="error" aria-pressed="false">Error</button><small>Local deterministic fixture only; not a production availability result.</small></fieldset>
+      <p class="j9-errors" id="j9-errors" role="alert" aria-live="assertive"></p>
+      <div class="availability-result" id="j9-dialog-result" role="status" aria-live="polite" aria-atomic="true">Complete the configuration to enable local review.</div>
+      <div class="dialog-actions"><button type="button" class="btn-secondary" id="j9-cancel">Cancel without loss</button><button type="button" class="btn-primary" id="j9-check">Check local availability</button></div>
+    </form>
+  </dialog>
+
   <div class="toast-region" id="toast-region" role="status" aria-live="polite" aria-atomic="true"></div>
   <div id="alert-region" role="alert" aria-live="assertive" class="visually-hidden"></div>
   <div id="ldp-live" role="status" aria-live="polite" aria-atomic="true" class="visually-hidden"></div>
@@ -547,19 +630,58 @@
   <dialog class="modal j4-details-dialog" id="j4-details-dialog" aria-labelledby="j4-details-title" aria-describedby="j4-details-boundary" hidden inert aria-hidden="true">
     <header class="j4-details-head">
       <div>
-        <span class="j4-kicker">Read-only details</span>
+        <span class="j4-kicker" id="j4-details-kicker">Read-only details</span>
         <h2 id="j4-details-title">Timeslot details</h2>
       </div>
       <button type="button" class="dialog-close" id="j4-details-close" aria-label="Close timeslot details">×</button>
     </header>
-    <p id="j4-details-boundary">First handoff only. No Copy, Edit, Delete, Move, Reschedule, reallocation, Block CRUD or Public action is available.</p>
-    <dl class="j4-details-facts">
-      <div><dt>Reference</dt><dd id="j4-details-reference"></dd></div>
-      <div><dt>Status</dt><dd id="j4-details-status"></dd></div>
-      <div><dt>Date and time</dt><dd id="j4-details-time"></dd></div>
-      <div><dt>Resource</dt><dd id="j4-details-resource"></dd></div>
-      <div><dt>Permission fixture</dt><dd id="j4-details-access"></dd></div>
-    </dl>
+    <div class="j4-only-details" id="j4-only-details">
+      <p id="j4-details-boundary">First handoff only. No Copy, Edit, Delete, Move, Reschedule, reallocation, Block CRUD or Public action is available.</p>
+      <dl class="j4-details-facts">
+        <div><dt>Reference</dt><dd id="j4-details-reference"></dd></div>
+        <div><dt>Status</dt><dd id="j4-details-status"></dd></div>
+        <div><dt>Date and time</dt><dd id="j4-details-time"></dd></div>
+        <div><dt>Resource</dt><dd id="j4-details-resource"></dd></div>
+        <div><dt>Permission fixture</dt><dd id="j4-details-access"></dd></div>
+      </dl>
+    </div>
+    <section class="j5-action-hub" id="j5-action-hub" hidden inert aria-hidden="true" aria-labelledby="j4-details-title">
+      <div class="j5-context-strip" id="j5-details-intro">
+        <div>
+          <span class="j5-status-pill">Confirmed</span>
+          <span class="j5-readonly-pill">Private review fixture</span>
+          <span class="j5-local-pill">In-memory only</span>
+        </div>
+        <p><strong>Version:</strong> local token v7 <span aria-hidden="true">·</span> <strong>Last refreshed:</strong> local sample</p>
+      </div>
+      <div class="j5-playback-controls" id="j5-playback-controls" role="group" aria-label="Journey 5 visual playback"></div>
+      <div class="j5-state-message" id="j5-state-message" role="status" aria-live="polite" aria-atomic="true" tabindex="-1"></div>
+      <div class="j5-loaded-content" id="j5-loaded-content">
+        <dl class="j5-details-facts" aria-label="Existing private booking summary">
+          <div><dt>Customer</dt><dd>A. Customer</dd></div>
+          <div><dt>Resource</dt><dd>Studio 2 · private</dd></div>
+          <div><dt>Date &amp; time</dt><dd>28 Aug 2026 · 09:00–13:00</dd></div>
+          <div><dt>Items</dt><dd id="j5-item-count">2 local booking items</dd></div>
+          <div><dt>Total</dt><dd id="j5-total">AU$ 2,750.00 fixture</dd></div>
+          <div><dt>Access</dt><dd>Private Booking · review fixture · no server request</dd></div>
+        </dl>
+        <section class="j5-actions" aria-labelledby="j5-actions-title">
+          <div class="j5-actions-heading">
+            <div><h3 id="j5-actions-title">Private lifecycle actions</h3><p class="j5-actions-subtitle">Each opens a bounded local review flow; previews never write.</p></div>
+            <span class="badge badge-fixture">LOCAL REVIEW</span>
+          </div>
+          <div class="j5-action-grid">
+            <button type="button" class="j5-action" data-j5-action="Copy">Copy</button>
+            <button type="button" class="j5-action" data-j5-action="Edit">Edit</button>
+            <button type="button" class="j5-action j5-action-caution" data-j5-action="Remove">Remove item</button>
+            <button type="button" class="j5-action" data-j5-action="Move">Move item</button>
+            <button type="button" class="j5-action" data-j5-action="Batch">Batch move</button>
+          </div>
+        </section>
+        <p class="j5-review-boundary" id="j5-review-boundary"><strong>Local review boundary</strong> — deterministic in-memory fixtures only. Every preview is non-writing; results reset on reload.</p>
+        <p class="j5-action-announcement" id="j5-action-announcement" role="status" aria-live="polite" aria-atomic="true">No lifecycle action has been requested.</p>
+      </div>
+    </section>
     <footer class="j4-details-footer">
       <span class="badge badge-fixture">REVIEW FIXTURE</span>
       <button type="button" class="btn-secondary" id="j4-details-back">Back</button>
@@ -574,6 +696,20 @@
       <button type="button" class="j4-context-close" id="j4-context-close" role="menuitem" tabindex="-1">Close actions</button>
     </div>
   </div>
+
+  <dialog class="modal j5-workflow-dialog" id="j5-workflow-dialog" aria-labelledby="j5-workflow-title" aria-describedby="j5-workflow-description">
+    <header class="j5-workflow-head">
+      <div><span class="j4-kicker" id="j5-workflow-kicker">Private lifecycle review</span><h2 id="j5-workflow-title">Local operation</h2></div>
+      <button type="button" class="dialog-close" id="j5-workflow-close" aria-label="Close local lifecycle review">×</button>
+    </header>
+    <div class="j5-workflow-body">
+      <p id="j5-workflow-description" class="j5-workflow-description">No server request is sent. Reload resets this review fixture.</p>
+      <div id="j5-workflow-stage" class="j5-workflow-stage" role="region" aria-live="polite" aria-atomic="false"></div>
+      <div id="j5-workflow-preview" class="j5-workflow-preview" hidden></div>
+      <div id="j5-workflow-announcement" class="j5-workflow-announcement" role="status" aria-live="polite" aria-atomic="true"></div>
+    </div>
+    <footer class="j5-workflow-footer" id="j5-workflow-footer"></footer>
+  </dialog>
 
   <dialog class="modal workflow-dialog cart-item-editor-dialog" id="cart-item-editor-dialog" aria-labelledby="cart-item-editor-title">
     <div class="dialog-head cart-item-editor-head">

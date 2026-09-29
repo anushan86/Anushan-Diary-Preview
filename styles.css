@@ -894,6 +894,77 @@ body {
   background: rgba(49, 104, 232, 0.2);
   box-shadow: inset 0 0 0 2px var(--cobalt);
 }
+
+/* V3 isolated candidate: transient generic-Column crosshair and continuous selection band. */
+body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"]) .cal-day-col.crosshair-column {
+  background: rgba(241, 246, 255, 0.82);
+}
+body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"]) .cal-day-header.crosshair-column {
+  background: rgba(227, 239, 255, 0.9);
+}
+body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"]) .cal-lane-body.crosshair-lane .cal-slot.crosshair-row:not(.selected-range) {
+  background: rgba(227, 239, 255, 0.78);
+}
+body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"]) .cal-lane-body.crosshair-lane .cal-slot.crosshair-row.crosshair-intersection:not(.selected-range) {
+  background: rgba(207, 227, 255, 0.95);
+  box-shadow: inset 0 0 0 2px var(--cobalt);
+  position: relative;
+  z-index: 2;
+}
+body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"]) .cal-time-gutter .time-label.crosshair-gutter {
+  background: rgba(227, 239, 255, 0.9);
+  color: var(--cobalt);
+  font-weight: 800;
+}
+body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"]) .cal-slot.selected-range {
+  background: #d8e6ff;
+  border-bottom-color: transparent;
+  box-shadow: none;
+  position: relative;
+  z-index: 1;
+}
+body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"]) .cal-slot.selected-range.hour-boundary {
+  border-top-color: transparent;
+}
+body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"]) .cal-slot.selected-range.range-start {
+  border-top: 2px solid var(--cobalt);
+  border-radius: 3px 3px 0 0;
+}
+body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"]) .cal-slot.selected-range.range-end {
+  border-bottom: 2px solid var(--cobalt);
+  border-radius: 0 0 3px 3px;
+}
+.cal-slot.hour-boundary {
+  border-top: 1px solid rgba(157, 169, 186, 0.68);
+}
+.timeslot-context-label {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  z-index: 3;
+  display: block;
+  max-width: calc(100% - 8px);
+  padding: 3px 5px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--cobalt) 42%, var(--line));
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--diary-blue-050) 92%, var(--surface));
+  color: #243b53;
+  font-size: 11px;
+  line-height: 1.2;
+  pointer-events: none;
+  user-select: none;
+}
+.timeslot-context-label-time,
+.timeslot-context-label-duration {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.timeslot-context-label-time { font-weight: 900; }
+.timeslot-context-label-duration { color: #314a6e; font-size: 10px; font-weight: 700; }
 .cal-slot.in-cart::before {
   content: "🛒";
   font-size: 9px;
@@ -1553,45 +1624,45 @@ button.stack-card:hover { filter: brightness(0.98); border-color: var(--diary-bo
 .cart-column-head .col-datetime { grid-area: datetime; white-space: nowrap; }
 .cart-column-head .col-status { grid-area: status; text-align: right; }
 .cart-column-head .col-price { grid-area: price; text-align: right; }
-body:not([data-journey="1"]) .cart-view-controls,
-body:not([data-journey="1"]) .cart-high-volume-summaries,
-body:not([data-journey="1"]) .cart-column-head {
+body:not([data-journey="1"]):not([data-journey="7"]) .cart-view-controls,
+body:not([data-journey="1"]):not([data-journey="7"]) .cart-high-volume-summaries,
+body:not([data-journey="1"]):not([data-journey="7"]) .cart-column-head {
   display: none !important;
 }
 @media (min-width: 601px) {
-  body[data-journey="1"] #cart-body[data-cart-view="compact"] .cart-column-head:not([hidden]) {
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-body[data-cart-view="compact"] .cart-column-head:not([hidden]) {
     display: grid;
   }
-  body[data-journey="1"] #cart-body[data-cart-view="compact"] .cart-line-summary,
-  body[data-journey="1"] #cart-body[data-cart-view="compact"] .cart-line-summary.has-package {
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-body[data-cart-view="compact"] .cart-line-summary,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-body[data-cart-view="compact"] .cart-line-summary.has-package {
     grid-template-columns: 18px 28px minmax(0, 1fr) 72px 50px 68px;
     grid-template-areas: "select number item datetime status price";
     column-gap: 4px;
     row-gap: 2px;
     padding: 6px 8px;
   }
-  body[data-journey="1"] #cart-body[data-cart-view="compact"] .cart-line-main {
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-body[data-cart-view="compact"] .cart-line-main {
     grid-area: item;
     min-width: 0;
   }
-  body[data-journey="1"] #cart-body[data-cart-view="compact"] .cart-line-venue {
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-body[data-cart-view="compact"] .cart-line-venue {
     display: none;
   }
-  body[data-journey="1"] #cart-body[data-cart-view="compact"] .cart-line-schedule {
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-body[data-cart-view="compact"] .cart-line-schedule {
     grid-area: datetime;
     font-size: 10px;
   }
-  body[data-journey="1"] #cart-body[data-cart-view="compact"] .cart-line-amount-col {
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-body[data-cart-view="compact"] .cart-line-amount-col {
     grid-area: status;
     justify-self: end;
   }
-  body[data-journey="1"] #cart-body[data-cart-view="compact"] .cart-line-price {
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-body[data-cart-view="compact"] .cart-line-price {
     grid-area: price;
     justify-self: end;
   }
   body[data-journey="1"] #cart-body[data-cart-view="compact"] .cart-line-offering,
   body[data-journey="1"] #cart-body[data-cart-view="compact"] .cart-line-package-row,
-  body[data-journey="1"] #cart-body[data-cart-view="compact"] .cart-line-actions {
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-body[data-cart-view="compact"] .cart-line-actions {
     display: none !important;
   }
 }
@@ -2418,7 +2489,7 @@ body[data-journey="1"] .segmented label:hover {
 }
 
 /* Journey 1 approved visual refinement — scoped; no behavior or responsive changes. */
-body[data-journey="1"] {
+:is(body[data-journey="1"], body[data-journey="7"]) {
   --j1-navy: #102a46;
   --j1-navy-deep: #0b2038;
   --j1-yellow: #f5cd45;
@@ -2549,17 +2620,17 @@ body[data-journey="1"] .cal-day-header.is-today {
 }
 body[data-journey="1"] .cal-day-header .today-tag { color: var(--j1-sky-600); }
 
-body[data-journey="1"] .cart-accent {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-accent {
   height: 3px;
   background: var(--j1-navy);
 }
-body[data-journey="1"] .cart-count { color: var(--diary-text-secondary); }
-body[data-journey="1"] .cart-line.is-selected {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-count { color: var(--diary-text-secondary); }
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-line.is-selected {
   background: var(--j1-sky-050);
   border-color: var(--j1-sky-500);
   box-shadow: inset 4px 0 0 var(--j1-sky-500);
 }
-body[data-journey="1"] .cart-empty-guidance:not([hidden]) {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-empty-guidance:not([hidden]) {
   display: grid;
   grid-template-columns: 46px minmax(0, 1fr);
   column-gap: 12px;
@@ -2570,20 +2641,20 @@ body[data-journey="1"] .cart-empty-guidance:not([hidden]) {
   background: #fbfcfe;
   border: 1px dashed #bfc9d5;
 }
-body[data-journey="1"] .cart-empty-guidance::before {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-empty-guidance::before {
   content: "";
   grid-row: 1 / span 2;
   width: 46px;
   height: 46px;
   background: center / contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%23102a46' stroke-width='2'%3E%3Crect x='10' y='14' width='44' height='38'/%3E%3Cpath d='M18 8v12M46 8v12M10 25h44M22 34h8M34 34h8M22 42h8'/%3E%3Ccircle cx='49' cy='48' r='10' fill='%23f0f5ff' stroke='%232e73df'/%3E%3Cpath d='M49 43v10M44 48h10' stroke='%232e73df'/%3E%3C/svg%3E");
 }
-body[data-journey="1"] .cart-empty-title {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-empty-title {
   grid-column: 2;
   align-self: end;
   margin: 0 0 4px;
   color: var(--j1-navy-deep);
 }
-body[data-journey="1"] .cart-empty-sub {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-empty-sub {
   grid-column: 2;
   align-self: start;
   line-height: 1.4;
@@ -2638,17 +2709,17 @@ body[data-journey="1"] .slot-layout-btn[aria-pressed="true"] {
   border-color: var(--j1-sky-500);
   color: #fff;
 }
-body[data-journey="1"] .cart-line-actions button:not(.danger-link) {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-line-actions button:not(.danger-link) {
   background: #fff;
   color: var(--j1-sky-600);
   border-color: #adc7f4;
 }
-body[data-journey="1"] .cart-line-actions button:not(.danger-link):hover {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-line-actions button:not(.danger-link):hover {
   background: var(--j1-sky-050);
   color: var(--j1-sky-700);
   border-color: var(--j1-sky-500);
 }
-body[data-journey="1"] .cart-line-actions button:not(.danger-link):active {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-line-actions button:not(.danger-link):active {
   background: var(--j1-sky-100);
   color: var(--j1-sky-700);
   border-color: var(--j1-sky-700);
@@ -2661,19 +2732,19 @@ body[data-journey="1"] a:focus-visible {
 }
 
 /* Journey 1 vertical Booking Cart — UI-only scoped presentation. */
-body[data-journey="1"] .cart-current-selection:not([hidden]) {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection:not([hidden]) {
   margin-bottom: 6px;
   padding: 10px 10px 12px;
   border: 1px solid var(--j1-border);
   border-top: 3px solid var(--j1-navy);
   background: #fbfcfe;
 }
-body[data-journey="1"] .cart-current-selection .current-selection-title {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection .current-selection-title {
   margin: 0 0 8px;
   color: var(--j1-navy-deep);
   letter-spacing: 0.05em;
 }
-body[data-journey="1"] .cart-current-selection .staged-summary {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection .staged-summary {
   margin: 0 0 10px;
   padding: 10px 12px;
   background: var(--j1-sky-050);
@@ -2684,11 +2755,11 @@ body[data-journey="1"] .cart-current-selection .staged-summary {
   font-weight: 600;
   line-height: 1.35;
 }
-body[data-journey="1"] #configure-form.configure-form {
+:is(body[data-journey="1"], body[data-journey="7"]) #configure-form.configure-form {
   grid-template-columns: 1fr;
   gap: 8px;
 }
-body[data-journey="1"] .cart-current-selection #configure-form .field {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #configure-form > .field {
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr);
   column-gap: 10px;
@@ -2697,11 +2768,11 @@ body[data-journey="1"] .cart-current-selection #configure-form .field {
   margin-bottom: 0;
   padding: 4px 0;
 }
-body[data-journey="1"] .cart-current-selection #field-item::before,
-body[data-journey="1"] .cart-current-selection #field-package::before,
-body[data-journey="1"] .cart-current-selection #field-configuration::before,
-body[data-journey="1"] .cart-current-selection #field-allocation::before,
-body[data-journey="1"] .cart-current-selection #field-concession::before {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #field-item::before,
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #field-package::before,
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #field-configuration::before,
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #field-allocation::before,
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #field-concession::before {
   grid-column: 1;
   grid-row: 1 / span 2;
   width: 38px;
@@ -2716,24 +2787,24 @@ body[data-journey="1"] .cart-current-selection #field-concession::before {
   font-weight: 700;
   line-height: 1;
 }
-body[data-journey="1"] .cart-current-selection #field-item::before { content: "◇"; }
-body[data-journey="1"] .cart-current-selection #field-package::before { content: "▱"; }
-body[data-journey="1"] .cart-current-selection #field-configuration::before { content: "▤"; }
-body[data-journey="1"] .cart-current-selection #field-allocation::before { content: "♙"; }
-body[data-journey="1"] .cart-current-selection #field-concession::before { content: "%"; }
-body[data-journey="1"] .cart-current-selection #configure-form .field > label,
-body[data-journey="1"] .cart-current-selection #configure-form .field > .field-label {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #field-item::before { content: "◇"; }
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #field-package::before { content: "▱"; }
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #field-configuration::before { content: "▤"; }
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #field-allocation::before { content: "♙"; }
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #field-concession::before { content: "%"; }
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #configure-form .field > label,
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #configure-form .field > .field-label {
   grid-column: 2;
   grid-row: 1;
   margin-bottom: 4px;
 }
-body[data-journey="1"] .cart-current-selection #configure-form .field > .combobox,
-body[data-journey="1"] .cart-current-selection #configure-form .field > select,
-body[data-journey="1"] .cart-current-selection #configure-form .field > .allocation-summary {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #configure-form .field > .combobox,
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #configure-form .field > select,
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #configure-form .field > .allocation-summary {
   grid-column: 2;
   grid-row: 2;
 }
-body[data-journey="1"] .cart-current-selection #field-allocation .allocation-summary {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #field-allocation .allocation-summary {
   margin: 0;
   padding: 9px 12px;
   border: 1px solid var(--j1-border);
@@ -2742,13 +2813,13 @@ body[data-journey="1"] .cart-current-selection #field-allocation .allocation-sum
   color: var(--j1-sky-700);
   font-size: 13px;
 }
-body[data-journey="1"] .cart-current-selection .package-conditional:not([hidden]) {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection .package-conditional:not([hidden]) {
   grid-column: 1 / -1;
   margin-top: 2px;
   border-color: #adc7f4;
   background: var(--j1-sky-050);
 }
-body[data-journey="1"] .cart-current-selection .configure-form .amount-region:not([hidden]) {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection .configure-form .amount-region:not([hidden]) {
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
@@ -2760,22 +2831,22 @@ body[data-journey="1"] .cart-current-selection .configure-form .amount-region:no
   border-radius: 0;
   background: var(--j1-sky-050);
 }
-body[data-journey="1"] .cart-current-selection .configure-form .amount-label {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection .configure-form .amount-label {
   font-size: 14px;
   font-weight: 700;
   color: var(--j1-navy-deep);
 }
-body[data-journey="1"] .cart-current-selection .configure-form .amount-value {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection .configure-form .amount-value {
   font-size: 18px;
   font-weight: 700;
   color: var(--j1-navy-deep);
 }
-body[data-journey="1"] .cart-body {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-body {
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
 }
-body[data-journey="1"] .cart-sticky-actions {
+:is(body[data-journey="1"], body[data-journey="7"]) .cart-sticky-actions {
   padding: 8px 10px;
   border-top: 2px solid var(--j1-navy);
   background: #fff;
@@ -2795,89 +2866,89 @@ body[data-journey="1"] .journey-actions .btn-primary.btn-confirm:not([hidden]) {
 }
 
 /* Journey 1 Booking Cart - reference-led hierarchy refinement (DEV-COMP-J1-CART-REFERENCE-CSS-REFINEMENT-260910-01) */
-body[data-journey="1"] .booking-cart .cart-header,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-header {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-header,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-header {
   padding-bottom: 11px;
   border-bottom-width: 2px;
   border-bottom-color: var(--j1-navy);
   background: #fbfcfe;
 }
-body[data-journey="1"] .booking-cart .cart-header h2,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-header h2 {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-header h2,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-header h2 {
   font-size: 17px;
   font-weight: 800;
   color: var(--j1-navy-deep);
   letter-spacing: -0.01em;
 }
-body[data-journey="1"] .booking-cart .cart-count,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-count {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-count,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-count {
   font-size: 11px;
   font-weight: 650;
   color: var(--j1-sky-700);
 }
-body[data-journey="1"] .booking-cart .cart-added-title,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-added-title {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-added-title,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-added-title {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
   color: #5a6b82;
 }
-body[data-journey="1"] .booking-cart .cart-view-controls,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-view-controls {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-view-controls,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-view-controls {
   gap: 0;
   padding: 2px;
   margin: 0 2px 6px;
   border: 1px solid #c5d1de;
   background: #eef2f7;
 }
-body[data-journey="1"] .booking-cart .cart-view-btn,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-view-btn {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-view-btn,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-view-btn {
   border-color: transparent;
   background: transparent;
   font-size: 11px;
   font-weight: 680;
 }
-body[data-journey="1"] .booking-cart .cart-view-btn[aria-pressed="true"],
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-view-btn[aria-pressed="true"] {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-view-btn[aria-pressed="true"],
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-view-btn[aria-pressed="true"] {
   background: #fff;
   border-color: var(--j1-sky-500);
   color: var(--j1-sky-700);
   box-shadow: 0 1px 2px rgba(16, 42, 70, 0.08);
   font-weight: 780;
 }
-body[data-journey="1"] .booking-cart .cart-view-btn:focus-visible,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-view-btn:focus-visible {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-view-btn:focus-visible,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-view-btn:focus-visible {
   outline: 2px solid var(--j1-sky-500);
   outline-offset: 2px;
 }
-body[data-journey="1"] .booking-cart .cart-high-volume-summaries,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-high-volume-summaries {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-high-volume-summaries,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-high-volume-summaries {
   gap: 6px;
   padding: 0 2px 6px;
 }
-body[data-journey="1"] .booking-cart .cart-summary-card,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-summary-card {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-summary-card,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-summary-card {
   border-color: #adc7f4;
   background: #fff;
   padding: 7px 9px;
   box-shadow: inset 0 -2px 0 var(--j1-sky-500);
 }
-body[data-journey="1"] .booking-cart .cart-summary-label,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-summary-label {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-summary-label,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-summary-label {
   font-size: 8.5px;
   letter-spacing: 0.06em;
   color: #5a6b82;
   margin-bottom: 3px;
 }
-body[data-journey="1"] .booking-cart .cart-summary-value,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-summary-value {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-summary-value,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-summary-value {
   font-size: 13px;
   font-weight: 780;
   color: var(--j1-navy-deep);
   line-height: 1.2;
 }
-body[data-journey="1"] .booking-cart .cart-column-head,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-column-head {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-column-head,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-column-head {
   padding: 3px 8px 5px;
   border-bottom-width: 2px;
   border-bottom-color: #c5d1de;
@@ -2885,101 +2956,101 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-column-head {
   font-size: 8.5px;
   letter-spacing: 0.05em;
 }
-body[data-journey="1"] .booking-cart .group-head,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .group-head {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .group-head,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .group-head {
   background: #eef2f7;
   border-color: #c5d1de;
   color: var(--j1-navy-deep);
   font-weight: 700;
 }
-body[data-journey="1"] .booking-cart .cart-line-list,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-list {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-line-list,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-line-list {
   gap: 4px;
   padding: 2px;
 }
-body[data-journey="1"] .booking-cart .cart-line,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-line,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-line {
   border-color: #d0dae6;
 }
-body[data-journey="1"] .booking-cart .row-no,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .row-no {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .row-no,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .row-no {
   border: 1px solid #adc7f4;
   background: #fff;
   color: var(--j1-sky-700);
   font-size: 9.5px;
   font-weight: 820;
 }
-body[data-journey="1"] .booking-cart .cart-line-title,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-title {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-line-title,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-line-title {
   font-weight: 780;
   color: var(--j1-navy-deep);
 }
-body[data-journey="1"] .booking-cart .cart-line-status,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-status {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-line-status,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-line-status {
   border: 1px solid transparent;
   padding: 2px 7px;
   font-size: 9px;
   font-weight: 780;
   letter-spacing: 0.02em;
 }
-body[data-journey="1"] .booking-cart .cart-line-status.is-ready,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-status.is-ready {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-line-status.is-ready,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-line-status.is-ready {
   color: #0a6259;
   background: #d8f2ec;
   border-color: #9fd4c8;
 }
-body[data-journey="1"] .booking-cart .cart-line-status.is-pending,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-status.is-pending {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-line-status.is-pending,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-line-status.is-pending {
   color: #7a4f08;
   background: #fff4cc;
   border-color: #e8c96a;
 }
-body[data-journey="1"] .booking-cart .cart-summary-bar,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-summary-bar {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-summary-bar,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-summary-bar {
   padding: 8px 10px;
   background: var(--j1-sky-050);
   border: 1px solid #adc7f4;
   border-left: 3px solid var(--j1-sky-500);
   margin-bottom: 4px;
 }
-body[data-journey="1"] .booking-cart .summary-copy b,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .summary-copy b {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .summary-copy b,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .summary-copy b {
   font-size: 12px;
   color: var(--j1-navy-deep);
 }
-body[data-journey="1"] .booking-cart .summary-value b,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .summary-value b {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .summary-value b,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .summary-value b {
   font-size: 16px;
   font-weight: 800;
   color: var(--j1-navy-deep);
 }
-body[data-journey="1"] .booking-cart .cart-sticky-actions,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-sticky-actions {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-sticky-actions,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-sticky-actions {
   border-top-width: 2px;
   box-shadow: 0 -6px 18px rgba(16, 42, 70, 0.08);
 }
-body[data-journey="1"] .booking-cart #cart-primary-action,
-body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-primary-action,
-body[data-journey="1"] .booking-cart #confirm-booking-btn,
-body[data-journey="1"] #cart-sheet-panel .booking-cart #confirm-booking-btn {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-primary-action,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-primary-action,
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #confirm-booking-btn,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #confirm-booking-btn {
   font-weight: 780;
   letter-spacing: 0.01em;
 }
 @media (min-width: 601px) {
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-summary,
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-summary.has-package,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-summary,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-summary.has-package {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-summary,
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-summary.has-package,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-summary,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-summary.has-package {
     padding: 5px 8px 4px;
     row-gap: 1px;
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule {
     font-size: 9.5px;
     line-height: 1.25;
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-price,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-price {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-price,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-price {
     font-size: 10px;
     font-weight: 760;
   }
@@ -2987,67 +3058,67 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart #confirm-booking-btn {
 
 /* Journey 1 desktop same-window Total + Add — compact new-selection fit at 1200×768 */
 @media (min-width: 601px) {
-  body[data-journey="1"] .cart-current-selection:not([hidden]) {
+  :is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection:not([hidden]) {
     margin-bottom: 4px;
     padding: 8px 10px 10px;
   }
-  body[data-journey="1"] .cart-current-selection .current-selection-title {
+  :is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection .current-selection-title {
     margin: 0 0 6px;
   }
-  body[data-journey="1"] .cart-current-selection .staged-summary {
+  :is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection .staged-summary {
     margin: 0 0 6px;
     padding: 8px 10px;
     line-height: 1.3;
   }
-  body[data-journey="1"] #configure-form.configure-form {
+  :is(body[data-journey="1"], body[data-journey="7"]) #configure-form.configure-form {
     gap: 4px;
   }
-  body[data-journey="1"] .cart-current-selection #configure-form .field {
+  :is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #configure-form > .field {
     grid-template-columns: 32px minmax(0, 1fr);
     column-gap: 8px;
     row-gap: 2px;
     padding: 2px 0;
   }
-  body[data-journey="1"] .cart-current-selection #field-item::before,
-  body[data-journey="1"] .cart-current-selection #field-package::before,
-  body[data-journey="1"] .cart-current-selection #field-configuration::before,
-  body[data-journey="1"] .cart-current-selection #field-allocation::before,
-  body[data-journey="1"] .cart-current-selection #field-concession::before {
+  :is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #field-item::before,
+  :is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #field-package::before,
+  :is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #field-configuration::before,
+  :is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #field-allocation::before,
+  :is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #field-concession::before {
     width: 32px;
     height: 32px;
     font-size: 15px;
   }
-  body[data-journey="1"] .cart-current-selection #configure-form .field > label,
-  body[data-journey="1"] .cart-current-selection #configure-form .field > .field-label {
+  :is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #configure-form .field > label,
+  :is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #configure-form .field > .field-label {
     margin-bottom: 2px;
   }
-  body[data-journey="1"] .cart-current-selection .configure-form .combo-field {
+  :is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection .configure-form .combo-field {
     height: 34px;
     min-height: 34px;
     padding: 0 4px 0 10px;
   }
-  body[data-journey="1"] .cart-current-selection .configure-form .combo-input {
+  :is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection .configure-form .combo-input {
     padding: 6px 0;
     font-size: 12px;
   }
-  body[data-journey="1"] .cart-current-selection .configure-form #cfg-configuration {
+  :is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection .configure-form #cfg-configuration {
     height: 34px;
     min-height: 34px;
     padding: 0 28px 0 10px;
     font-size: 12px;
   }
-  body[data-journey="1"] .cart-current-selection #field-allocation .allocation-summary {
+  :is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection #field-allocation .allocation-summary {
     padding: 7px 10px;
     font-size: 12px;
   }
-  body[data-journey="1"] .cart-current-selection .configure-form .amount-region:not([hidden]) {
+  :is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection .configure-form .amount-region:not([hidden]) {
     margin: 4px 0 0;
     padding: 8px 12px;
   }
-  body[data-journey="1"] .cart-current-selection .configure-form .amount-label {
+  :is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection .configure-form .amount-label {
     font-size: 13px;
   }
-  body[data-journey="1"] .cart-current-selection .configure-form .amount-value {
+  :is(body[data-journey="1"], body[data-journey="7"]) .cart-current-selection .configure-form .amount-value {
     font-size: 16px;
   }
 }
@@ -3145,9 +3216,9 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart #confirm-booking-btn {
   .cart-added-head { align-items: center; }
   .cart-bulk-actions { display: grid; grid-template-columns: 1fr 1fr; }
   .cart-column-head { display: none !important; }
-  body[data-journey="1"] #cart-body[data-cart-view="compact"] .cart-line-actions { display: none !important; }
-  body[data-journey="1"] #cart-body[data-cart-view="detailed"] .cart-line-actions { display: flex; }
-  body[data-journey="1"] #cart-body[data-cart-view="compact"] .cart-line-summary { padding: 7px 8px 6px; }
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-body[data-cart-view="compact"] .cart-line-actions { display: none !important; }
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-body[data-cart-view="detailed"] .cart-line-actions { display: flex; }
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-body[data-cart-view="compact"] .cart-line-summary { padding: 7px 8px 6px; }
   .cart-line-summary { grid-template-columns: 18px 24px minmax(0, 1fr) minmax(54px, auto); column-gap: 5px; row-gap: 3px; }
   body[data-lines]:not([data-lines="0"]):not([data-lines="1"]):not([data-lines="2"]):not([data-lines="3"]):not([data-lines="4"]) .cart-line-summary { row-gap: 0; }
   .cart-line-amount-col { grid-area: state; justify-self: end; }
@@ -4383,6 +4454,15 @@ body[data-journey="3"] .j3-vis-card-badge {
 }
 
 @media (max-width: 720px) {
+  .timeslot-context-label {
+    left: 2px;
+    right: 2px;
+    max-width: calc(100% - 4px);
+    padding: 2px 3px;
+    font-size: 11px;
+  }
+  .timeslot-context-label-duration { font-size: 10px; font-weight: 700; }
+
   body[data-journey="3"] .j3-visibility-card,
   body[data-journey="3"] .j3-visibility-card.is-visible {
     display: none !important;
@@ -4465,14 +4545,14 @@ body[data-journey="3"] .j3-vis-card-badge {
 /* Journey 1 Booking Cart — reference-level presentation rework (OPUS-J1-CART-EXACT-REWORK-1) */
 
 /* --- Journey 1 Cart width bands (presentation only; assets/calendar untouched) --- */
-body[data-journey="1"] {
+:is(body[data-journey="1"], body[data-journey="7"]) {
   --j1-cart-tracks: 16px 22px minmax(0, 1fr) 64px 58px 68px 16px;
   --j1-cart-gap: 4px;
   --j1-cart-pad: 10px;
   --j1-row-pad-y: 7px;
 }
 @media (min-width: 1280px) {
-  body[data-journey="1"] {
+  :is(body[data-journey="1"], body[data-journey="7"]) {
     --j1-cart-tracks: 18px 24px minmax(0, 1fr) 82px 60px 70px 18px;
     --j1-cart-gap: 5px;
     --j1-cart-pad: 12px;
@@ -4480,38 +4560,38 @@ body[data-journey="1"] {
   }
 }
 @media (min-width: 1440px) {
-  body[data-journey="1"] { --cart-w: 520px; }
+  :is(body[data-journey="1"], body[data-journey="7"]) { --cart-w: 520px; }
 }
 @media (min-width: 1280px) and (max-width: 1439px) {
-  body[data-journey="1"] { --cart-w: 440px; }
+  :is(body[data-journey="1"], body[data-journey="7"]) { --cart-w: 440px; }
 }
 @media (min-width: 1100px) and (max-width: 1279px) {
-  body[data-journey="1"] { --cart-w: 400px; }
+  :is(body[data-journey="1"], body[data-journey="7"]) { --cart-w: 400px; }
 }
 @media (min-width: 601px) and (max-width: 1099px) {
-  body[data-journey="1"] { --cart-w: 360px; }
+  :is(body[data-journey="1"], body[data-journey="7"]) { --cart-w: 360px; }
 }
 
 /* --- Refined white Cart surface --- */
-body[data-journey="1"] .booking-cart,
-body[data-journey="1"] #cart-sheet-panel .booking-cart {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart {
   background: #fff;
 }
 @media (min-width: 601px) {
-  body[data-journey="1"] .booking-cart {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart {
     border-left: 1px solid #e1e9f3;
     box-shadow: -2px 0 18px rgba(16, 42, 70, 0.06);
   }
 }
-body[data-journey="1"] .booking-cart .cart-body,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-body {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-body,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-body {
   padding: var(--j1-cart-pad) var(--j1-cart-pad) 8px;
   gap: 8px;
 }
 
 /* --- Header: accent, title, count and save-state badges --- */
-body[data-journey="1"] .booking-cart .cart-header,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-header {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-header,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-header {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -4520,22 +4600,22 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-header {
   background: #fff;
   border-bottom: 1px solid #e6ecf4;
 }
-body[data-journey="1"] .booking-cart .cart-header-main,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-header-main {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-header-main,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-header-main {
   display: flex;
   align-items: center;
   min-width: 0;
 }
-body[data-journey="1"] .booking-cart .cart-title-row,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-title-row {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-title-row,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-title-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   min-width: 0;
 }
-body[data-journey="1"] .booking-cart .cart-title-row::before,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-title-row::before {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-title-row::before,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-title-row::before {
   content: "";
   flex: 0 0 auto;
   width: 4px;
@@ -4543,24 +4623,24 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-title-row::before {
   border-radius: 2px;
   background: var(--j1-sky-500);
 }
-body[data-journey="1"] .booking-cart .cart-header h2,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-header h2 {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-header h2,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-header h2 {
   font-size: 19px;
   font-weight: 800;
   color: var(--j1-navy-deep);
   letter-spacing: -0.02em;
   line-height: 1.15;
 }
-body[data-journey="1"] .booking-cart .cart-header-badges,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-header-badges {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-header-badges,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-header-badges {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   min-width: 0;
 }
-body[data-journey="1"] .booking-cart .cart-count,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-count {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-count,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-count {
   display: inline-flex;
   align-items: center;
   padding: 3px 10px;
@@ -4572,8 +4652,8 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-count {
   color: #35507c;
   white-space: nowrap;
 }
-body[data-journey="1"] .booking-cart .cart-not-saved,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-not-saved {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-not-saved,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-not-saved {
   padding: 3px 10px;
   border-radius: 999px;
   background: #fff5e0;
@@ -4583,27 +4663,27 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-not-saved {
   font-weight: 700;
   white-space: nowrap;
 }
-body[data-journey="1"] .booking-cart .cart-not-saved.is-created,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-not-saved.is-created {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-not-saved.is-created,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-not-saved.is-created {
   background: #e4f6ef;
   border-color: #9fd4c8;
   color: #0a6259;
 }
 
 /* --- Toolbar: wide segmented control plus right-aligned existing Clear cart --- */
-body[data-journey="1"] .booking-cart .cart-toolbar,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-toolbar {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-toolbar,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-toolbar {
   display: flex;
   align-items: center;
   gap: 10px;
   min-width: 0;
 }
-body[data-journey="1"] .booking-cart .cart-toolbar[hidden],
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-toolbar[hidden] {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-toolbar[hidden],
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-toolbar[hidden] {
   display: none;
 }
-body[data-journey="1"] .booking-cart .cart-toolbar .cart-view-controls,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-toolbar .cart-view-controls {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-toolbar .cart-view-controls,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-toolbar .cart-view-controls {
   flex: 1 1 auto;
   min-width: 0;
   gap: 0;
@@ -4613,12 +4693,12 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-toolbar .cart-view-
   border-radius: 9px;
   background: #f1f5fa;
 }
-body[data-journey="1"] .booking-cart .cart-toolbar .cart-view-controls[hidden],
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-toolbar .cart-view-controls[hidden] {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-toolbar .cart-view-controls[hidden],
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-toolbar .cart-view-controls[hidden] {
   display: none;
 }
-body[data-journey="1"] .booking-cart .cart-view-btn,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-view-btn {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-view-btn,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-view-btn {
   min-height: 30px;
   border-color: transparent;
   border-radius: 6px;
@@ -4627,16 +4707,16 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-view-btn {
   font-weight: 700;
   color: #5e6d84;
 }
-body[data-journey="1"] .booking-cart .cart-view-btn[aria-pressed="true"],
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-view-btn[aria-pressed="true"] {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-view-btn[aria-pressed="true"],
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-view-btn[aria-pressed="true"] {
   background: #fff;
   border-color: #c6d8f2;
   color: var(--j1-sky-700);
   box-shadow: 0 1px 3px rgba(16, 42, 70, 0.10);
   font-weight: 800;
 }
-body[data-journey="1"] .booking-cart .cart-clear-btn,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-clear-btn {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-clear-btn,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-clear-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -4651,28 +4731,28 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-clear-btn {
   color: var(--j1-sky-600);
   white-space: nowrap;
 }
-body[data-journey="1"] .booking-cart .cart-clear-btn[hidden],
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-clear-btn[hidden] {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-clear-btn[hidden],
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-clear-btn[hidden] {
   display: none;
 }
-body[data-journey="1"] .booking-cart .cart-clear-btn:hover,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-clear-btn:hover {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-clear-btn:hover,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-clear-btn:hover {
   background: #eef3fb;
   border-color: #dbe4f2;
 }
-body[data-journey="1"] .booking-cart .cart-clear-icon,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-clear-icon {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-clear-icon,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-clear-icon {
   flex-shrink: 0;
 }
 
 /* --- Three icon-led summary cards --- */
-body[data-journey="1"] .booking-cart .cart-high-volume-summaries,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-high-volume-summaries {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-high-volume-summaries,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-high-volume-summaries {
   gap: 8px;
   padding: 0 0 2px;
 }
-body[data-journey="1"] .booking-cart .cart-summary-card,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-summary-card {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-summary-card,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-summary-card {
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr);
   grid-template-rows: auto auto;
@@ -4685,8 +4765,8 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-summary-card {
   padding: 8px 9px;
   box-shadow: none;
 }
-body[data-journey="1"] .booking-cart .cart-summary-icon,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-summary-icon {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-summary-icon,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-summary-icon {
   grid-row: 1 / span 2;
   grid-column: 1;
   display: grid;
@@ -4697,19 +4777,19 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-summary-icon {
   background: #e3edfb;
   color: var(--j1-sky-600);
 }
-body[data-journey="1"] .booking-cart .cart-summary-icon svg,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-summary-icon svg {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-summary-icon svg,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-summary-icon svg {
   display: block;
 }
-body[data-journey="1"] .booking-cart #cart-summary-total .cart-summary-icon,
-body[data-journey="1"] .booking-cart #cart-summary-status .cart-summary-icon,
-body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-summary-total .cart-summary-icon,
-body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-summary-status .cart-summary-icon {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-summary-total .cart-summary-icon,
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-summary-status .cart-summary-icon,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-summary-total .cart-summary-icon,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-summary-status .cart-summary-icon {
   background: #e2f2ec;
   color: #0d7361;
 }
-body[data-journey="1"] .booking-cart .cart-summary-value,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-summary-value {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-summary-value,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-summary-value {
   grid-column: 2;
   grid-row: 1;
   font-size: 11.5px;
@@ -4718,8 +4798,8 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-summary-value {
   line-height: 1.2;
   letter-spacing: -0.01em;
 }
-body[data-journey="1"] .booking-cart .cart-summary-label,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-summary-label {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-summary-label,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-summary-label {
   grid-column: 2;
   grid-row: 2;
   margin: 0;
@@ -4728,30 +4808,30 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-summary-label {
   letter-spacing: 0.05em;
   color: #78879e;
 }
-body[data-journey="1"] .booking-cart #cart-summary-status .cart-summary-value,
-body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-summary-status .cart-summary-value {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-summary-status .cart-summary-value,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-summary-status .cart-summary-value {
   font-size: 10.5px;
   line-height: 1.25;
 }
 @media (max-width: 600px) {
-  body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-summary-card {
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-summary-card {
     grid-template-columns: 20px minmax(0, 1fr);
     column-gap: 6px;
     padding: 8px;
   }
-  body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-summary-icon {
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-summary-icon {
     width: 20px;
     height: 20px;
   }
-  body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-summary-icon svg {
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-summary-icon svg {
     width: 13px;
     height: 13px;
   }
 }
 
 /* --- Table surface: column head plus controlled internal scroll --- */
-body[data-journey="1"] .booking-cart .cart-column-head,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-column-head {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-column-head,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-column-head {
   grid-template-columns: var(--j1-cart-tracks);
   grid-template-areas: "select number item datetime status price more";
   column-gap: var(--j1-cart-gap);
@@ -4764,57 +4844,57 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-column-head {
   font-size: 8.5px;
   letter-spacing: 0.06em;
 }
-body[data-journey="1"] .booking-cart .cart-column-head .col-more,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-column-head .col-more {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-column-head .col-more,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-column-head .col-more {
   grid-area: more;
 }
-body[data-journey="1"] .booking-cart .items-scroll,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .items-scroll {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .items-scroll,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .items-scroll {
   border: 1px solid #e4ebf4;
   border-top: none;
   border-radius: 0 0 9px 9px;
   background: #fff;
   scrollbar-color: #cbd8e6 transparent;
 }
-body[data-journey="1"] .booking-cart .items-scroll::-webkit-scrollbar,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .items-scroll::-webkit-scrollbar {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .items-scroll::-webkit-scrollbar,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .items-scroll::-webkit-scrollbar {
   width: 7px;
 }
-body[data-journey="1"] .booking-cart .items-scroll::-webkit-scrollbar-thumb,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .items-scroll::-webkit-scrollbar-thumb {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .items-scroll::-webkit-scrollbar-thumb,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .items-scroll::-webkit-scrollbar-thumb {
   background: #cbd8e6;
   border-radius: 4px;
 }
-body[data-journey="1"] .booking-cart .items-scroll::-webkit-scrollbar-thumb:hover,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .items-scroll::-webkit-scrollbar-thumb:hover {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .items-scroll::-webkit-scrollbar-thumb:hover,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .items-scroll::-webkit-scrollbar-thumb:hover {
   background: #adbed2;
 }
 
 /* --- Rows: wrappers stay transparent outside desktop Compact (mobile cards + Detailed) --- */
-body[data-journey="1"] .booking-cart .cart-line-item-block,
-body[data-journey="1"] .booking-cart .cart-line-datetime-block,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-item-block,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-datetime-block {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-line-item-block,
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-line-datetime-block,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-line-item-block,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-line-datetime-block {
   display: contents;
 }
-body[data-journey="1"] .booking-cart .cart-line-schedule-date::after,
-body[data-journey="1"] .booking-cart .cart-line-schedule-time::after,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-schedule-date::after,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-schedule-time::after {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-line-schedule-date::after,
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-line-schedule-time::after,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-line-schedule-date::after,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-line-schedule-time::after {
   content: " · ";
   color: #98a6ba;
 }
-body[data-journey="1"] .booking-cart .cart-line-more-ellipsis,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-more-ellipsis {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-line-more-ellipsis,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-line-more-ellipsis {
   display: none;
 }
-body[data-journey="1"] .booking-cart .cart-line-more-text,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-more-text {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-line-more-text,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-line-more-text {
   display: inline;
 }
 
-body[data-journey="1"] .booking-cart .row-no,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .row-no {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .row-no,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .row-no {
   width: 26px;
   height: 22px;
   border: 1px solid #dfe8f5;
@@ -4824,8 +4904,8 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .row-no {
   font-size: 10px;
   font-weight: 800;
 }
-body[data-journey="1"] .booking-cart .cart-line-status,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-status {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-line-status,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-line-status {
   border: 1px solid transparent;
   border-radius: 999px;
   padding: 3px 6px;
@@ -4834,57 +4914,57 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-status {
   letter-spacing: 0.01em;
   white-space: nowrap;
 }
-body[data-journey="1"] .booking-cart .cart-line-status.is-ready,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-status.is-ready {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-line-status.is-ready,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-line-status.is-ready {
   color: #0a6259;
   background: #dcf3ed;
   border-color: #a8d9cd;
 }
-body[data-journey="1"] .booking-cart .cart-line-status.is-pending,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-status.is-pending {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-line-status.is-pending,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-line-status.is-pending {
   color: #a3510a;
   background: #ffeeda;
   border-color: #f3c795;
 }
 
 @media (min-width: 601px) {
-  body[data-journey="1"] .booking-cart .cart-line-list,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-list {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-line-list,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-line-list {
     gap: 0;
     padding: 0;
   }
-  body[data-journey="1"] .booking-cart .cart-line,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-line,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-line {
     border: none;
     border-bottom: 1px solid #eef2f8;
     border-radius: 0;
     background: #fff;
   }
-  body[data-journey="1"] .booking-cart .cart-line:last-child,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line:last-child {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-line:last-child,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-line:last-child {
     border-bottom: none;
   }
-  body[data-journey="1"] .booking-cart .cart-line:not(.is-selected):hover,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line:not(.is-selected):hover {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-line:not(.is-selected):hover,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-line:not(.is-selected):hover {
     background: #fafcff;
     border-bottom-color: #e2e9f3;
   }
-  body[data-journey="1"] .booking-cart .cart-line.is-selected,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line.is-selected {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-line.is-selected,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-line.is-selected {
     background: #f4f8ff;
   }
 
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-column-head:not([hidden]),
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-column-head:not([hidden]) {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-column-head:not([hidden]),
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-column-head:not([hidden]) {
     display: grid;
     grid-template-columns: var(--j1-cart-tracks);
     grid-template-areas: "select number item datetime status price more";
     column-gap: var(--j1-cart-gap);
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-summary,
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-summary.has-package,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-summary,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-summary.has-package {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-summary,
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-summary.has-package,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-summary,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-summary.has-package {
     grid-template-columns: var(--j1-cart-tracks);
     grid-template-areas: "select number item datetime status price more";
     column-gap: var(--j1-cart-gap);
@@ -4892,33 +4972,33 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-status.is-pend
     padding: var(--j1-row-pad-y) 8px;
     align-items: center;
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-item-block,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-item-block {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-item-block,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-item-block {
     grid-area: item;
     display: flex;
     flex-direction: column;
     gap: 1px;
     min-width: 0;
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-main,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-main {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-main,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-main {
     grid-area: auto;
     min-width: 0;
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-title,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-title {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-title,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-title {
     font-size: 12.5px;
     font-weight: 780;
     line-height: 1.2;
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-resource,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-resource {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-resource,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-resource {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-venue,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-venue {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-venue,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-venue {
     display: block;
     grid-area: auto;
     font-size: 10px;
@@ -4929,20 +5009,20 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-status.is-pend
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-datetime-block,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-datetime-block {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-datetime-block,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-datetime-block {
     display: block;
     grid-area: datetime;
     min-width: 0;
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-date::after,
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-time::after,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-date::after,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-time::after {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-date::after,
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-time::after,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-date::after,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-time::after {
     content: none;
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
@@ -4952,37 +5032,37 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-status.is-pend
     font-size: 10px;
     line-height: 1.25;
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-date,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-date {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-date,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-date {
     flex: 0 0 100%;
     font-size: 10.5px;
     font-weight: 720;
     color: #35507c;
     white-space: nowrap;
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-time,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-time {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-time,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-time {
     font-size: 9px;
     font-weight: 600;
     color: #7d8ba0;
     white-space: nowrap;
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-duration,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-duration {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-duration,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-duration {
     display: inline;
     font-size: 8.5px;
     font-weight: 600;
     color: #98a6ba;
     white-space: nowrap;
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-amount-col,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-amount-col {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-amount-col,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-amount-col {
     grid-area: status;
     justify-self: end;
     align-self: center;
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-price,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-price {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-price,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-price {
     grid-area: price;
     justify-self: end;
     align-self: center;
@@ -4990,8 +5070,8 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-status.is-pend
     font-weight: 780;
     color: var(--j1-navy-deep);
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-price-pending,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-price-pending {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-price-pending,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-price-pending {
     font-size: 9.5px;
     font-weight: 600;
     color: #8b98ab;
@@ -5002,16 +5082,16 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-status.is-pend
   body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-package-row {
     display: none !important;
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions {
     display: contents !important;
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions button:not([data-details]),
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions button:not([data-details]) {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions button:not([data-details]),
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions button:not([data-details]) {
     display: none !important;
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions [data-details],
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions [data-details] {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions [data-details],
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions [data-details] {
     grid-area: more;
     justify-self: center;
     align-self: center;
@@ -5029,29 +5109,29 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-line-status.is-pend
     font-size: 15px;
     line-height: 1;
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions [data-details]:hover,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions [data-details]:hover {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions [data-details]:hover,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions [data-details]:hover {
     background: #eef3fb;
     color: var(--j1-sky-600);
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-more-ellipsis,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-more-ellipsis {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-more-ellipsis,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-more-ellipsis {
     display: inline;
   }
-  body[data-journey="1"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-more-text,
-  body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-more-text {
+  :is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #cart-body[data-cart-view="compact"] .cart-line-more-text,
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-more-text {
     display: none;
   }
 }
 
 /* --- Substantial total plus full-width blue Book action footer --- */
-body[data-journey="1"] .booking-cart .cart-amount-context,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-amount-context {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-amount-context,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-amount-context {
   flex-shrink: 0;
   padding: 0;
 }
-body[data-journey="1"] .booking-cart .cart-summary-bar,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-summary-bar {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-summary-bar,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-summary-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -5063,43 +5143,43 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-summary-bar {
   border-radius: 0;
   background: transparent;
 }
-body[data-journey="1"] .booking-cart .summary-copy,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .summary-copy {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .summary-copy,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .summary-copy {
   flex: 1 1 auto;
   min-width: 0;
 }
-body[data-journey="1"] .booking-cart .summary-copy b,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .summary-copy b {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .summary-copy b,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .summary-copy b {
   font-size: 13px;
   font-weight: 750;
   color: var(--j1-navy-deep);
 }
-body[data-journey="1"] .booking-cart .summary-value,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .summary-value {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .summary-value,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .summary-value {
   flex: 0 0 auto;
   text-align: right;
 }
-body[data-journey="1"] .booking-cart .summary-value span,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .summary-value span {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .summary-value span,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .summary-value span {
   font-size: 9.5px;
   font-weight: 600;
   color: #7d8ba0;
 }
-body[data-journey="1"] .booking-cart .summary-value b,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .summary-value b {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .summary-value b,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .summary-value b {
   font-size: 18px;
   font-weight: 820;
   color: var(--j1-navy-deep);
   letter-spacing: -0.02em;
   line-height: 1.15;
 }
-body[data-journey="1"] .booking-cart .cart-totals,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-totals {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-totals,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-totals {
   padding: 0 2px 2px;
   font-size: 8.8px;
 }
-body[data-journey="1"] .booking-cart .cart-sticky-actions,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-sticky-actions {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-sticky-actions,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-sticky-actions {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -5109,10 +5189,10 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-sticky-actions {
   box-shadow: 0 -6px 18px rgba(16, 42, 70, 0.06);
   background: #fff;
 }
-body[data-journey="1"] .booking-cart .cart-book-footer,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-book-footer,
-body[data-journey="1"] .booking-cart .journey-actions,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .journey-actions {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-book-footer,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-book-footer,
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .journey-actions,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .journey-actions {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -5128,14 +5208,14 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart #cart-primary-action {
   font-size: 12.5px;
   font-weight: 750;
 }
-body[data-journey="1"] .booking-cart .journey-actions .btn-primary,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .journey-actions .btn-primary,
-body[data-journey="1"] .booking-cart .journey-actions .btn-secondary,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .journey-actions .btn-secondary {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .journey-actions .btn-primary,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .journey-actions .btn-primary,
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .journey-actions .btn-secondary,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .journey-actions .btn-secondary {
   width: 100%;
 }
-body[data-journey="1"] .booking-cart #confirm-booking-btn,
-body[data-journey="1"] #cart-sheet-panel .booking-cart #confirm-booking-btn {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #confirm-booking-btn,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #confirm-booking-btn {
   width: 100%;
   min-height: 42px;
   padding: 10px 16px;
@@ -5146,15 +5226,15 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart #confirm-booking-btn {
   text-align: center;
   box-shadow: 0 2px 8px rgba(46, 115, 223, 0.24);
 }
-body[data-journey="1"] .booking-cart .confirm-helper,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .confirm-helper {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .confirm-helper,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .confirm-helper {
   font-size: 8.5px;
   line-height: 1.25;
   text-align: center;
 }
 /* While the existing Book action is live, the existing primary action reads as the secondary step */
-body[data-journey="1"] .booking-cart .cart-sticky-actions:has(#confirm-booking-btn:not([hidden])) #cart-primary-action,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-sticky-actions:has(#confirm-booking-btn:not([hidden])) #cart-primary-action {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-sticky-actions:has(#confirm-booking-btn:not([hidden])) #cart-primary-action,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-sticky-actions:has(#confirm-booking-btn:not([hidden])) #cart-primary-action {
   background: #fff;
   color: var(--j1-sky-700);
   border: 1px solid #c6d8f2;
@@ -6043,52 +6123,52 @@ body[data-contextual-workspace="true"] .cart-line-compact-item { display: none; 
     box-shadow: 0 12px 30px rgba(16, 33, 57, .18);
   }
 
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart > .cart-accent {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart > .cart-accent {
     display: none;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart > .cart-header {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart > .cart-header {
     min-height: 52px;
     justify-content: center;
     gap: 0;
     padding: 10px 12px;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .cart-title-row {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .cart-title-row {
     flex-wrap: nowrap;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .cart-header-badges {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .cart-header-badges {
     flex-wrap: nowrap;
     gap: 4px;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .cart-count,
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .cart-not-saved {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .cart-count,
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .cart-not-saved {
     padding: 3px 7px;
     font-size: 10px;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart > .cart-body {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart > .cart-body {
     gap: 8px;
     padding: 10px 12px 8px;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .cart-toolbar {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .cart-toolbar {
     flex: 0 0 auto;
     gap: 8px;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .cart-toolbar .cart-view-controls {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .cart-toolbar .cart-view-controls {
     padding: 2px;
     border-radius: 6px;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .cart-view-btn {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .cart-view-btn {
     min-height: 32px;
     border-radius: 4px;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .cart-added-head:has(#selected-lines-count[hidden]) {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .cart-added-head:has(#selected-lines-count[hidden]) {
     display: none;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .cart-high-volume-summaries {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .cart-high-volume-summaries {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
     padding: 0;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .cart-summary-card {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .cart-summary-card {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto;
@@ -6099,26 +6179,26 @@ body[data-contextual-workspace="true"] .cart-line-compact-item { display: none; 
     border-radius: 6px;
     background: #f6f9fc;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .cart-summary-icon {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .cart-summary-icon {
     display: none;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .cart-summary-value,
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart #cart-summary-status .cart-summary-value {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .cart-summary-value,
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart #cart-summary-status .cart-summary-value {
     grid-column: 1;
     grid-row: 1;
     font-size: 11px;
     line-height: 1.2;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .cart-summary-label {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .cart-summary-label {
     grid-column: 1;
     grid-row: 2;
     font-size: 8px;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .items-scroll {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .items-scroll {
     border: 1px solid var(--line);
     border-radius: 6px;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .group-head {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .group-head {
     min-height: 28px;
     padding: 3px 7px;
     background: #f4f8fc;
@@ -6127,15 +6207,15 @@ body[data-contextual-workspace="true"] .cart-line-compact-item { display: none; 
     font-size: 9px;
     letter-spacing: .035em;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .group-head button {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .group-head button {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .group-head > span {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .group-head > span {
     display: none;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-column-head {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-column-head {
     display: none !important;
   }
   body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-summary,
@@ -6148,7 +6228,7 @@ body[data-contextual-workspace="true"] .cart-line-compact-item { display: none; 
     padding: 7px 8px;
     align-items: center;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .row-no {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .row-no {
     display: grid;
     grid-area: number;
     width: 26px;
@@ -6157,16 +6237,16 @@ body[data-contextual-workspace="true"] .cart-line-compact-item { display: none; 
     background: #eaf4ff;
     color: #075fb8;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-item-block {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-item-block {
     grid-area: item;
     display: block;
     min-width: 0;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-venue,
-  body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-offering {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-venue,
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-offering {
     display: none !important;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-compact-item {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-compact-item {
     display: block;
     margin-top: 1px;
     overflow: hidden;
@@ -6176,11 +6256,11 @@ body[data-contextual-workspace="true"] .cart-line-compact-item { display: none; 
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-datetime-block {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-datetime-block {
     grid-area: datetime;
     min-width: 0;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule {
     display: flex;
     flex-wrap: nowrap;
     gap: 4px;
@@ -6188,34 +6268,34 @@ body[data-contextual-workspace="true"] .cart-line-compact-item { display: none; 
     color: #66758b;
     font-size: 9px;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-date {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-date {
     flex: 0 0 auto;
     font-size: 9px;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-duration {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-schedule-duration {
     display: none;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-amount-col {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-amount-col {
     grid-area: status;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-price {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-price {
     grid-area: price;
     justify-self: end;
     overflow: hidden;
     font-size: 9.5px;
     text-overflow: ellipsis;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions [data-details] {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions [data-details] {
     grid-area: more;
     width: 28px;
     min-width: 28px;
     height: 28px;
     min-height: 28px;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line:has(.cart-line-status.is-pending) .cart-line-amount-col {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line:has(.cart-line-status.is-pending) .cart-line-amount-col {
     display: none;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line:has(.cart-line-status.is-pending) .cart-line-actions [data-pricing] {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line:has(.cart-line-status.is-pending) .cart-line-actions [data-pricing] {
     grid-area: status;
     justify-self: end;
     display: inline-flex !important;
@@ -6284,12 +6364,12 @@ body[data-contextual-workspace="true"] .cart-line-compact-item { display: none; 
 }
 
 /* Isolated visual preview — one accessible per-line action disclosure. */
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-summary {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-summary {
   position: relative;
   overflow: visible;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-summary,
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-summary.has-package {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-summary,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-summary.has-package {
   grid-template-columns: 18px 28px minmax(0, 1fr) auto 28px 28px;
   grid-template-areas:
     "select number identity state delete more"
@@ -6299,22 +6379,22 @@ body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-bod
   column-gap: 6px;
   row-gap: 4px;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line:has(.cart-line-status.is-pending) .cart-line-summary,
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line:has(.cart-line-status.is-pending) .cart-line-summary.has-package {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line:has(.cart-line-status.is-pending) .cart-line-summary,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line:has(.cart-line-status.is-pending) .cart-line-summary.has-package {
   grid-template-areas:
     "select number identity state delete more"
     ". . schedule schedule schedule schedule"
     ". . context context context context";
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-item-block,
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-datetime-block {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-item-block,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-datetime-block {
   display: contents;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-main {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-main {
   grid-area: identity;
   min-width: 0;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-title {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-title {
   display: block;
   width: 100%;
   min-width: 0;
@@ -6323,20 +6403,20 @@ body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-bod
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-compact-item,
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-venue,
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-offering,
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-package-row,
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-price {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-compact-item,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-venue,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-offering,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-package-row,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-price {
   display: none !important;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line:has(.cart-line-status.is-pending) .cart-line-price {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line:has(.cart-line-status.is-pending) .cart-line-price {
   display: inline-flex !important;
   grid-area: state;
   justify-self: end;
   align-self: center;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-schedule {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-schedule {
   grid-area: schedule;
   display: flex;
   align-items: center;
@@ -6347,10 +6427,10 @@ body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-bod
   line-height: 1.25;
   white-space: nowrap;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-context {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-context {
   display: none;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-context {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-context {
   grid-area: context;
   display: flex;
   align-items: center;
@@ -6361,7 +6441,7 @@ body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-bod
   line-height: 1.3;
   white-space: nowrap;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-context-part {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-context-part {
   display: inline-block;
   flex: 0 1 auto;
   max-width: 15ch;
@@ -6370,21 +6450,21 @@ body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-bod
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-context-separator {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-context-separator {
   flex: 0 0 auto;
   margin: 0 5px;
   color: #98a6ba;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-context .cart-line-timeslots {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-context .cart-line-timeslots {
   flex: 0 0 auto;
   margin-left: 7px;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-actions,
-body[data-journey="1"][data-contextual-workspace="true"] #cart-sheet-panel .booking-cart .cart-line-actions {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-actions,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] #cart-sheet-panel .booking-cart .cart-line-actions {
   display: contents !important;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-actions > .cart-line-actions-toggle,
-body[data-journey="1"][data-contextual-workspace="true"] #cart-sheet-panel .booking-cart .cart-line-actions > .cart-line-actions-toggle {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-actions > .cart-line-actions-toggle,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] #cart-sheet-panel .booking-cart .cart-line-actions > .cart-line-actions-toggle {
   display: inline-grid !important;
   grid-area: more;
   place-items: center;
@@ -6403,14 +6483,14 @@ body[data-journey="1"][data-contextual-workspace="true"] #cart-sheet-panel .book
   font-weight: 800;
   line-height: 1;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-actions > .cart-line-actions-toggle:hover,
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-actions > .cart-line-actions-toggle[aria-expanded="true"] {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-actions > .cart-line-actions-toggle:hover,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-actions > .cart-line-actions-toggle[aria-expanded="true"] {
   border-color: #b9cce5;
   background: #edf4fc;
   color: #075fb8;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-actions > .cart-line-delete,
-body[data-journey="1"][data-contextual-workspace="true"] #cart-sheet-panel .booking-cart .cart-line-actions > .cart-line-delete {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-actions > .cart-line-delete,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] #cart-sheet-panel .booking-cart .cart-line-actions > .cart-line-delete {
   display: inline-grid !important;
   grid-area: delete;
   place-items: center;
@@ -6426,13 +6506,13 @@ body[data-journey="1"][data-contextual-workspace="true"] #cart-sheet-panel .book
   background: transparent;
   color: #9b4b44;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-actions > .cart-line-delete:hover,
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-actions > .cart-line-delete:focus-visible {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-actions > .cart-line-delete:hover,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-actions > .cart-line-delete:focus-visible {
   border-color: #e1b8b2;
   background: #fff0ee;
   color: #8f241d;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-delete svg {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-delete svg {
   width: 14px;
   height: 14px;
   fill: none;
@@ -6441,11 +6521,11 @@ body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-lin
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line:has(.cart-line-status.is-pending) .cart-line-amount-col {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line:has(.cart-line-status.is-pending) .cart-line-amount-col {
   display: none;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-actions > .cart-line-primary-action,
-body[data-journey="1"][data-contextual-workspace="true"] #cart-sheet-panel .booking-cart .cart-line-actions > .cart-line-primary-action {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-actions > .cart-line-primary-action,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] #cart-sheet-panel .booking-cart .cart-line-actions > .cart-line-primary-action {
   display: inline-flex !important;
   grid-area: status;
   align-items: center;
@@ -6461,18 +6541,18 @@ body[data-journey="1"][data-contextual-workspace="true"] #cart-sheet-panel .book
   font-weight: 800;
   line-height: 1;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-actions > .cart-line-primary-action:hover {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-actions > .cart-line-primary-action:hover {
   border-color: #c77c18;
   background: #ffe5b7;
   color: #6e4000;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line.has-open-actions {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line.has-open-actions {
   position: relative;
   z-index: 40;
   overflow: visible;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-action-menu,
-body[data-journey="1"][data-contextual-workspace="true"] #cart-sheet-panel .booking-cart .cart-line-action-menu {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-action-menu,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] #cart-sheet-panel .booking-cart .cart-line-action-menu {
   position: absolute;
   top: calc(100% - 4px);
   right: 8px;
@@ -6485,16 +6565,16 @@ body[data-journey="1"][data-contextual-workspace="true"] #cart-sheet-panel .book
   background: #fff;
   box-shadow: 0 10px 24px rgba(20, 42, 72, .2);
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-action-menu[hidden],
-body[data-journey="1"][data-contextual-workspace="true"] #cart-sheet-panel .booking-cart .cart-line-action-menu[hidden] {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-action-menu[hidden],
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] #cart-sheet-panel .booking-cart .cart-line-action-menu[hidden] {
   display: none !important;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line.is-actions-flipped .cart-line-action-menu {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line.is-actions-flipped .cart-line-action-menu {
   top: auto;
   bottom: calc(100% - 4px);
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-actions .cart-line-action-menu > button,
-body[data-journey="1"][data-contextual-workspace="true"] #cart-sheet-panel .booking-cart .cart-line-actions .cart-line-action-menu > button {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-actions .cart-line-action-menu > button,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] #cart-sheet-panel .booking-cart .cart-line-actions .cart-line-action-menu > button {
   display: flex !important;
   grid-area: auto;
   align-items: center;
@@ -6514,58 +6594,58 @@ body[data-journey="1"][data-contextual-workspace="true"] #cart-sheet-panel .book
   line-height: 1.2;
   text-align: left;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-action-menu > button:hover,
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-action-menu > button:focus-visible {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-action-menu > button:hover,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-action-menu > button:focus-visible {
   background: #edf4fc;
   color: #075fb8;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-actions .cart-line-action-menu > .danger-link {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-actions .cart-line-action-menu > .danger-link {
   margin-top: 3px;
   border-top: 1px solid #edf0f4;
   border-radius: 0 0 5px 5px;
   color: #aa342b;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-action-menu > .danger-link:hover,
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-action-menu > .danger-link:focus-visible {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-action-menu > .danger-link:hover,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-action-menu > .danger-link:focus-visible {
   background: #fff0ee;
   color: #8f241d;
 }
 /* Win over inherited Compact action-hiding selectors without altering other surfaces. */
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body .cart-line-actions > .cart-line-actions-toggle,
-body[data-journey="1"][data-contextual-workspace="true"] #cart-sheet-panel .booking-cart #cart-body .cart-line-actions > .cart-line-actions-toggle {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body .cart-line-actions > .cart-line-actions-toggle,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] #cart-sheet-panel .booking-cart #cart-body .cart-line-actions > .cart-line-actions-toggle {
   display: inline-grid !important;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body .cart-line-actions > .cart-line-primary-action,
-body[data-journey="1"][data-contextual-workspace="true"] #cart-sheet-panel .booking-cart #cart-body .cart-line-actions > .cart-line-primary-action {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body .cart-line-actions > .cart-line-primary-action,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] #cart-sheet-panel .booking-cart #cart-body .cart-line-actions > .cart-line-primary-action {
   display: inline-flex !important;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body .cart-line-actions .cart-line-action-menu > button,
-body[data-journey="1"][data-contextual-workspace="true"] #cart-sheet-panel .booking-cart #cart-body .cart-line-actions .cart-line-action-menu > button {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body .cart-line-actions .cart-line-action-menu > button,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] #cart-sheet-panel .booking-cart #cart-body .cart-line-actions .cart-line-action-menu > button {
   display: flex !important;
 }
 /* Exact-mode selectors outrank the inherited :not([data-details]) Compact rule. */
-html body[data-journey="1"][data-contextual-workspace="true"] .workspace .booking-cart #cart-body[data-cart-view="compact"] .cart-line .cart-line-actions > button.cart-line-actions-toggle,
-html body[data-journey="1"][data-contextual-workspace="true"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line .cart-line-actions > button.cart-line-actions-toggle,
-html body[data-journey="1"][data-contextual-workspace="true"] .workspace .booking-cart #cart-body[data-cart-view="compact"] .cart-line .cart-line-actions > button.cart-line-delete,
-html body[data-journey="1"][data-contextual-workspace="true"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line .cart-line-actions > button.cart-line-delete {
+html :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace .booking-cart #cart-body[data-cart-view="compact"] .cart-line .cart-line-actions > button.cart-line-actions-toggle,
+html :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line .cart-line-actions > button.cart-line-actions-toggle,
+html :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace .booking-cart #cart-body[data-cart-view="compact"] .cart-line .cart-line-actions > button.cart-line-delete,
+html :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line .cart-line-actions > button.cart-line-delete {
   display: inline-grid !important;
 }
-html body[data-journey="1"][data-contextual-workspace="true"] .workspace .booking-cart #cart-body[data-cart-view="compact"] .cart-line .cart-line-actions > button.cart-line-primary-action,
-html body[data-journey="1"][data-contextual-workspace="true"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line .cart-line-actions > button.cart-line-primary-action {
+html :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace .booking-cart #cart-body[data-cart-view="compact"] .cart-line .cart-line-actions > button.cart-line-primary-action,
+html :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line .cart-line-actions > button.cart-line-primary-action {
   display: inline-flex !important;
 }
-html body[data-journey="1"][data-contextual-workspace="true"] .workspace .booking-cart #cart-body[data-cart-view="compact"] .cart-line .cart-line-action-menu > button,
-html body[data-journey="1"][data-contextual-workspace="true"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line .cart-line-action-menu > button {
+html :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace .booking-cart #cart-body[data-cart-view="compact"] .cart-line .cart-line-action-menu > button,
+html :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line .cart-line-action-menu > button {
   display: flex !important;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-actions > .cart-line-primary-action {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-actions > .cart-line-primary-action {
   grid-area: state;
 }
-html body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body .cart-line .cart-line-action-menu {
+html :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body .cart-line .cart-line-action-menu {
   grid-template-columns: minmax(0, 1fr) !important;
   grid-auto-flow: row !important;
 }
-html body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body .cart-line .cart-line-actions .cart-line-action-menu > button {
+html :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body .cart-line .cart-line-actions .cart-line-action-menu > button {
   grid-area: auto !important;
   width: 100% !important;
   min-height: 30px !important;
@@ -6573,13 +6653,13 @@ html body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #car
   margin: 0 !important;
   padding: 6px 9px !important;
 }
-html body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body .cart-line:has(.cart-line-status.is-pending) .cart-line-amount-col {
+html :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart #cart-body .cart-line:has(.cart-line-status.is-pending) .cart-line-amount-col {
   display: none !important;
 }
-body[data-journey="1"][data-contextual-workspace="true"][data-lines]:not([data-lines="0"]):not([data-lines="1"]):not([data-lines="2"]):not([data-lines="3"]):not([data-lines="4"]) .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-summary {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"][data-lines]:not([data-lines="0"]):not([data-lines="1"]):not([data-lines="2"]):not([data-lines="3"]):not([data-lines="4"]) .booking-cart #cart-body[data-cart-view="detailed"] .cart-line-summary {
   min-height: 81px;
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-status.is-pending {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-status.is-pending {
   display: none !important;
 }
 body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-summary,
@@ -6595,7 +6675,7 @@ body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-bod
     "select number item price delete more"
     ". . datetime datetime datetime datetime";
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-price-pending {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-price-pending {
   color: #8a5708;
   font-size: 12px;
   font-weight: 760;
@@ -6604,8 +6684,8 @@ body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-lin
 }
 
 /* Isolated Journey 2 sample — compact Current Selection disclosure. */
-body[data-journey="1"] .booking-cart .cart-current-selection:not([hidden]),
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-current-selection:not([hidden]) {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-current-selection:not([hidden]),
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-current-selection:not([hidden]) {
   margin-bottom: 6px;
   padding: 9px 10px 10px;
   border: 1px solid #c7d6e8;
@@ -6613,15 +6693,15 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-current-selection:n
   border-radius: 9px;
   background: #fbfdff;
 }
-body[data-journey="1"] .booking-cart .current-selection-head,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .current-selection-head {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .current-selection-head,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .current-selection-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 7px;
 }
-body[data-journey="1"] .booking-cart .current-selection-head .eyebrow {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .current-selection-head .eyebrow {
   display: block;
   margin-bottom: 1px;
   color: #607089;
@@ -6631,7 +6711,7 @@ body[data-journey="1"] .booking-cart .current-selection-head .eyebrow {
   line-height: 1.2;
   text-transform: uppercase;
 }
-body[data-journey="1"] .booking-cart .cart-current-selection .current-selection-title {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-current-selection .current-selection-title {
   margin: 0;
   color: #173f6b;
   font-size: 12px;
@@ -6640,8 +6720,8 @@ body[data-journey="1"] .booking-cart .cart-current-selection .current-selection-
   line-height: 1.2;
   text-transform: none;
 }
-body[data-journey="1"] .booking-cart .current-selection-details-toggle,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .current-selection-details-toggle {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .current-selection-details-toggle,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .current-selection-details-toggle {
   flex: 0 0 auto;
   min-height: 28px;
   padding: 4px 8px;
@@ -6652,17 +6732,17 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .current-selection-detail
   font-size: 10px;
   font-weight: 760;
 }
-body[data-journey="1"] .booking-cart .current-selection-details-toggle::after {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .current-selection-details-toggle::after {
   content: "⌄";
   display: inline-block;
   margin-left: 5px;
   transition: transform 120ms ease;
 }
-body[data-journey="1"] .booking-cart .current-selection-details-toggle[aria-expanded="true"]::after {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .current-selection-details-toggle[aria-expanded="true"]::after {
   transform: rotate(180deg);
 }
-body[data-journey="1"] .booking-cart .current-selection-summary,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .current-selection-summary {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .current-selection-summary,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .current-selection-summary {
   margin: 0;
   padding: 0;
   border: 0;
@@ -6672,51 +6752,51 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .current-selection-summar
   font-weight: 500;
   line-height: 1.25;
 }
-body[data-journey="1"] .booking-cart .current-selection-resource {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .current-selection-resource {
   display: flex;
   align-items: baseline;
   min-width: 0;
   margin-bottom: 5px;
 }
-body[data-journey="1"] .booking-cart .current-selection-resource strong,
-body[data-journey="1"] .booking-cart .current-selection-resource span {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .current-selection-resource strong,
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .current-selection-resource span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-body[data-journey="1"] .booking-cart .current-selection-resource strong {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .current-selection-resource strong {
   flex: 0 1 auto;
   color: #102f52;
   font-size: 12px;
   font-weight: 760;
 }
-body[data-journey="1"] .booking-cart .current-selection-resource span {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .current-selection-resource span {
   flex: 1 1 auto;
   color: #687890;
 }
-body[data-journey="1"] .booking-cart .current-selection-resource span::before {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .current-selection-resource span::before {
   content: "·";
   margin: 0 6px;
   color: #9aa8ba;
 }
-body[data-journey="1"] .booking-cart .current-selection-summary dl {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .current-selection-summary dl {
   display: grid;
   gap: 3px;
   margin: 0;
 }
-body[data-journey="1"] .booking-cart .current-selection-summary-row {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .current-selection-summary-row {
   display: grid;
   grid-template-columns: 55px minmax(0, 1fr);
   gap: 7px;
   min-width: 0;
 }
-body[data-journey="1"] .booking-cart .current-selection-summary-row dt {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .current-selection-summary-row dt {
   color: #74839a;
   font-size: 9px;
   font-weight: 700;
 }
-body[data-journey="1"] .booking-cart .current-selection-summary-row dd {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .current-selection-summary-row dd {
   min-width: 0;
   margin: 0;
   overflow: visible;
@@ -6725,30 +6805,30 @@ body[data-journey="1"] .booking-cart .current-selection-summary-row dd {
   white-space: normal;
   overflow-wrap: anywhere;
 }
-body[data-journey="1"] .booking-cart #configure-form[hidden],
-body[data-journey="1"] #cart-sheet-panel .booking-cart #configure-form[hidden] {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #configure-form[hidden],
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #configure-form[hidden] {
   display: none !important;
 }
-body[data-journey="1"] .booking-cart #configure-form:not([hidden]),
-body[data-journey="1"] #cart-sheet-panel .booking-cart #configure-form:not([hidden]) {
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart #configure-form:not([hidden]),
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart #configure-form:not([hidden]) {
   margin-top: 9px;
   padding-top: 9px;
   border-top: 1px solid #d7e1ed;
 }
 @media (max-width: 600px) {
-  body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-current-selection:not([hidden]) {
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-current-selection:not([hidden]) {
     margin: 0 0 6px;
     padding: 9px 10px 10px;
   }
-  body[data-journey="1"] #cart-sheet-panel .booking-cart .current-selection-summary-row {
+  :is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .current-selection-summary-row {
     grid-template-columns: 58px minmax(0, 1fr);
   }
 }
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-compact-item,
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-venue,
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-item,
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-configuration,
-body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-line-package {
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-compact-item,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-venue,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-item,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-configuration,
+:is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .booking-cart .cart-line-package {
   display: inline-block;
   max-width: 15ch;
   overflow: hidden;
@@ -6759,36 +6839,39 @@ body[data-journey="1"][data-contextual-workspace="true"] .booking-cart .cart-lin
 
 
 /* Isolated correction 1 — contextual Cart density; visual-only human review sample. */
-body[data-journey="1"] .booking-cart .cart-header h2,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-header h2 { font-size: 17px; }
-body[data-journey="1"] .booking-cart .summary-value b,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .summary-value b { font-size: 16px; }
-body[data-journey="1"] .booking-cart .cart-summary-bar,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .cart-summary-bar { padding: 8px 2px 6px; }
-body[data-journey="1"] .booking-cart .summary-copy b,
-body[data-journey="1"] #cart-sheet-panel .booking-cart .summary-copy b { font-size: 12px; }
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-header h2,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-header h2 {
+  font-size: 16px;
+  white-space: nowrap;
+}
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .summary-value b,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .summary-value b { font-size: 16px; }
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .cart-summary-bar,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .cart-summary-bar { padding: 8px 2px 6px; }
+:is(body[data-journey="1"], body[data-journey="7"]) .booking-cart .summary-copy b,
+:is(body[data-journey="1"], body[data-journey="7"]) #cart-sheet-panel .booking-cart .summary-copy b { font-size: 12px; }
 @media (min-width: 1100px) {
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart > .cart-header {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart > .cart-header {
     min-height: 48px;
     padding: 8px 12px;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .cart-high-volume-summaries {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .cart-high-volume-summaries {
     gap: 6px;
     padding: 0;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .cart-summary-card {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .cart-summary-card {
     min-height: 40px;
     padding: 5px 7px;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .cart-summary-value,
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart #cart-summary-status .cart-summary-value {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .cart-summary-value,
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart #cart-summary-status .cart-summary-value {
     font-size: 10.5px;
     line-height: 1.15;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart #cart-summary-status .cart-summary-value {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart #cart-summary-status .cart-summary-value {
     font-size: 9.5px;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .cart-summary-label {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .cart-summary-label {
     font-size: 7.5px;
   }
 }
@@ -6835,19 +6918,676 @@ body[data-journey="1"] #cart-sheet-panel .booking-cart .summary-copy b { font-si
 
 /* Final isolated whitespace pass — preserve all controls/content and hit targets. */
 @media (min-width: 1100px) {
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart > .cart-body {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart > .cart-body {
     gap: 6px;
     padding: 8px 12px 6px;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .cart-sticky-actions {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .cart-sticky-actions {
     gap: 5px;
     padding: 8px 12px;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .cart-book-footer,
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .journey-actions {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .cart-book-footer,
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .journey-actions {
     gap: 5px;
   }
-  body[data-journey="1"][data-contextual-workspace="true"] .workspace > .booking-cart .confirm-helper {
+  :is(body[data-journey="1"], body[data-journey="7"])[data-contextual-workspace="true"] .workspace > .booking-cart .confirm-helper {
     line-height: 1.15;
   }
 }
+
+/* ===== Journey 5 isolated CR-J5-001 read-only details/action hub ===== */
+body[data-journey="5"] , body[data-journey="6"] {
+  --j4-summary-w: 300px;
+}
+
+body[data-journey="5"] .workspace , body[data-journey="6"] .workspace {
+  grid-template-columns: var(--assets-w) minmax(0, 1fr);
+  background: var(--diary-page);
+}
+
+body[data-journey="5"] .workspace > .booking-cart, body[data-journey="6"] .workspace > .booking-cart,
+body[data-journey="5"] .cart-sheet , body[data-journey="6"] .cart-sheet {
+  display: none !important;
+}
+
+body[data-journey="5"] .calendar-panel , body[data-journey="6"] .calendar-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--j4-summary-w);
+  grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+  background: var(--diary-page);
+}
+
+body[data-journey="5"] .calendar-caption, body[data-journey="6"] .calendar-caption,
+body[data-journey="5"] .j4-overview, body[data-journey="6"] .j4-overview,
+body[data-journey="5"] .timeslot-legend-wrap, body[data-journey="6"] .timeslot-legend-wrap,
+body[data-journey="5"] .j4-state-panel , body[data-journey="6"] .j4-state-panel { grid-column: 1 / -1; }
+body[data-journey="5"] .calendar-caption , body[data-journey="6"] .calendar-caption { grid-row: 1; }
+body[data-journey="5"] .j4-overview , body[data-journey="6"] .j4-overview { grid-row: 2; }
+body[data-journey="5"] .timeslot-legend-wrap , body[data-journey="6"] .timeslot-legend-wrap { grid-row: 3; }
+body[data-journey="5"] .j4-state-panel , body[data-journey="6"] .j4-state-panel { grid-row: 4; }
+body[data-journey="5"] .calendar-scroll , body[data-journey="6"] .calendar-scroll {
+  grid-column: 1;
+  grid-row: 5;
+  min-height: 0;
+  padding: 14px;
+  overflow: auto;
+  background: var(--diary-page);
+}
+body[data-journey="5"] .j4-selection-summary , body[data-journey="6"] .j4-selection-summary {
+  grid-column: 2;
+  grid-row: 5;
+  min-width: 0;
+  overflow: auto;
+  padding: 16px;
+  background: #fff;
+  border-left: 1px solid var(--diary-border);
+}
+
+body[data-journey="5"] .j4-overview , body[data-journey="6"] .j4-overview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px 16px;
+  color: #fff;
+  background: var(--diary-navy);
+  border-bottom: 3px solid var(--diary-brand-accent);
+}
+body[data-journey="5"] .j4-overview h1 , body[data-journey="6"] .j4-overview h1 { margin: 0; font-size: 18px; color: #fff; }
+body[data-journey="5"] .j4-overview p , body[data-journey="6"] .j4-overview p { max-width: 560px; margin: 0; font-size: 12px; line-height: 1.45; color: #e8f1ff; }
+body[data-journey="5"] .timeslot-legend-wrap , body[data-journey="6"] .timeslot-legend-wrap { padding: 7px 12px; }
+body[data-journey="5"] .j4-filter-list , body[data-journey="6"] .j4-filter-list { gap: 5px; }
+body[data-journey="5"] .j4-filter-item , body[data-journey="6"] .j4-filter-item { display: block; }
+body[data-journey="5"] .j4-filter-button , body[data-journey="6"] .j4-filter-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 8px;
+  color: var(--diary-text);
+  background: #fff;
+  border: 1px solid var(--diary-border);
+  font: inherit;
+}
+body[data-journey="5"] .j4-filter-button[aria-pressed="false"] , body[data-journey="6"] .j4-filter-button[aria-pressed="false"] { color: var(--diary-text-secondary); text-decoration: line-through; }
+body[data-journey="5"] .j4-calendar-grid , body[data-journey="6"] .j4-calendar-grid { min-width: 0; display: block; }
+body[data-journey="5"] .j4-board-head , body[data-journey="6"] .j4-board-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+body[data-journey="5"] .j4-board-head h2 , body[data-journey="6"] .j4-board-head h2 { margin: 0; font-size: 16px; color: var(--diary-navy); }
+body[data-journey="5"] .j4-timeslot-board , body[data-journey="6"] .j4-timeslot-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+body[data-journey="5"] .j4-timeslot , body[data-journey="6"] .j4-timeslot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  min-height: 182px;
+  padding: 12px;
+  color: var(--diary-text);
+  background: color-mix(in srgb, var(--j4-state-color) 6%, #fff);
+  border: 1px solid color-mix(in srgb, var(--j4-state-color) 55%, var(--diary-border));
+  border-left: 4px solid var(--j4-state-color);
+}
+body[data-journey="5"] .j4-timeslot.is-current , body[data-journey="6"] .j4-timeslot.is-current { outline: 2px solid var(--diary-blue-500); outline-offset: 2px; }
+body[data-journey="5"] .j4-timeslot-head, body[data-journey="6"] .j4-timeslot-head,
+body[data-journey="5"] .j4-timeslot-actions , body[data-journey="6"] .j4-timeslot-actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; }
+body[data-journey="5"] .j4-timeslot-actions , body[data-journey="6"] .j4-timeslot-actions { margin-top: auto; padding-top: 6px; }
+body[data-journey="5"] .j4-timeslot-time, body[data-journey="6"] .j4-timeslot-time,
+body[data-journey="5"] .j4-timeslot-resource, body[data-journey="6"] .j4-timeslot-resource,
+body[data-journey="5"] .j4-timeslot-status , body[data-journey="6"] .j4-timeslot-status { display: block; font-size: 12px; line-height: 1.35; }
+body[data-journey="5"] .j4-tooltip , body[data-journey="6"] .j4-tooltip { display: none; }
+body[data-journey="5"] .j4-selection-summary h2 , body[data-journey="6"] .j4-selection-summary h2 { margin: 0 0 6px; font-size: 18px; color: var(--diary-navy); }
+body[data-journey="5"] .j4-selection-facts , body[data-journey="6"] .j4-selection-facts { margin: 0 0 16px; }
+body[data-journey="5"] .j4-selection-facts div , body[data-journey="6"] .j4-selection-facts div { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--diary-border); }
+body[data-journey="5"] .j4-selection-facts dt , body[data-journey="6"] .j4-selection-facts dt { font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--diary-text-secondary); }
+body[data-journey="5"] .j4-selection-facts dd , body[data-journey="6"] .j4-selection-facts dd { margin: 0; font-size: 12px; font-weight: 650; }
+
+body[data-journey="5"] .j5-review-controls , body[data-journey="6"] .j5-review-controls {
+  margin: 12px 0 0;
+  padding: 10px;
+  border: 1px solid var(--diary-border-strong);
+}
+body[data-journey="5"] .j5-review-controls legend , body[data-journey="6"] .j5-review-controls legend { padding: 0 4px; font-size: 11px; font-weight: 800; }
+body[data-journey="5"] .j5-review-state-list , body[data-journey="6"] .j5-review-state-list { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+body[data-journey="5"] .j5-review-state , body[data-journey="6"] .j5-review-state {
+  min-height: 32px;
+  padding: 5px 7px;
+  font-size: 10px;
+  color: var(--diary-text);
+  background: #fff;
+  border: 1px solid var(--diary-border);
+  cursor: pointer;
+}
+body[data-journey="5"] .j5-review-state.is-active , body[data-journey="6"] .j5-review-state.is-active { color: #fff; background: var(--diary-blue-700); border-color: var(--diary-blue-700); }
+body[data-journey="5"] .j5-review-controls p , body[data-journey="6"] .j5-review-controls p { margin: 7px 0 0; font-size: 10px; color: var(--diary-text-secondary); }
+
+/* Reuse the accepted J4 More actions presentation for the single J5 shared menu root. */
+body[data-journey="5"] .j4-context-menu[hidden] , body[data-journey="6"] .j4-context-menu[hidden] { display: none !important; }
+body[data-journey="5"] .j4-context-menu , body[data-journey="6"] .j4-context-menu {
+  position: fixed;
+  z-index: 340;
+  width: min(280px, calc(100vw - 16px));
+  padding: 12px;
+  color: var(--diary-text);
+  background: #fff;
+  border: 1px solid var(--diary-border-strong);
+}
+body[data-journey="5"] .j4-context-menu strong , body[data-journey="6"] .j4-context-menu strong { display: block; color: var(--diary-navy); }
+body[data-journey="5"] .j4-context-menu p , body[data-journey="6"] .j4-context-menu p {
+  margin: 6px 0 10px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--diary-text-secondary);
+}
+body[data-journey="5"] .j4-context-action, body[data-journey="6"] .j4-context-action,
+body[data-journey="5"] .j4-context-close , body[data-journey="6"] .j4-context-close {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  text-align: left;
+  color: var(--diary-text);
+  background: #fff;
+  border: 1px solid var(--diary-border);
+  cursor: pointer;
+}
+body[data-journey="5"] .j4-context-action , body[data-journey="6"] .j4-context-action {
+  color: #fff;
+  background: var(--diary-blue-700);
+  border-color: var(--diary-blue-700);
+}
+body[data-journey="5"] .j4-context-close , body[data-journey="6"] .j4-context-close { margin-top: 6px; }
+
+body[data-journey="5"] .j4-details-dialog , body[data-journey="6"] .j4-details-dialog {
+  width: min(680px, calc(100vw - 32px));
+  max-width: 680px;
+  max-height: min(820px, calc(100vh - 32px));
+  padding: 0;
+  overflow: auto;
+  color: var(--diary-text);
+  background: #fff;
+  border: 1px solid var(--diary-border-strong);
+}
+body[data-journey="5"] .j4-details-head , body[data-journey="6"] .j4-details-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px 14px;
+  color: #fff;
+  background: var(--diary-navy);
+  border-bottom: 3px solid var(--diary-brand-accent);
+}
+body[data-journey="5"] .j4-details-head h2 , body[data-journey="6"] .j4-details-head h2 { margin: 0; color: #fff; }
+body[data-journey="5"] .j4-details-head .dialog-close , body[data-journey="6"] .j4-details-head .dialog-close { flex: none; color: #fff; background: transparent; border-color: var(--diary-blue-200); }
+body[data-journey="5"] .j5-context-strip , body[data-journey="6"] .j5-context-strip { padding: 14px 20px 12px; background: var(--diary-blue-050); border-bottom: 1px solid var(--diary-border); }
+body[data-journey="5"] .j5-context-strip > div , body[data-journey="6"] .j5-context-strip > div { display: flex; flex-wrap: wrap; gap: 8px; }
+body[data-journey="5"] .j5-context-strip p , body[data-journey="6"] .j5-context-strip p { margin: 8px 0 0; font-size: 11px; color: var(--diary-text-secondary); }
+body[data-journey="5"] .j5-status-pill, body[data-journey="6"] .j5-status-pill,
+body[data-journey="5"] .j5-readonly-pill , body[data-journey="6"] .j5-readonly-pill { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+body[data-journey="5"] .j5-status-pill , body[data-journey="6"] .j5-status-pill { color: #0b5f45; background: #e9f7f1; border: 1px solid #86c9b1; }
+body[data-journey="5"] .j5-readonly-pill , body[data-journey="6"] .j5-readonly-pill { color: var(--diary-blue-800); background: #fff; border: 1px solid var(--diary-blue-200); }
+body[data-journey="5"] .j5-playback-controls , body[data-journey="6"] .j5-playback-controls { display: flex; gap: 8px; padding: 10px 20px 0; background: #f7f9fc; }
+body[data-journey="5"] .j5-playback-controls .btn-play , body[data-journey="6"] .j5-playback-controls .btn-play {
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
+  flex: 1 1 0;
+  width: auto;
+  min-height: 44px;
+  max-height: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+body[data-journey="5"] .j5-state-message , body[data-journey="6"] .j5-state-message { display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 10px 20px; font-size: 12px; background: #f7f9fc; border-bottom: 1px solid var(--diary-border); }
+body[data-journey="5"] .j5-state-message.is-error, body[data-journey="6"] .j5-state-message.is-error,
+body[data-journey="5"] .j5-state-message.is-denied , body[data-journey="6"] .j5-state-message.is-denied { color: var(--diary-danger); background: var(--diary-danger-bg); }
+body[data-journey="5"] .j5-state-message.is-partial , body[data-journey="6"] .j5-state-message.is-partial { color: #735200; background: var(--diary-warning-bg); }
+body[data-journey="5"] .j5-state-message .btn-sm , body[data-journey="6"] .j5-state-message .btn-sm { margin-left: auto; }
+body[data-journey="5"] .j5-details-facts , body[data-journey="6"] .j5-details-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; margin: 0; padding: 8px 20px 14px; }
+body[data-journey="5"] .j5-details-facts div , body[data-journey="6"] .j5-details-facts div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--diary-border); }
+body[data-journey="5"] .j5-details-facts div:last-child , body[data-journey="6"] .j5-details-facts div:last-child { grid-column: 1 / -1; }
+body[data-journey="5"] .j5-details-facts dt , body[data-journey="6"] .j5-details-facts dt { font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--diary-text-secondary); }
+body[data-journey="5"] .j5-details-facts dd , body[data-journey="6"] .j5-details-facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; font-size: 12px; font-weight: 650; }
+body[data-journey="5"] .j5-actions , body[data-journey="6"] .j5-actions { padding: 4px 20px 14px; }
+body[data-journey="5"] .j5-actions-heading , body[data-journey="6"] .j5-actions-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
+body[data-journey="5"] .j5-actions-heading h3 , body[data-journey="6"] .j5-actions-heading h3 { margin: 0; font-size: 15px; color: var(--diary-navy); }
+body[data-journey="5"] .j5-action-grid , body[data-journey="6"] .j5-action-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; }
+body[data-journey="5"] .j5-action , body[data-journey="6"] .j5-action { min-height: 42px; padding: 8px; color: var(--diary-blue-800); background: #fff; border: 1px solid var(--diary-blue-300); font-weight: 750; cursor: pointer; }
+body[data-journey="5"] .j5-action:hover:not(:disabled) , body[data-journey="6"] .j5-action:hover:not(:disabled) { color: #fff; background: var(--diary-blue-700); border-color: var(--diary-blue-700); }
+body[data-journey="5"] .j5-action-caution , body[data-journey="6"] .j5-action-caution { color: #8a342b; border-color: #dfaaa5; }
+body[data-journey="5"] .j5-action:disabled , body[data-journey="6"] .j5-action:disabled { color: var(--diary-disabled-text); background: var(--diary-disabled-bg); border-color: var(--diary-border); cursor: not-allowed; }
+body[data-journey="5"] .j5-review-boundary , body[data-journey="6"] .j5-review-boundary { margin: 0 20px 10px; padding: 10px 12px; font-size: 12px; line-height: 1.45; color: var(--diary-text); background: var(--diary-blue-050); border-left: 3px solid var(--diary-blue-500); }
+body[data-journey="5"] .j5-action-announcement , body[data-journey="6"] .j5-action-announcement { min-height: 36px; margin: 0 20px 14px; padding: 8px 10px; font-size: 11px; line-height: 1.4; color: var(--diary-text-secondary); border: 1px dashed var(--diary-border-strong); }
+body[data-journey="5"] .j4-details-footer , body[data-journey="6"] .j4-details-footer { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px; background: #fff; border-top: 1px solid var(--diary-border); }
+
+@media (max-width: 760px) {
+  body[data-journey="5"] , body[data-journey="6"] { --view-bar-h: auto; }
+  body[data-journey="5"] .workspace , body[data-journey="6"] .workspace { grid-template-columns: 1fr; }
+  body[data-journey="5"] .assets-panel , body[data-journey="6"] .assets-panel { display: none !important; }
+  body[data-journey="5"] .calendar-panel , body[data-journey="6"] .calendar-panel { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto minmax(0, 1fr) auto; }
+  body[data-journey="5"] .calendar-scroll , body[data-journey="6"] .calendar-scroll { grid-column: 1; grid-row: 5; padding: 9px; }
+  body[data-journey="5"] .j4-selection-summary , body[data-journey="6"] .j4-selection-summary { grid-column: 1; grid-row: 6; max-height: 190px; border-left: 0; border-top: 1px solid var(--diary-border); }
+  body[data-journey="5"] .j4-overview , body[data-journey="6"] .j4-overview { display: block; padding: 9px 10px; }
+  body[data-journey="5"] .j4-overview h1 , body[data-journey="6"] .j4-overview h1 { font-size: 15px; }
+  body[data-journey="5"] .j4-overview p , body[data-journey="6"] .j4-overview p { margin-top: 5px; font-size: 10px; }
+  body[data-journey="5"] .j4-timeslot-board , body[data-journey="6"] .j4-timeslot-board { grid-template-columns: minmax(0, 1fr); }
+  body[data-journey="5"] .j4-details-dialog , body[data-journey="6"] .j4-details-dialog {
+    inset: auto 0 0 0;
+    width: 100%;
+    max-width: none;
+    height: min(92dvh, 760px);
+    max-height: 92dvh;
+    margin: 0;
+    border-width: 1px 0 0;
+  }
+  body[data-journey="5"] .j4-details-head, body[data-journey="6"] .j4-details-head,
+  body[data-journey="5"] .j4-details-footer , body[data-journey="6"] .j4-details-footer { padding-inline: 12px; }
+  body[data-journey="5"] .j4-details-head .dialog-close, body[data-journey="6"] .j4-details-head .dialog-close,
+  body[data-journey="5"] .j4-details-footer button , body[data-journey="6"] .j4-details-footer button { min-width: 44px; min-height: 44px; }
+  body[data-journey="5"] .j5-context-strip, body[data-journey="6"] .j5-context-strip,
+  body[data-journey="5"] .j5-state-message, body[data-journey="6"] .j5-state-message,
+  body[data-journey="5"] .j5-details-facts, body[data-journey="6"] .j5-details-facts,
+  body[data-journey="5"] .j5-actions , body[data-journey="6"] .j5-actions { padding-inline: 12px; }
+  body[data-journey="5"] .j5-details-facts , body[data-journey="6"] .j5-details-facts { grid-template-columns: 1fr; }
+  body[data-journey="5"] .j5-details-facts div:last-child , body[data-journey="6"] .j5-details-facts div:last-child { grid-column: auto; }
+  body[data-journey="5"] .j5-action-grid , body[data-journey="6"] .j5-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body[data-journey="5"] .j5-action , body[data-journey="6"] .j5-action { min-height: 44px; }
+  body[data-journey="5"] .j4-context-menu , body[data-journey="6"] .j4-context-menu {
+    left: 0 !important;
+    right: 0;
+    top: auto !important;
+    bottom: 0;
+    width: 100%;
+    padding: 14px 12px max(14px, env(safe-area-inset-bottom));
+    border-width: 1px 0 0;
+  }
+  body[data-journey="5"] .j4-context-action, body[data-journey="6"] .j4-context-action,
+  body[data-journey="5"] .j4-context-close , body[data-journey="6"] .j4-context-close { min-height: 44px; }
+  body[data-journey="5"] .j5-review-boundary, body[data-journey="6"] .j5-review-boundary,
+  body[data-journey="5"] .j5-action-announcement , body[data-journey="6"] .j5-action-announcement { margin-inline: 12px; }
+}
+
+/* ===== Journey 5 CR-J5-002–006 private lifecycle candidate ===== */
+body[data-journey="5"] .j5-lifecycle-review-controls , body[data-journey="6"] .j5-lifecycle-review-controls { margin: 12px 0 0; padding: 10px; border: 1px solid var(--diary-border-strong); }
+body[data-journey="5"] .j5-lifecycle-review-controls legend , body[data-journey="6"] .j5-lifecycle-review-controls legend { padding: 0 4px; font-size: 11px; font-weight: 800; }
+body[data-journey="5"] .j5-lifecycle-review-controls p , body[data-journey="6"] .j5-lifecycle-review-controls p { margin: 7px 0 0; font-size: 10px; color: var(--diary-text-secondary); }
+body[data-journey="5"] .j5-local-pill , body[data-journey="6"] .j5-local-pill { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 8px; color: #5a4310; background: #fff7dc; border: 1px solid #e7c96b; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+body[data-journey="5"] .j5-actions-subtitle , body[data-journey="6"] .j5-actions-subtitle { margin: 3px 0 0; color: var(--diary-text-secondary); font-size: 11px; font-weight: 400; }
+body[data-journey="5"] .j5-workflow-dialog , body[data-journey="6"] .j5-workflow-dialog { width: min(720px, calc(100vw - 32px)); max-width: 720px; max-height: min(840px, calc(100vh - 32px)); padding: 0; overflow: auto; color: var(--diary-text); background: #fff; border: 1px solid var(--diary-border-strong); }
+body[data-journey="5"] .j5-workflow-head , body[data-journey="6"] .j5-workflow-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 20px 14px; color: #fff; background: var(--diary-navy); border-bottom: 3px solid var(--diary-brand-accent); }
+body[data-journey="5"] .j5-workflow-head h2 , body[data-journey="6"] .j5-workflow-head h2 { margin: 0; color: #fff; font-size: 20px; }
+body[data-journey="5"] .j5-workflow-head .dialog-close , body[data-journey="6"] .j5-workflow-head .dialog-close { flex: none; color: #fff; background: transparent; border-color: var(--diary-blue-200); }
+body[data-journey="5"] .j5-workflow-body , body[data-journey="6"] .j5-workflow-body { padding: 16px 20px 8px; }
+body[data-journey="5"] .j5-workflow-description , body[data-journey="6"] .j5-workflow-description { margin: 0 0 14px; color: var(--diary-text-secondary); font-size: 12px; line-height: 1.45; }
+body[data-journey="5"] .j5-workflow-stage , body[data-journey="6"] .j5-workflow-stage { min-height: 120px; }
+body[data-journey="5"] .j5-form-grid , body[data-journey="6"] .j5-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+body[data-journey="5"] .j5-form-grid label , body[data-journey="6"] .j5-form-grid label { display: grid; gap: 5px; color: var(--diary-navy); font-size: 11px; font-weight: 800; }
+body[data-journey="5"] .j5-form-grid input:not([type="checkbox"]), body[data-journey="6"] .j5-form-grid input:not([type="checkbox"]), body[data-journey="5"] .j5-form-grid select , body[data-journey="6"] .j5-form-grid select { width: 100%; min-height: 40px; padding: 8px 10px; color: var(--diary-text); background: #fff; border: 1px solid var(--diary-border-strong); font: inherit; font-weight: 500; }
+body[data-journey="5"] .j5-check-row , body[data-journey="6"] .j5-check-row { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 10px; color: var(--diary-text); background: var(--diary-blue-050); border: 1px solid var(--diary-border); font-size: 12px; }
+body[data-journey="5"] .j5-check-row input , body[data-journey="6"] .j5-check-row input { width: 18px; height: 18px; flex: none; }
+body[data-journey="5"] .field-hint , body[data-journey="6"] .field-hint { color: var(--diary-text-secondary); font-size: 10px; font-weight: 500; }
+body[data-journey="5"] .j5-inline-note, body[data-journey="6"] .j5-inline-note, body[data-journey="5"] .j5-illustrative , body[data-journey="6"] .j5-illustrative { margin: 14px 0 0; padding: 10px 12px; color: var(--diary-text-secondary); background: #f7f9fc; border-left: 3px solid var(--diary-blue-400); font-size: 12px; line-height: 1.45; }
+body[data-journey="5"] .j5-guard-card, body[data-journey="6"] .j5-guard-card, body[data-journey="5"] .j5-result-card, body[data-journey="6"] .j5-result-card, body[data-journey="5"] .j5-error-card, body[data-journey="6"] .j5-error-card, body[data-journey="5"] .j5-block-card, body[data-journey="6"] .j5-block-card, body[data-journey="5"] .j5-impact-card , body[data-journey="6"] .j5-impact-card { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--diary-border-strong); background: #fbfcfe; }
+body[data-journey="5"] .j5-guard-card h3, body[data-journey="6"] .j5-guard-card h3, body[data-journey="5"] .j5-result-card h3, body[data-journey="6"] .j5-result-card h3, body[data-journey="5"] .j5-error-card h3 , body[data-journey="6"] .j5-error-card h3 { margin: 0; color: var(--diary-navy); font-size: 17px; }
+body[data-journey="5"] .j5-guard-card p, body[data-journey="6"] .j5-guard-card p, body[data-journey="5"] .j5-result-card p, body[data-journey="6"] .j5-result-card p, body[data-journey="5"] .j5-error-card p, body[data-journey="6"] .j5-error-card p, body[data-journey="5"] .j5-block-card span, body[data-journey="6"] .j5-block-card span, body[data-journey="5"] .j5-impact-card span , body[data-journey="6"] .j5-impact-card span { margin: 0; font-size: 12px; line-height: 1.5; }
+body[data-journey="5"] .j5-result-card , body[data-journey="6"] .j5-result-card { border-left: 4px solid #1b8c63; background: #f0fbf6; }
+body[data-journey="5"] .j5-result-boundary , body[data-journey="6"] .j5-result-boundary { color: #0b5f45; font-weight: 700; }
+body[data-journey="5"] .j5-error-card , body[data-journey="6"] .j5-error-card { border-left: 4px solid var(--diary-danger); background: var(--diary-danger-bg); }
+body[data-journey="5"] .j5-block-card , body[data-journey="6"] .j5-block-card { border-left: 4px solid #c18d13; background: var(--diary-warning-bg); }
+body[data-journey="5"] .j5-impact-card , body[data-journey="6"] .j5-impact-card { margin-top: 14px; border-left: 4px solid var(--diary-blue-500); }
+body[data-journey="5"] .j5-impact-card strong , body[data-journey="6"] .j5-impact-card strong { color: var(--diary-navy); font-size: 12px; }
+body[data-journey="5"] .j5-destructive-warning , body[data-journey="6"] .j5-destructive-warning { margin: 14px 0 0; padding: 12px; color: #7b3029; background: #fff3f1; border: 1px solid #e1a39c; font-size: 12px; line-height: 1.45; }
+body[data-journey="5"] .j5-preview-list , body[data-journey="6"] .j5-preview-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; border-top: 1px solid var(--diary-border); }
+body[data-journey="5"] .j5-preview-list > div , body[data-journey="6"] .j5-preview-list > div { display: grid; gap: 4px; padding: 11px 0; border-bottom: 1px solid var(--diary-border); }
+body[data-journey="5"] .j5-preview-list strong , body[data-journey="6"] .j5-preview-list strong { color: var(--diary-text-secondary); font-size: 10px; text-transform: uppercase; }
+body[data-journey="5"] .j5-preview-list span , body[data-journey="6"] .j5-preview-list span { font-size: 12px; font-weight: 650; }
+body[data-journey="5"] .j5-batch-fieldset , body[data-journey="6"] .j5-batch-fieldset { display: grid; gap: 7px; margin: 0 0 14px; padding: 12px; border: 1px solid var(--diary-border-strong); }
+body[data-journey="5"] .j5-batch-fieldset legend , body[data-journey="6"] .j5-batch-fieldset legend { padding: 0 4px; color: var(--diary-navy); font-size: 12px; font-weight: 800; }
+body[data-journey="5"] .j5-batch-table , body[data-journey="6"] .j5-batch-table { overflow: auto; border: 1px solid var(--diary-border); }
+body[data-journey="5"] .j5-batch-row , body[data-journey="6"] .j5-batch-row { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(90px, .8fr) minmax(120px, 1fr); gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--diary-border); font-size: 11px; }
+body[data-journey="5"] .j5-batch-row:last-child , body[data-journey="6"] .j5-batch-row:last-child { border-bottom: 0; }
+body[data-journey="5"] .j5-batch-head , body[data-journey="6"] .j5-batch-head { color: var(--diary-text-secondary); background: var(--diary-blue-050); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+body[data-journey="5"] .j5-workflow-announcement , body[data-journey="6"] .j5-workflow-announcement { min-height: 20px; margin-top: 10px; color: var(--diary-text-secondary); font-size: 11px; }
+body[data-journey="5"] .j5-workflow-footer , body[data-journey="6"] .j5-workflow-footer { position: sticky; bottom: 0; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding: 12px 20px; background: #fff; border-top: 1px solid var(--diary-border); }
+body[data-journey="5"] .j5-workflow-footer .btn-danger , body[data-journey="6"] .j5-workflow-footer .btn-danger { min-height: 42px; padding: 8px 12px; color: #fff; background: #9f3b31; border: 1px solid #862c24; font-weight: 800; }
+body[data-journey="5"] .j5-workflow-footer button , body[data-journey="6"] .j5-workflow-footer button { min-height: 42px; }
+@media (max-width: 760px) {
+  body[data-journey="5"] .j5-workflow-dialog , body[data-journey="6"] .j5-workflow-dialog { inset: auto 0 0 0; width: 100%; max-width: none; height: min(94dvh, 780px); max-height: 94dvh; margin: 0; border-width: 1px 0 0; }
+  body[data-journey="5"] .j5-workflow-head, body[data-journey="6"] .j5-workflow-head, body[data-journey="5"] .j5-workflow-body, body[data-journey="6"] .j5-workflow-body, body[data-journey="5"] .j5-workflow-footer , body[data-journey="6"] .j5-workflow-footer { padding-inline: 12px; }
+  body[data-journey="5"] .j5-form-grid, body[data-journey="6"] .j5-form-grid, body[data-journey="5"] .j5-preview-list , body[data-journey="6"] .j5-preview-list { grid-template-columns: 1fr; }
+  body[data-journey="5"] .j5-batch-row , body[data-journey="6"] .j5-batch-row { grid-template-columns: 1fr; gap: 4px; }
+  body[data-journey="5"] .j5-workflow-footer , body[data-journey="6"] .j5-workflow-footer { justify-content: stretch; }
+  body[data-journey="5"] .j5-workflow-footer button , body[data-journey="6"] .j5-workflow-footer button { flex: 1 1 45%; }
+}
+
+
+/* ===== Journey 6 UJ-07 isolated candidate additions ===== */
+body[data-journey="6"] .j6-review-controls { margin: 12px 0 0; padding: 10px; border: 1px solid var(--diary-border-strong); }
+body[data-journey="6"] .j6-review-controls legend { padding: 0 4px; font-size: 11px; font-weight: 800; }
+body[data-journey="6"] .j6-review-controls p { margin: 7px 0; color: var(--diary-text-secondary); font-size: 10px; line-height: 1.4; }
+body[data-journey="6"] .j6-action-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+body[data-journey="6"] .j6-action { min-height: 44px; padding: 8px; color: var(--diary-blue-800); background: #fff; border: 1px solid var(--diary-blue-300); font-size: 11px; font-weight: 750; cursor: pointer; }
+body[data-journey="6"] .j6-action:hover { color: #fff; background: var(--diary-blue-700); }
+body[data-journey="6"] .j6-public-banner,
+body[data-journey="6"] .j6-defect-note { margin: 10px 0 0; padding: 10px 12px; font-size: 11px; line-height: 1.45; }
+body[data-journey="6"] .j6-public-banner { color: #0d3155; background: #eaf4ff; border-left: 4px solid var(--diary-blue-500); }
+body[data-journey="6"] .j6-defect-note { color: #6f4b00; background: var(--diary-warning-bg); border-left: 4px solid #c18d13; }
+body[data-journey="6"] .j6-entry-note { margin: 10px 0 0; padding: 9px 11px; color: var(--diary-text-secondary); background: #fff; border: 1px dashed var(--diary-border-strong); font-size: 11px; line-height: 1.4; }
+body[data-journey="6"] .j4-overview .j6-public-banner { color: #0d3155; }
+body[data-journey="6"] .j4-overview .j6-defect-note { color: #6f4b00; }
+body[data-journey="6"] .j4-overview .j6-entry-note { color: var(--diary-text-secondary); }
+body[data-journey="6"] .j6-timeslot-entry { width: 100%; min-height: 44px; }
+body[data-journey="6"] .j6-stage-card { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--diary-border-strong); background: #fbfcfe; }
+body[data-journey="6"] .j6-stage-card h3 { margin: 0; color: var(--diary-navy); font-size: 17px; }
+body[data-journey="6"] .j6-stage-card p { margin: 0; font-size: 12px; line-height: 1.5; }
+body[data-journey="6"] .j6-stage-card.j6-open { color: #0b5f45; background: #f0fbf6; border-left: 4px solid #1b8c63; }
+body[data-journey="6"] .j6-stage-card.j6-blocked { color: #6f4b00; background: var(--diary-warning-bg); border-left: 4px solid #c18d13; }
+body[data-journey="6"] .j6-stage-card.j6-unverified { color: #4f3f79; background: #f6f2ff; border-left: 4px solid #8064bb; }
+body[data-journey="6"] .j6-stage-card.j6-safety { color: #0d3155; background: #eaf4ff; border-left: 4px solid var(--diary-blue-500); }
+body[data-journey="6"] #j5-workflow-dialog input:not([type="checkbox"]), body[data-journey="6"] #j5-workflow-dialog select, body[data-journey="6"] #j5-workflow-dialog button { min-height: 44px; }
+body[data-journey="6"] #j5-workflow-close { width: 44px; height: 44px; min-height: 44px; }
+body[data-journey="6"] .j6-check-row { min-height: 44px; }
+body[data-journey="6"] .j6-different-time-rows { display: grid; gap: 10px; margin-top: 12px; }
+body[data-journey="6"] .j6-different-time-row { display: grid; grid-template-columns: minmax(100px, 1fr) repeat(3, minmax(0, 1fr)); align-items: end; gap: 8px; padding: 10px; border: 1px solid var(--diary-border); background: #fff; }
+body[data-journey="6"] .j6-different-time-row label { display: grid; gap: 5px; color: var(--diary-navy); font-size: 11px; font-weight: 800; }
+body[data-journey="6"] .j6-different-time-row input { width: 100%; min-height: 44px; padding: 8px 10px; color: var(--diary-text); background: #fff; border: 1px solid var(--diary-border-strong); font: inherit; }
+body[data-journey="6"] .j6-stage-card .j6-indivisible { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 10px; background: #fff; border: 1px solid var(--diary-border); }
+body[data-journey="6"] .j6-stage-card .j6-indivisible strong { color: var(--diary-navy); }
+body[data-journey="6"] .j6-stage-card .j6-indivisible span { color: var(--diary-text-secondary); font-size: 11px; }
+body[data-journey="6"] .j6-stage-card .j6-breadcrumb { display: flex; flex-wrap: wrap; gap: 6px; color: var(--diary-text-secondary); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+body[data-journey="6"] .j6-stage-card .j6-breadcrumb [aria-current="step"] { color: var(--diary-blue-800); }
+body[data-journey="6"] .j6-resource-state { padding: 10px; background: #fff; border: 1px dashed var(--diary-border-strong); font-size: 12px; line-height: 1.45; }
+body[data-journey="6"] .j6-field-readonly { opacity: .88; }
+body[data-journey="6"] .j6-workflow-label { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 8px; color: #4f3f79; background: #f6f2ff; border: 1px solid #cbbde8; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+@media (max-width: 760px) {
+  body[data-journey="6"] .j6-action-grid { grid-template-columns: 1fr; }
+  body[data-journey="6"] .j6-stage-card .j6-indivisible { grid-template-columns: 1fr; }
+  body[data-journey="6"] .j6-different-time-row { grid-template-columns: 1fr; }
+}
+
+/* Journey 7 route-scoped evidence status; all Product controls remain Master-owned. */
+body[data-journey="7"] .j7-route-status { display:grid; gap:12px; margin:12px 0 14px; padding:14px 16px; background:#f7f9fc; border:1px solid #adc7f4; border-left:4px solid #2e73df; position:relative; z-index:6; }
+body[data-journey="7"] .j7-status-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; }
+body[data-journey="7"] .j7-status-heading h1 { margin:3px 0 0; color:#102a46; font-size:18px; line-height:1.2; }
+body[data-journey="7"] .j7-boundary-chip { display:inline-flex; align-items:center; min-height:24px; padding:4px 7px; color:#694d00; background:#fff8e8; border:1px solid #e4c875; font-size:9px; font-weight:800; white-space:nowrap; }
+body[data-journey="7"] .j7-status-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+body[data-journey="7"] .j7-status-grid div { display:grid; gap:3px; min-width:0; padding:8px; background:#fff; border:1px solid #e5eaf1; }
+body[data-journey="7"] .j7-status-grid strong { color:#344054; font-size:10px; }
+body[data-journey="7"] .j7-status-grid span { color:#667085; font-size:10px; line-height:1.35; }
+body[data-journey="7"] .j7-route-note { margin:0; color:#667085; font-size:10px; line-height:1.4; }
+@media (max-width:760px) { body[data-journey="7"] .j7-status-heading { display:grid; gap:8px; } body[data-journey="7"] .j7-status-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:420px) { body[data-journey="7"] .j7-status-grid { grid-template-columns:1fr; } }
+
+/* Journey 7 mobile review keeps the inherited Cart sheet open and preserves touch targets. */
+@media (max-width:600px) {
+  body[data-journey="7"] #cart-primary-action,
+  body[data-journey="7"] .combo-input,
+  body[data-journey="7"] .combo-chev { min-height:44px; }
+}
+
+/* Journey 7 bounded mobile Cart correction: keep the existing four-track card and restore its full-width action row. */
+@media (max-width:600px) {
+  body[data-journey="7"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions,
+  body[data-journey="7"][data-contextual-workspace="true"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions {
+    display: flex !important;
+    grid-area: actions;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
+    overflow: visible;
+    flex-wrap: nowrap;
+    padding-top: 7px;
+    padding-bottom: 6px;
+  }
+  body[data-journey="7"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions > button,
+  body[data-journey="7"][data-contextual-workspace="true"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions > button {
+    grid-area: auto !important;
+    flex: 0 0 44px;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    margin: 0;
+  }
+  body[data-journey="7"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions .cart-line-action-menu > button,
+  body[data-journey="7"][data-contextual-workspace="true"] #cart-sheet-panel .booking-cart #cart-body[data-cart-view="compact"] .cart-line-actions .cart-line-action-menu > button {
+    min-height: 44px;
+  }
+}
+
+/* Journey 7 only: reuse the accepted stacked Compact card when its contextual Cart remains narrow on wider viewports. */
+@media (min-width: 601px) {
+  body[data-journey="7"][data-contextual-workspace="true"] :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-body[data-cart-view="compact"] .cart-line-summary {
+    grid-template-columns: 18px 26px minmax(0, 1fr) minmax(58px, auto);
+    grid-template-areas:
+      "select number identity state"
+      ". . venue venue"
+      ". . schedule price"
+      ". . offering offering"
+      "actions actions actions actions";
+    column-gap: 6px;
+    row-gap: 4px;
+    align-items: center;
+    padding: 9px 8px 8px;
+  }
+
+  body[data-journey="7"][data-contextual-workspace="true"] :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-body[data-cart-view="compact"] .cart-line-summary.has-package {
+    grid-template-areas:
+      "select number identity state"
+      ". . venue venue"
+      ". . schedule price"
+      ". . offering offering"
+      ". . package package"
+      "actions actions actions actions";
+  }
+
+  body[data-journey="7"][data-contextual-workspace="true"] :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-body[data-cart-view="compact"] .cart-line-item-block,
+  body[data-journey="7"][data-contextual-workspace="true"] :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-body[data-cart-view="compact"] .cart-line-datetime-block {
+    display: contents;
+  }
+
+  body[data-journey="7"][data-contextual-workspace="true"] :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-body[data-cart-view="compact"] .cart-line-main {
+    grid-area: identity;
+    min-width: 0;
+  }
+
+  body[data-journey="7"][data-contextual-workspace="true"] :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-body[data-cart-view="compact"] .cart-line-compact-item {
+    display: none;
+  }
+
+  body[data-journey="7"][data-contextual-workspace="true"] :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-body[data-cart-view="compact"] .cart-line-venue {
+    display: block !important;
+    grid-area: venue;
+  }
+
+  body[data-journey="7"][data-contextual-workspace="true"] :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-body[data-cart-view="compact"] .cart-line-offering {
+    display: flex !important;
+    grid-area: offering;
+  }
+
+  body[data-journey="7"][data-contextual-workspace="true"] :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-body[data-cart-view="compact"] .cart-line-package-row {
+    display: flex !important;
+    grid-area: package;
+  }
+
+  body[data-journey="7"][data-contextual-workspace="true"] :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-body[data-cart-view="compact"] .cart-line-schedule {
+    grid-area: schedule;
+    display: block;
+    overflow: visible;
+    white-space: normal;
+  }
+
+  body[data-journey="7"][data-contextual-workspace="true"] :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-body[data-cart-view="compact"] .cart-line-schedule-duration {
+    display: inline;
+  }
+
+  body[data-journey="7"][data-contextual-workspace="true"] :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-body[data-cart-view="compact"] .cart-line-schedule-date::after,
+  body[data-journey="7"][data-contextual-workspace="true"] :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-body[data-cart-view="compact"] .cart-line-schedule-time::after {
+    content: " · ";
+    color: #98a6ba;
+  }
+
+  body[data-journey="7"][data-contextual-workspace="true"] :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-body[data-cart-view="compact"] .cart-line-amount-col {
+    grid-area: state;
+  }
+
+  body[data-journey="7"][data-contextual-workspace="true"] :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-body[data-cart-view="compact"] .cart-line-price {
+    grid-area: price;
+    justify-self: end;
+  }
+
+  body[data-journey="7"][data-contextual-workspace="true"] :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-body[data-cart-view="compact"] .cart-line-actions {
+    display: flex !important;
+    grid-area: actions;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
+    overflow: visible;
+    flex-wrap: nowrap;
+    padding-top: 7px;
+    padding-bottom: 6px;
+  }
+
+  body[data-journey="7"][data-contextual-workspace="true"] :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-body[data-cart-view="compact"] .cart-line-actions > button {
+    grid-area: auto !important;
+    flex: 0 0 44px;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    margin: 0;
+  }
+
+  body[data-journey="7"][data-contextual-workspace="true"] :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-body[data-cart-view="compact"] .cart-line-actions > .cart-line-delete,
+  body[data-journey="7"][data-contextual-workspace="true"] :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-body[data-cart-view="compact"] .cart-line-actions > .cart-line-actions-toggle {
+    display: grid !important;
+  }
+
+  body[data-journey="7"][data-contextual-workspace="true"] :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-body[data-cart-view="compact"] .cart-line-actions .cart-line-action-menu > button {
+    min-height: 44px;
+  }
+}
+/* Journey 8 isolated UJ-09 — route-scoped candidate styles */
+body[data-journey="8"] .j4-details-dialog,
+body[data-journey="8"] .j5-workflow-dialog { width: min(900px, calc(100vw - 32px)); max-height: min(760px, calc(100vh - 32px)); }
+body[data-journey="8"] #j4-details-dialog { z-index: 20; }
+body[data-journey="8"] #j5-workflow-dialog { z-index: 30; }
+body[data-journey="8"] .j5-action-hub { display: block; }
+body[data-journey="8"] .j5-action-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+body[data-journey="8"] .j5-action { min-height: 52px; text-align: left; }
+body[data-journey="8"] .j5-details-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+body[data-journey="8"] .j5-state-message { margin: 12px 20px; }
+body[data-journey="8"] .j5-workflow-body { overflow: auto; }
+body[data-journey="8"] #j5-workflow-stage { display: block; }
+body[data-journey="8"] .j8-boundary,
+body[data-journey="8"] .j8-evidence,
+body[data-journey="8"] .j8-selection-note { color: var(--diary-text-secondary); font-size: 12px; line-height: 1.45; }
+body[data-journey="8"] .j8-boundary { margin: 0 0 14px; padding: 10px 12px; border: 1px solid var(--diary-border); border-left: 4px solid var(--diary-blue-500); background: var(--diary-surface-muted); }
+body[data-journey="8"] .j8-panel { display: grid; gap: 14px; padding: 18px; border: 1px solid var(--diary-border); border-radius: 12px; background: var(--diary-surface); }
+body[data-journey="8"] .j8-panel h3 { margin: 0; color: var(--diary-text); }
+body[data-journey="8"] .j8-evidence { margin: -8px 0 0; text-transform: uppercase; letter-spacing: .06em; font-weight: 800; }
+body[data-journey="8"] .j8-fieldset,
+body[data-journey="8"] .j8-list-fieldset { display: grid; gap: 10px; margin: 0; padding: 12px; border: 1px solid var(--diary-border); border-radius: 10px; }
+body[data-journey="8"] .j8-fieldset legend,
+body[data-journey="8"] .j8-list-fieldset legend { padding: 0 6px; color: var(--diary-text-secondary); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+body[data-journey="8"] .j8-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+body[data-journey="8"] .j8-grid label,
+body[data-journey="8"] .j8-panel > label { display: grid; gap: 6px; color: var(--diary-text); font-size: 12px; font-weight: 700; }
+body[data-journey="8"] .j8-custom-only[hidden] { display: none !important; }
+body[data-journey="8"] #j4-details-dialog button,
+body[data-journey="8"] #j5-workflow-dialog button,
+body[data-journey="8"] #large-data-picker button,
+body[data-journey="8"] #mismatch-dialog button { min-width: 44px; min-height: 44px; }
+body[data-journey="8"] .j8-grid select,
+body[data-journey="8"] .j8-panel input[type="number"] { min-height: 44px; width: 100%; padding: 0 10px; border: 1px solid var(--diary-border-strong); border-radius: 8px; background: var(--diary-surface); color: var(--diary-text); }
+body[data-journey="8"] .j8-panel input[type="radio"],
+body[data-journey="8"] .j8-panel input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--diary-blue-500); }
+body[data-journey="8"] .j8-total-unavailable { margin: 0; padding: 12px; border: 1px dashed var(--diary-border-strong); border-radius: 8px; color: var(--diary-text-secondary); font-weight: 700; }
+body[data-journey="8"] .j8-reason { margin: 0; color: var(--diary-text-secondary); font-size: 12px; font-weight: 700; }
+body[data-journey="8"] .j8-confirm-panel,
+body[data-journey="8"] .j8-proposed,
+body[data-journey="8"] .j8-blocked { border-left: 4px solid var(--diary-blue-500); }
+body[data-journey="8"] .j8-blocked { border-left-color: var(--diary-text-secondary); background: var(--diary-warning-bg); }
+body[data-journey="8"] .j8-blocked h3 { line-height: 1.4; }
+body[data-journey="8"] .j8-proposal-facts { display: grid; gap: 0; margin: 0; }
+body[data-journey="8"] .j8-proposal-facts div { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--diary-border); }
+body[data-journey="8"] .j8-proposal-facts dt { color: var(--diary-text-secondary); font-size: 11px; font-weight: 800; text-transform: uppercase; }
+body[data-journey="8"] .j8-proposal-facts dd { margin: 0; color: var(--diary-text); }
+body[data-journey="8"] #j5-workflow-footer { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+body[data-journey="8"] #large-data-picker-backdrop { position: fixed; inset: 0; z-index: 90; background: var(--diary-surface-muted); }
+body[data-journey="8"] #large-data-picker { position: fixed; z-index: 91; inset: 10vh 50% auto auto; transform: translateX(50%); display: grid; gap: 12px; width: min(520px, calc(100vw - 32px)); max-height: min(620px, calc(100vh - 48px)); padding: 16px; overflow: auto; border: 1px solid var(--diary-border-strong); border-radius: 14px; background: var(--diary-surface); box-shadow: 0 20px 60px var(--diary-border); }
+body[data-journey="8"] #large-data-picker[hidden],
+body[data-journey="8"] #large-data-picker-backdrop[hidden] { display: none !important; }
+body[data-journey="8"] #large-data-picker-list { overflow: auto; }
+body[data-journey="8"] .j8-picker-row { display: block; width: 100%; min-height: 44px; margin: 0 0 8px; padding: 10px 12px; border: 1px solid var(--diary-border); border-radius: 8px; background: var(--diary-surface); color: var(--diary-text); text-align: left; cursor: pointer; }
+body[data-journey="8"] .j8-picker-row:hover,
+body[data-journey="8"] .j8-picker-row:focus-visible { border-color: var(--diary-blue-500); outline: 3px solid var(--diary-blue-500); }
+body[data-journey="8"] .j8-picker-row:last-child { margin-bottom: 0; }
+body[data-journey="8"] .picker-empty { color: var(--diary-text-secondary); }
+body[data-journey="8"] #large-data-picker[role="dialog"] { outline: 0; }
+body[data-journey="8"] #large-data-picker[role="dialog"]:focus { outline: 3px solid var(--diary-blue-500); outline-offset: 2px; }
+
+@media (max-width: 640px) {
+  body[data-journey="8"] .j5-action-grid,
+  body[data-journey="8"] .j5-details-facts,
+  body[data-journey="8"] .j8-grid { grid-template-columns: 1fr; }
+  body[data-journey="8"] .j8-proposal-facts div { grid-template-columns: 1fr; gap: 4px; }
+  body[data-journey="8"] #j5-workflow-footer { justify-content: stretch; }
+  body[data-journey="8"] #j5-workflow-footer > button { flex: 1 1 100%; min-height: 44px; }
+  body[data-journey="8"] .j4-details-dialog,
+  body[data-journey="8"] .j5-workflow-dialog { width: calc(100vw - 20px); max-height: calc(100vh - 20px); }
+  body[data-journey="8"] #large-data-picker {
+    left: 10px !important;
+    right: 10px !important;
+    bottom: 10px !important;
+    top: auto !important;
+    transform: none !important;
+    width: auto;
+    max-width: none;
+    max-height: calc(100vh - 20px);
+    border-radius: 14px;
+  }
+}
+
+
+
+/* Journey 9 route-scoped additions: accepted Diary shell, Cart and dialog/focus foundations remain active. */
+body[data-journey="9"] .j9-review-launch { border-top: 1px solid var(--diary-border); margin-top: 12px; padding-top: 12px; }
+body[data-journey="9"] .j9-review-launch .field-caption { margin: 0 0 8px; }
+body[data-journey="9"] .j9-dialog { max-width: 720px; }
+body[data-journey="9"] .j9-dialog .dialog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+body[data-journey="9"] .j9-dialog .j9-conditional[hidden],
+body[data-journey="9"] .j9-dialog #j9-by-field[hidden],
+body[data-journey="9"] .j9-dialog #j9-after-field[hidden] { display: none !important; }
+body[data-journey="9"] .j9-dialog .j9-fixture-controls { grid-column: 1 / -1; }
+body[data-journey="9"] .j9-dialog .j9-fixture-button { min-height: 44px; padding: 8px 10px; border: 1px solid var(--diary-border); background: var(--diary-surface); cursor: pointer; }
+body[data-journey="9"] .j9-dialog .j9-fixture-button[aria-pressed="true"] { border-color: var(--diary-blue-500); background: var(--diary-blue-050); font-weight: 700; }
+body[data-journey="9"] .j9-dialog .j9-errors { color: var(--diary-danger); min-height: 20px; }
+body[data-journey="9"] .j9-dialog .j9-dialog-result.is-conflict { border-left-color: var(--diary-warning); background: var(--diary-warning-bg); }
+body[data-journey="9"] .j9-dialog .j9-dialog-result.is-error { border-left-color: var(--diary-danger); background: var(--diary-danger-bg); }
+body[data-journey="9"] .j9-dialog .j9-dialog-result.is-available { border-left-color: var(--diary-success); background: var(--diary-success-bg); }
+body[data-journey="9"] .j9-dialog .dialog-close,
+body[data-journey="9"] .j9-dialog .dialog-actions button { min-height: 44px; min-width: 44px; }
+body[data-journey="9"] .j9-dialog :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+@media (max-width: 600px) {
+  body[data-journey="9"] .j9-dialog .dialog-grid { grid-template-columns: 1fr; }
+  body[data-journey="9"] .j9-dialog .j9-fixture-controls { grid-column: auto; }
+  body[data-journey="9"] .j9-dialog .dialog-actions { flex-wrap: wrap; }
+  body[data-journey="9"] .j9-dialog .dialog-actions button { flex: 1 1 180px; }
+}
+body[data-journey="9"] .j9-review-launch #j9-open-review { min-height: 44px; }
+body[data-journey="9"] .j9-review-launch { display: grid; gap: 6px; }
+body[data-journey="9"] .j9-review-launch .j9-status-pill { justify-self: start; }
+body[data-journey="9"] .j9-review-launch .availability-result { border-left: 3px solid var(--diary-border-strong); padding: 8px; }
+/* Journey 9 approved-plan target correction: every effective dialog target is at least 44x44 CSS px. */
+body[data-journey="9"] .j9-dialog .segmented label { min-height: 44px; box-sizing: border-box; }
+body[data-journey="9"] .j9-dialog .dialog-field input,
+body[data-journey="9"] .j9-dialog .dialog-field select,
+body[data-journey="9"] .j9-dialog input[type="number"],
+body[data-journey="9"] .j9-dialog input[type="date"],
+body[data-journey="9"] .j9-dialog select { min-height: 44px; box-sizing: border-box; }
+body[data-journey="9"] .j9-dialog .segmented label:has(input:checked) { color: var(--diary-blue-700); }
