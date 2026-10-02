@@ -167,6 +167,8 @@
     if (v === '7') return 7;
     if (v === '8') return 8;
     if (v === '9') return 9;
+    if (v === '10') return 10;
+    if (v === '11') return 11;
     return 1;
   }
 
@@ -4593,7 +4595,7 @@
   }
 
   function isGenericColumnCrosshairRoute() {
-    return slotLayout === 'column' && ['1', '3', '7', '8', '9'].includes(document.body.dataset.journey);
+    return slotLayout === 'column' && ['1', '3', '7', '8', '9', '10'].includes(document.body.dataset.journey);
   }
 
   function clearColumnCrosshair() {
@@ -9138,7 +9140,9 @@
   }
 
   function boot() {
+    window.__journey10Shared = Object.freeze({ renderCalendar, trapDialogFocus, applyTimeslotVisual, isFreeSlot, getFixtureFreeRange, announceLive });
     const journey = applyJourneyBoot();
+    if (journey === 10) document.documentElement.style.setProperty('--slot-h', '40px');
     applyJourneySurfaces(journey);
     closeAllJourneyOverlays();
     if (journey === 2) {
@@ -9172,4 +9176,324 @@
   } else {
     boot();
   }
+})();
+
+
+
+/* ===== Journey 10 isolated candidate — UJ-12 / AC-29 bounded private Block CRUD ===== */
+(function journey10IsolatedCandidate() {
+  'use strict';
+  const isJ10 = () => document.body.dataset.journey === '10';
+  const $ = (id) => document.getElementById(id);
+  const state = { selection: null, block: null, editorMode: 'create', trigger: null, confirmTrigger: null, busy: false, actions: { create: 0, update: 0, delete: 0 } };
+  const baseDate = '2026-08-29';
+  const shared = () => window.__journey10Shared || {};
+  const slotToLabel = (slot) => { const h = 8 + Math.floor(slot / 2); const m = slot % 2 ? '30' : '00'; return `${String(h).padStart(2, '0')}:${m}`; };
+  const durationLabel = (startSlot, endSlot) => { const minutes = Math.max(0, (endSlot - startSlot) * 30); const hours = Math.floor(minutes / 60); const remainder = minutes % 60; if (hours && remainder) return `${hours} ${hours === 1 ? 'hr' : 'hrs'} ${remainder} min`; if (hours) return `${hours} ${hours === 1 ? 'hr' : 'hrs'}`; return `${minutes} min`; };
+  const announce = (text) => { shared().announceLive?.(text); const toast = $('toast-region'); if (toast) toast.textContent = text; };
+  const setHidden = (el, hidden) => { if (!el) return; el.hidden = hidden; el.inert = hidden; if (hidden) el.setAttribute('aria-hidden', 'true'); else el.removeAttribute('aria-hidden'); };
+  const selectedText = (x) => x ? `${x.assetName} · ${slotToLabel(x.startSlot)}–${slotToLabel(x.endSlot)} · ${x.date}` : 'No interval selected';
+  function clearSlotSelection() { document.querySelectorAll('body[data-journey="10"] .cal-slot.j10-selected, body[data-journey="10"] .cal-slot.selected-range, body[data-journey="10"] .cal-slot.range-start, body[data-journey="10"] .cal-slot.range-end').forEach((el) => el.classList.remove('j10-selected', 'selected-range', 'range-start', 'range-end')); }
+  function fixtureRange(asset, date, slot) {
+    const range = shared().getFixtureFreeRange?.(asset, date, slot);
+    if (!range || range.endSlot <= range.startSlot) return null;
+    return range;
+  }
+  function eligibleCell(asset, date, slot) {
+    const range = fixtureRange(asset, date, slot);
+    const node = document.querySelector(`body[data-journey="10"] .cal-day-col[data-asset="${asset}"][data-date="${date}"] .cal-slot[data-slot="${slot}"]`);
+    return !!range && Number.isInteger(slot) && slot >= range.startSlot && slot < range.endSlot && !!node && node.classList.contains('free') && shared().isFreeSlot?.(asset, date, slot) === true;
+  }
+  function rangeEligible(asset, date, startSlot, endSlot) { return endSlot === startSlot + 1 && eligibleCell(asset, date, startSlot); }
+  function slotHeight(col) { return parseFloat(getComputedStyle(col).getPropertyValue('--slot-h') || '10'); }
+  function paintSelection() {
+    clearSlotSelection(); const x = state.selection;
+    const summary = $('j10-selection-summary'); if (summary) summary.textContent = selectedText(x);
+    const add = $('j10-add-block'); if (add) add.disabled = !!state.block || !x || !rangeEligible(x.asset, x.date, x.startSlot, x.endSlot);
+    if (!x) return;
+    document.querySelectorAll(`body[data-journey="10"] .cal-day-col[data-asset="${x.asset}"][data-date="${x.date}"] .cal-slot`).forEach((el) => { const n = Number(el.dataset.slot); if (n >= x.startSlot && n < x.endSlot) { el.classList.add('j10-selected', 'selected-range'); if (n === x.startSlot) el.classList.add('range-start'); if (n === x.endSlot - 1) el.classList.add('range-end'); } });
+  }
+  function selectionCardNode() {
+    const x = state.selection; if (!x || !rangeEligible(x.asset, x.date, x.startSlot, x.endSlot)) return null;
+    const col = document.querySelector(`body[data-journey="10"] .cal-day-col[data-asset="${x.asset}"][data-date="${x.date}"]`); if (!col) return null;
+    const node = document.createElement('div'); node.className = 'cal-event j10-selection-card'; node.dataset.asset = x.asset; node.dataset.date = x.date; node.setAttribute('aria-hidden', 'true');
+    const time = document.createElement('span'); time.className = 'j10-selection-card-time'; time.textContent = `${slotToLabel(x.startSlot)} - ${durationLabel(x.startSlot, x.endSlot)}`;
+    const kind = document.createElement('span'); kind.className = 'j10-selection-card-kind'; kind.textContent = 'New';
+    const asset = document.createElement('span'); asset.className = 'j10-selection-card-asset'; asset.textContent = x.assetName;
+    node.append(time, kind, asset);
+    const slotH = slotHeight(col); node.style.top = `${x.startSlot * slotH}px`; node.style.height = `${(x.endSlot - x.startSlot) * slotH}px`; col.appendChild(node); return node;
+  }
+  function blockNode() {
+    const x = state.block; if (!x) return null;
+    const col = document.querySelector(`body[data-journey="10"] .cal-day-col[data-asset="${x.asset}"][data-date="${x.date}"]`); if (!col) return null;
+    const node = document.createElement('button'); node.type = 'button'; node.className = 'cal-event block j10-block-event'; node.id = 'j10-committed-block'; node.dataset.asset = x.asset; node.dataset.date = x.date; node.setAttribute('aria-label', `Block on ${x.assetName}, ${slotToLabel(x.startSlot)} to ${slotToLabel(x.endSlot)}, ${x.category}${x.marker ? `, ${x.marker}` : ''}`); node.innerHTML = '<strong>Block</strong><span></span>'; node.querySelector('span').textContent = `${x.category}${x.marker ? ` · ${x.marker}` : ''}`; shared().applyTimeslotVisual?.(node, 'block');
+    const slotH = slotHeight(col); node.style.top = `${x.startSlot * slotH}px`; node.style.height = `${(x.endSlot - x.startSlot) * slotH}px`; node.addEventListener('click', (e) => openEditor('update', e.currentTarget)); node.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEditor('update', e.currentTarget); } }); col.appendChild(node); return node;
+  }
+  function render() { if (!isJ10()) return; const grid = $('calendar-grid'); if (!grid) return; grid.querySelectorAll('.j10-selection-card, .j10-block-event').forEach((el) => el.remove()); blockNode(); paintSelection(); selectionCardNode(); }
+  function closeEditor(restore = true) { const dialog = $('j10-block-dialog'); if (dialog?.open) dialog.close(); $('j10-block-error').textContent = ''; if (restore && state.trigger?.isConnected) state.trigger.focus(); else if (restore) $('j10-add-block')?.focus(); state.trigger = null; state.editorMode = 'create'; }
+  function populateEditor(mode, source) { const x = mode === 'update' ? state.block : state.selection; if (!x || (mode === 'create' && (state.block || !rangeEligible(x.asset, x.date, x.startSlot, x.endSlot)))) return false; $('j10-block-title').textContent = mode === 'update' ? 'Edit Block' : 'Add Block'; $('j10-block-save').textContent = mode === 'update' ? 'Save Changes' : 'Save Block'; $('j10-block-delete').hidden = mode !== 'update'; $('j10-block-asset').value = x.assetName; $('j10-block-time').value = `${slotToLabel(x.startSlot)}–${slotToLabel(x.endSlot)}`; $('j10-block-category').value = mode === 'update' ? x.category : ''; $('j10-block-marker').value = mode === 'update' ? (x.marker || '') : ''; $('j10-block-error').textContent = ''; state.editorMode = mode; state.trigger = source || state.trigger || $('j10-add-block'); return true; }
+  function openEditor(mode, source) { if (!isJ10() || state.busy || (mode === 'create' && (state.block || !state.selection))) return; if (!populateEditor(mode, source)) { announce('Choose one eligible free interval before adding a Block.'); return; } const dialog = $('j10-block-dialog'); dialog.showModal(); $('j10-block-category').focus(); }
+  function openDeleteConfirm() { if (!state.block || state.busy) return; const dialog = $('j10-delete-dialog'); state.confirmTrigger = state.trigger || $('j10-committed-block'); closeEditor(false); dialog.showModal(); $('j10-delete-keep').focus(); }
+  function closeDeleteConfirm() { const dialog = $('j10-delete-dialog'); if (dialog?.open) dialog.close(); if (state.confirmTrigger?.isConnected) state.confirmTrigger.focus(); else $('j10-add-block')?.focus(); state.confirmTrigger = null; }
+  function chooseSelection(target) { if (state.block) return; const col = target.closest('.cal-day-col'); if (!col) return; const slot = Number(target.dataset.slot); const asset = col.dataset.asset; const date = col.dataset.date; if (!eligibleCell(asset, date, slot)) { state.selection = null; render(); announce('Choose one eligible free interval.'); return; } state.selection = { asset, assetName: col.closest('.cal-lane')?.querySelector('.cal-lane-title')?.textContent?.split(' · ')[0] || asset, date, startSlot: slot, endSlot: slot + 1 }; render(); announce(`Interval selected: ${selectedText(state.selection)}. Add Block is available.`); }
+  function onGridPointer(event) { if (!isJ10()) return; const block = event.target.closest('.j10-block-event'); if (block) return; const slot = event.target.closest('.cal-slot.free'); if (!slot) return; event.preventDefault(); event.stopImmediatePropagation(); if (event.type === 'mousedown' && event.button !== 0) return; chooseSelection(slot); }
+  function onGridKey(event) { if (!isJ10()) return; const slot = event.target.closest('.cal-slot.free'); if (!slot || !['Enter', ' '].includes(event.key)) return; event.preventDefault(); event.stopImmediatePropagation(); chooseSelection(slot); }
+  function setMaintenance() { document.body.dataset.mode = 'maintenance'; document.querySelectorAll('.mode-nav .mode-btn').forEach((btn) => { const maintenance = btn.dataset.mode === 'maintenance'; btn.classList.toggle('is-active', maintenance); btn.setAttribute('aria-pressed', String(maintenance)); }); }
+  function installRouteSurface() {
+    if (!isJ10()) return;
+    document.title = 'Optimo Diary — Journey 10 / UJ-12 bounded Block CRUD'; document.body.dataset.contextualWorkspace = 'true'; setMaintenance();
+    setHidden($('j10-route-status'), false); setHidden($('j10-block-dialog'), false); setHidden($('j10-delete-dialog'), false);
+    const grid = $('calendar-grid'); grid?.addEventListener('mousedown', onGridPointer, true); grid?.addEventListener('click', onGridPointer, true); grid?.addEventListener('keydown', onGridKey, true);
+    ['j10-block-dialog', 'j10-delete-dialog'].forEach((id) => { const dialog = $(id); shared().trapDialogFocus?.(dialog); dialog.addEventListener('keydown', (event) => { if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); if (id === 'j10-block-dialog') closeEditor(); else closeDeleteConfirm(); } }, true); });
+    document.addEventListener('click', (event) => { if (!isJ10()) return; const mode = event.target.closest('.mode-nav .mode-btn'); if (mode) { event.preventDefault(); event.stopImmediatePropagation(); setMaintenance(); announce(mode.dataset.mode === 'maintenance' ? 'Maintenance context active for Journey 10.' : 'Booking is outside the Journey 10 bounded maintenance scope.'); return; } const dateControl = event.target.closest('#date-prev, #date-next, #date-today'); if (dateControl) window.setTimeout(render, 0); }, true);
+    $('j10-add-block')?.addEventListener('click', (e) => openEditor('create', e.currentTarget)); $('j10-block-close')?.addEventListener('click', () => closeEditor()); $('j10-block-cancel')?.addEventListener('click', () => closeEditor());
+    $('j10-block-form')?.addEventListener('submit', (event) => { event.preventDefault(); if (state.busy) return; if (state.editorMode === 'update') { if (!state.block) return; const category = $('j10-block-category').value; if (!category) { $('j10-block-error').textContent = 'Choose a Category before saving the Block.'; $('j10-block-category').focus(); return; } state.busy = true; state.block = { ...state.block, marker: $('j10-block-marker').value.trim(), category }; state.actions.update += 1; closeEditor(false); render(); announce('Block changes saved locally.'); state.busy = false; $('j10-committed-block')?.focus(); return; } if (state.block || !state.selection || !rangeEligible(state.selection.asset, state.selection.date, state.selection.startSlot, state.selection.endSlot)) { $('j10-block-error').textContent = 'Choose one eligible interval; only one local Block is allowed.'; return; } const category = $('j10-block-category').value; if (!category) { $('j10-block-error').textContent = 'Choose a Category before saving the Block.'; $('j10-block-category').focus(); return; } state.busy = true; state.block = { ...state.selection, category, marker: $('j10-block-marker').value.trim() }; state.selection = null; state.actions.create += 1; closeEditor(false); render(); announce('Block created locally.'); state.busy = false; $('j10-committed-block')?.focus(); });
+    $('j10-block-delete')?.addEventListener('click', openDeleteConfirm); $('j10-delete-keep')?.addEventListener('click', closeDeleteConfirm);
+    $('j10-delete-confirm')?.addEventListener('click', () => { if (state.busy || !state.block) return; state.busy = true; state.actions.delete += 1; state.block = null; state.selection = null; closeDeleteConfirm(); render(); announce('Block deleted locally. Calendar returned to the baseline.'); state.busy = false; $('j10-add-block')?.focus(); });
+    $('j10-block-dialog')?.addEventListener('cancel', (event) => { event.preventDefault(); closeEditor(); }); $('j10-delete-dialog')?.addEventListener('cancel', (event) => { event.preventDefault(); closeDeleteConfirm(); });
+    render();
+  }
+  window.__j10Review = { state, getSnapshot: () => JSON.parse(JSON.stringify(state)), reset: () => window.location.reload(), select: (asset = 'studio2', date = baseDate, startSlot = 4) => { if (eligibleCell(asset, date, startSlot)) state.selection = { asset, assetName: asset === 'studio2' ? 'Studio 2' : asset, date, startSlot, endSlot: startSlot + 1 }; else state.selection = null; render(); }, metrics: () => ({ ...state.actions }) };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => window.setTimeout(installRouteSurface, 0)); else window.setTimeout(installRouteSurface, 0);
+})();
+
+
+/* ===== Journey 11 isolated candidate — UJ-13 / AC-30 Diary Note CRUD ===== */
+(function journey11IsolatedCandidate() {
+  'use strict';
+  const isJ11 = () => document.body.dataset.journey === '11';
+  const $ = (id) => document.getElementById(id);
+  const state = { notes: [], activeDate: null, origin: null, editingId: null, deleteId: null, deleteOrigin: null };
+  const NOTE_TYPES = ['General', 'Staffing', 'Facility'];
+  const dateLabel = (value) => {
+    if (!value) return '';
+    const d = new Date(`${value}T12:00:00`);
+    return Number.isNaN(d.getTime()) ? value : new Intl.DateTimeFormat('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }).format(d);
+  };
+  const activeDateLabel = (value) => new Intl.DateTimeFormat('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(`${value}T12:00:00`));
+  const covers = (note, date) => note.start <= date && date <= note.end;
+  const noteForDate = (date) => state.notes.filter((note) => covers(note, date));
+  const setHidden = (el, hidden) => {
+    if (!el) return;
+    el.hidden = hidden;
+    el.inert = hidden;
+    if (hidden) el.setAttribute('aria-hidden', 'true'); else el.removeAttribute('aria-hidden');
+  };
+  const announce = (text) => {
+    const live = $('ldp-live');
+    if (live) live.textContent = text;
+    const toast = $('toast-region');
+    if (toast) toast.textContent = text;
+  };
+  function headerForDate(date) { return document.querySelector(`body[data-journey="11"] .cal-day-header[data-date="${date}"]`); }
+  function decorateHeaders() {
+    if (!isJ11()) return;
+    document.querySelectorAll('body[data-journey="11"] .cal-day-header').forEach((header) => {
+      const date = header.dataset.date;
+      const hasNote = noteForDate(date).length > 0;
+      header.tabIndex = 0;
+      header.setAttribute('role', 'button');
+      header.setAttribute('aria-label', `${dateLabel(date)} — ${hasNote ? 'Diary Note available' : 'Open Diary Notes'}`);
+      const oldMarker = header.querySelector('.j11-note-marker');
+      if (oldMarker) oldMarker.remove();
+      if (hasNote) {
+        const marker = document.createElement('span');
+        marker.className = 'j11-note-marker';
+        marker.setAttribute('aria-hidden', 'true');
+        marker.textContent = '●';
+        header.appendChild(marker);
+      }
+    });
+  }
+  function noteCard(note) {
+    const card = document.createElement('article');
+    card.className = 'j11-note-card';
+    card.dataset.noteId = note.id;
+    const heading = document.createElement('div');
+    heading.className = 'j11-note-card-heading';
+    const title = document.createElement('strong');
+    title.textContent = note.type;
+    heading.appendChild(title);
+    if (note.unavailable) {
+      const badge = document.createElement('span');
+      badge.className = 'j11-unavailable-badge';
+      badge.textContent = 'Unavailable for Booking (display only; non-blocking)';
+      heading.appendChild(badge);
+    }
+    const range = document.createElement('span');
+    range.className = 'j11-note-range';
+    range.textContent = `${dateLabel(note.start)} – ${dateLabel(note.end)}`;
+    const text = document.createElement('p');
+    text.className = 'j11-note-text';
+    text.textContent = note.text || 'No additional information.';
+    const actions = document.createElement('div');
+    actions.className = 'j11-note-actions';
+    const edit = document.createElement('button');
+    edit.type = 'button'; edit.className = 'btn-secondary btn-sm'; edit.dataset.j11Edit = note.id; edit.textContent = 'Edit';
+    const remove = document.createElement('button');
+    remove.type = 'button'; remove.className = 'btn-danger btn-secondary btn-sm'; remove.dataset.j11Delete = note.id; remove.textContent = 'Delete';
+    actions.append(edit, remove);
+    card.append(heading, range, text, actions);
+    return card;
+  }
+  function renderList() {
+    const list = $('j11-notes-list');
+    if (!list) return;
+    list.innerHTML = '';
+    const notes = noteForDate(state.activeDate);
+    if (!notes.length) {
+      const empty = document.createElement('p');
+      empty.className = 'j11-empty-state';
+      empty.textContent = 'No note for this date';
+      list.appendChild(empty);
+    } else {
+      notes.forEach((note) => list.appendChild(noteCard(note)));
+    }
+    $('j11-note-add').textContent = notes.length ? 'Add another note' : 'Add note';
+    setHidden($('j11-notes-list'), false);
+    setHidden($('j11-note-form'), true);
+    setHidden($('j11-list-actions'), false);
+  }
+  function syncFormValidity() {
+    const type = $('j11-note-type')?.value || '';
+    const start = $('j11-note-start')?.value || '';
+    const end = $('j11-note-end')?.value || '';
+    const error = $('j11-note-error');
+    const validDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(new Date(`${value}T12:00:00`).getTime());
+    const invalidDate = (!!start && !validDate(start)) || (!!end && !validDate(end));
+    const invalidRange = !invalidDate && !!start && !!end && end < start;
+    if (error) error.textContent = invalidDate ? 'Enter valid Start and End dates.' : invalidRange ? 'End date must be on or after Start date.' : '';
+    const valid = !!type && validDate(start) && validDate(end) && !invalidRange;
+    if ($('j11-note-save')) $('j11-note-save').disabled = !valid;
+    return valid;
+  }
+  function openEditor(note) {
+    const form = $('j11-note-form');
+    if (!form) return;
+    state.editingId = note?.id || null;
+    $('j11-note-form-title').textContent = note ? 'Edit note' : 'Add note';
+    $('j11-note-type').value = note?.type || '';
+    $('j11-note-start').value = note?.start || state.activeDate;
+    $('j11-note-end').value = note?.end || state.activeDate;
+    $('j11-note-unavailable').checked = !!note?.unavailable;
+    $('j11-note-text').value = note?.text || '';
+    $('j11-note-error').textContent = '';
+    setHidden($('j11-notes-list'), true);
+    setHidden($('j11-list-actions'), true);
+    setHidden(form, false);
+    syncFormValidity();
+    $('j11-note-type').focus();
+  }
+  function restoreOrigin() {
+    const origin = state.origin;
+    state.origin = null;
+    if (origin?.isConnected) origin.focus();
+  }
+  function closeNotes(restore = true) {
+    const dialog = $('j11-notes-dialog');
+    if (dialog?.open) dialog.close();
+    state.editingId = null;
+    if (restore) restoreOrigin();
+  }
+  function openNotes(trigger) {
+    if (!isJ11() || !trigger?.dataset.date) return;
+    state.activeDate = trigger.dataset.date;
+    state.origin = trigger;
+    $('j11-active-date').textContent = `Selected date: ${activeDateLabel(state.activeDate)}`;
+    renderList();
+    const dialog = $('j11-notes-dialog');
+    if (!dialog.open) dialog.showModal();
+    $('j11-note-add').focus();
+  }
+  function openDelete(id, trigger) {
+    const note = state.notes.find((item) => item.id === id);
+    if (!note) return;
+    $('j11-delete-description').textContent = `Delete ${note.type} note (${dateLabel(note.start)} – ${dateLabel(note.end)})? This local note will be removed.`;
+    state.deleteId = id;
+    state.deleteOrigin = trigger;
+    const notes = $('j11-notes-dialog');
+    if (notes?.open) notes.close();
+    const dialog = $('j11-delete-dialog');
+    dialog.showModal();
+    $('j11-delete-cancel').focus();
+  }
+  function returnToNotes() {
+    const dialog = $('j11-notes-dialog');
+    renderList();
+    if (!dialog.open) dialog.showModal();
+    $('j11-note-add').focus();
+  }
+  function closeDelete(restoreMenu) {
+    const dialog = $('j11-delete-dialog');
+    if (dialog?.open) dialog.close();
+    state.deleteId = null;
+    if (restoreMenu) returnToNotes(); else restoreOrigin();
+  }
+  function saveNote(event) {
+    event.preventDefault();
+    if (!syncFormValidity()) return;
+    const draft = { type: $('j11-note-type').value, start: $('j11-note-start').value, end: $('j11-note-end').value, unavailable: $('j11-note-unavailable').checked, text: $('j11-note-text').value.trim() };
+    if (state.editingId) {
+      const existing = state.notes.find((note) => note.id === state.editingId);
+      if (existing) Object.assign(existing, draft);
+      announce('Diary Note updated locally.');
+    } else {
+      state.notes.push({ id: `j11-note-${Date.now()}-${state.notes.length}`, ...draft });
+      announce('Diary Note added locally.');
+    }
+    decorateHeaders();
+    renderList();
+  }
+  function installRouteSurface() {
+    if (!isJ11()) return;
+    document.title = 'Optimo Diary — Journey 11 / UJ-13 Diary Notes';
+    document.body.dataset.mode = 'maintenance';
+    document.querySelectorAll('.mode-nav .mode-btn').forEach((button) => {
+      const active = button.dataset.mode === 'maintenance';
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+    setHidden($('j11-route-status'), false);
+    setHidden($('j11-notes-dialog'), false);
+    setHidden($('j11-delete-dialog'), false);
+    decorateHeaders();
+    ['date-prev', 'date-next', 'date-today', 'picker-apply'].forEach((id) => $(id)?.addEventListener('click', () => window.setTimeout(decorateHeaders, 0), true));
+    document.addEventListener('click', (event) => {
+      if (!isJ11()) return;
+      const header = event.target instanceof Element ? event.target.closest('.cal-day-header[data-date]') : null;
+      if (header) { event.preventDefault(); event.stopImmediatePropagation(); openNotes(header); return; }
+      if (event.target.closest('.mode-nav .mode-btn')) { event.preventDefault(); event.stopImmediatePropagation(); announce('Maintenance context is active for Journey 11.'); return; }
+      const edit = event.target.closest('[data-j11-edit]');
+      if (edit) { event.preventDefault(); openEditor(state.notes.find((note) => note.id === edit.dataset.j11Edit)); return; }
+      const remove = event.target.closest('[data-j11-delete]');
+      if (remove) { event.preventDefault(); openDelete(remove.dataset.j11Delete, remove); }
+    }, true);
+    document.addEventListener('keydown', (event) => {
+      if (!isJ11()) return;
+      const header = event.target instanceof Element ? event.target.closest('.cal-day-header[data-date]') : null;
+      if (header && (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar')) { event.preventDefault(); event.stopImmediatePropagation(); openNotes(header); return; }
+      const notes = $('j11-notes-dialog');
+      if (notes?.open && event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); closeNotes(); }
+      const remove = $('j11-delete-dialog');
+      if (remove?.open && event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); closeDelete(true); }
+    }, true);
+    $('j11-notes-dialog')?.addEventListener('cancel', (event) => { event.preventDefault(); closeNotes(); });
+    $('j11-delete-dialog')?.addEventListener('cancel', (event) => { event.preventDefault(); closeDelete(true); });
+    $('j11-notes-close')?.addEventListener('click', () => closeNotes());
+    $('j11-note-cancel')?.addEventListener('click', () => { renderList(); $('j11-note-add').focus(); });
+    $('j11-note-add')?.addEventListener('click', () => openEditor());
+    $('j11-note-form')?.addEventListener('input', syncFormValidity);
+    $('j11-note-form')?.addEventListener('change', syncFormValidity);
+    $('j11-note-form')?.addEventListener('submit', saveNote);
+    $('j11-delete-cancel')?.addEventListener('click', () => closeDelete(true));
+    $('j11-delete-confirm')?.addEventListener('click', () => {
+      state.notes = state.notes.filter((note) => note.id !== state.deleteId);
+      decorateHeaders();
+      announce('Diary Note deleted locally.');
+      closeDelete(true);
+    });
+    renderList();
+    window.__j11Review = { state, reset: () => window.location.reload(), snapshot: () => JSON.parse(JSON.stringify(state.notes)), decorateHeaders };
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => window.setTimeout(installRouteSurface, 0)); else window.setTimeout(installRouteSurface, 0);
 })();

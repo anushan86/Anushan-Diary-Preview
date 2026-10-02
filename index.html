@@ -306,6 +306,22 @@
           </div>
           <p class="j7-route-note" id="j7-route-note">The accepted Master Item, Package, Concession, configuration, Total, picker, mismatch dialog and single Cart controls are the only Product interaction source. Journey 7 stops before Booking creation.</p>
         </section>
+        <section class="j10-route-status" id="j10-route-status" hidden aria-labelledby="j10-route-title">
+          <div class="j10-status-heading">
+            <div><span class="j4-kicker">Journey 10 · UJ-12 / AC-29 · Maintenance</span><h1 id="j10-route-title">Private Block management</h1></div>
+            <span class="j10-boundary-chip">PARTIAL · LOCAL REVIEW FIXTURE · NO SERVER REQUEST</span>
+          </div>
+          <p id="j10-route-copy">Choose an eligible free interval to create a bounded maintenance Block. Category is required; Marker/Note is optional.</p>
+          <div class="j10-action-row"><span id="j10-selection-summary" role="status" aria-live="polite">No interval selected</span><button type="button" class="btn-primary" id="j10-add-block" disabled>Add Block</button></div>
+        </section>
+        <section class="j11-route-status" id="j11-route-status" hidden inert aria-hidden="true" aria-labelledby="j11-route-title">
+          <div class="j11-status-heading">
+            <div><span class="j4-kicker">Journey 11 · UJ-13 / AC-30 · Maintenance</span><h1 id="j11-route-title">Diary Notes</h1></div>
+            <span class="j11-boundary-chip">PARTIAL · LOCAL REVIEW FIXTURE · NO SERVER REQUEST</span>
+          </div>
+          <p id="j11-route-copy">Open a calendar date to review, add, edit or remove Diary Notes. The note-type list is a sample fixture and has not been confirmed against production.</p>
+          <p class="j11-scope-copy"><strong>Sample types — real list to be confirmed:</strong> General, Staffing, Facility.</p>
+        </section>
         <div class="timeslot-legend-wrap">
           <div id="timeslot-colours-legend" class="timeslot-colours-legend" role="region" aria-label="Timeslot colours"></div>
         </div>
@@ -584,6 +600,47 @@
     </form>
   </dialog>
 
+  <dialog class="modal workflow-dialog j10-block-dialog" id="j10-block-dialog" aria-labelledby="j10-block-title" aria-describedby="j10-block-description">
+    <form id="j10-block-form" novalidate>
+      <div class="dialog-head"><div><span class="eyebrow">UJ-12 · bounded private Block</span><h2 id="j10-block-title">Add Block</h2></div><button type="button" class="dialog-close" id="j10-block-close" aria-label="Close Block editor">×</button></div>
+      <p class="dialog-intro" id="j10-block-description">This local editor manages one private Block. Nothing is sent or saved to a server.</p>
+      <div class="j10-dialog-grid">
+        <label class="dialog-field">Asset<input id="j10-block-asset" type="text" readonly aria-readonly="true"></label>
+        <label class="dialog-field">Time<input id="j10-block-time" type="text" readonly aria-readonly="true"></label>
+        <label class="dialog-field j10-wide">Category<select id="j10-block-category" required aria-describedby="j10-block-error"><option value="">Choose category</option><option value="Cleaning">Cleaning</option><option value="Inspection">Inspection</option><option value="Repair">Repair</option><option value="Private maintenance">Private maintenance</option></select></label>
+        <label class="dialog-field j10-wide">Marker/Note<input id="j10-block-marker" type="text" maxlength="120" autocomplete="off" placeholder="Optional marker or note"></label>
+      </div>
+      <p id="j10-block-error" class="j10-error" role="alert" aria-live="assertive"></p>
+      <div class="dialog-actions"><button type="button" class="btn-secondary" id="j10-block-cancel">Cancel</button><button type="button" class="btn-danger btn-secondary" id="j10-block-delete" hidden>Delete Block</button><button type="submit" class="btn-primary" id="j10-block-save">Save Block</button></div>
+    </form>
+  </dialog>
+  <dialog class="modal" id="j10-delete-dialog" role="alertdialog" aria-labelledby="j10-delete-title" aria-describedby="j10-delete-description">
+    <h2 id="j10-delete-title">Delete Block?</h2><p id="j10-delete-description">The committed local Block will be removed. This cannot be undone after confirmation.</p>
+    <div class="dialog-actions"><button type="button" class="btn-secondary" id="j10-delete-keep">Keep Block</button><button type="button" class="btn-primary btn-danger" id="j10-delete-confirm">Delete Block</button></div>
+  </dialog>
+  <dialog class="modal workflow-dialog j11-notes-dialog" id="j11-notes-dialog" aria-labelledby="j11-notes-title" aria-describedby="j11-active-date j11-notes-description">
+    <div class="dialog-head"><div><span class="eyebrow j11-context-chip">UJ-13 · Diary Notes</span><h2 id="j11-notes-title">Diary Notes</h2><p class="j11-active-date" id="j11-active-date"></p></div><button type="button" class="dialog-close" id="j11-notes-close" aria-label="Close Diary Notes">×</button></div>
+    <p class="dialog-intro j11-info-strip" id="j11-notes-description">PARTIAL · LOCAL REVIEW FIXTURE · NO SERVER REQUEST · Sample types — real list to be confirmed.</p>
+    <section id="j11-notes-list" class="j11-notes-list" aria-live="polite" aria-atomic="true"></section>
+    <form id="j11-note-form" class="j11-note-form" novalidate hidden>
+      <h3 id="j11-note-form-title">Add note</h3>
+      <div class="j11-note-grid">
+        <label class="dialog-field">Type <select id="j11-note-type" required aria-describedby="j11-note-error"><option value="">Choose a sample type</option><option value="General">General</option><option value="Staffing">Staffing</option><option value="Facility">Facility</option></select></label>
+        <label class="dialog-field">Start date <input id="j11-note-start" type="date" required aria-describedby="j11-note-error"></label>
+        <label class="dialog-field">End date <input id="j11-note-end" type="date" required aria-describedby="j11-note-error"></label>
+        <label class="j11-check-row"><input id="j11-note-unavailable" type="checkbox"> Unavailable for Booking (display only; non-blocking)</label>
+        <label class="dialog-field j11-wide">Additional information <textarea id="j11-note-text" rows="3" maxlength="500" placeholder="Optional text"></textarea></label>
+      </div>
+      <p class="j11-fixture-label">Sample types — real list to be confirmed.</p>
+      <p id="j11-note-error" class="j11-error" role="alert" aria-live="assertive"></p>
+      <div class="dialog-actions"><button type="button" class="btn-secondary" id="j11-note-cancel">Back to notes</button><button type="submit" class="btn-primary" id="j11-note-save" disabled>Save</button></div>
+    </form>
+    <div class="dialog-actions j11-list-actions" id="j11-list-actions"><button type="button" class="btn-secondary" id="j11-note-add">Add note</button></div>
+  </dialog>
+  <dialog class="modal j11-delete-dialog" id="j11-delete-dialog" role="alertdialog" aria-labelledby="j11-delete-title" aria-describedby="j11-delete-description">
+    <h2 id="j11-delete-title">Delete note?</h2><p id="j11-delete-description">This local Diary Note will be removed. Confirm to delete it.</p>
+    <div class="dialog-actions"><button type="button" class="btn-secondary" id="j11-delete-cancel">Cancel</button><button type="button" class="btn-primary btn-danger" id="j11-delete-confirm">Delete note</button></div>
+  </dialog>
   <div class="toast-region" id="toast-region" role="status" aria-live="polite" aria-atomic="true"></div>
   <div id="alert-region" role="alert" aria-live="assertive" class="visually-hidden"></div>
   <div id="ldp-live" role="status" aria-live="polite" aria-atomic="true" class="visually-hidden"></div>

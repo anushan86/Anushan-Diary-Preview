@@ -896,41 +896,41 @@ body {
 }
 
 /* V3 isolated candidate: transient generic-Column crosshair and continuous selection band. */
-body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"]) .cal-day-col.crosshair-column {
+body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"], [data-journey="10"]) .cal-day-col.crosshair-column {
   background: rgba(241, 246, 255, 0.82);
 }
-body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"]) .cal-day-header.crosshair-column {
+body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"], [data-journey="10"]) .cal-day-header.crosshair-column {
   background: rgba(227, 239, 255, 0.9);
 }
-body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"]) .cal-lane-body.crosshair-lane .cal-slot.crosshair-row:not(.selected-range) {
+body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"], [data-journey="10"]) .cal-lane-body.crosshair-lane .cal-slot.crosshair-row:not(.selected-range) {
   background: rgba(227, 239, 255, 0.78);
 }
-body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"]) .cal-lane-body.crosshair-lane .cal-slot.crosshair-row.crosshair-intersection:not(.selected-range) {
+body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"], [data-journey="10"]) .cal-lane-body.crosshair-lane .cal-slot.crosshair-row.crosshair-intersection:not(.selected-range) {
   background: rgba(207, 227, 255, 0.95);
   box-shadow: inset 0 0 0 2px var(--cobalt);
   position: relative;
   z-index: 2;
 }
-body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"]) .cal-time-gutter .time-label.crosshair-gutter {
+body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"], [data-journey="10"]) .cal-time-gutter .time-label.crosshair-gutter {
   background: rgba(227, 239, 255, 0.9);
   color: var(--cobalt);
   font-weight: 800;
 }
-body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"]) .cal-slot.selected-range {
+body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"], [data-journey="10"]) .cal-slot.selected-range {
   background: #d8e6ff;
   border-bottom-color: transparent;
   box-shadow: none;
   position: relative;
   z-index: 1;
 }
-body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"]) .cal-slot.selected-range.hour-boundary {
+body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"], [data-journey="10"]) .cal-slot.selected-range.hour-boundary {
   border-top-color: transparent;
 }
-body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"]) .cal-slot.selected-range.range-start {
+body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"], [data-journey="10"]) .cal-slot.selected-range.range-start {
   border-top: 2px solid var(--cobalt);
   border-radius: 3px 3px 0 0;
 }
-body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"]) .cal-slot.selected-range.range-end {
+body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data-journey="7"], [data-journey="8"], [data-journey="9"], [data-journey="10"]) .cal-slot.selected-range.range-end {
   border-bottom: 2px solid var(--cobalt);
   border-radius: 0 0 3px 3px;
 }
@@ -7591,3 +7591,237 @@ body[data-journey="9"] .j9-dialog input[type="number"],
 body[data-journey="9"] .j9-dialog input[type="date"],
 body[data-journey="9"] .j9-dialog select { min-height: 44px; box-sizing: border-box; }
 body[data-journey="9"] .j9-dialog .segmented label:has(input:checked) { color: var(--diary-blue-700); }
+
+/* Journey 10 isolated candidate — bounded Block CRUD only */
+body[data-journey="10"] #assets-panel,
+body[data-journey="10"] #booking-cart,
+body[data-journey="10"] #cart-sheet,
+body[data-journey="10"] #review-rail-toggle,
+body[data-journey="10"] #review-rail-panel,
+body[data-journey="10"] .view-switch,
+body[data-journey="10"] .slot-layout-control { display: none !important; }
+body[data-journey="10"] #diary-workspace { grid-template-columns: minmax(0, 1fr); }
+body[data-journey="10"] .calendar-panel { min-width: 0; }
+/* Correction 005: one 30-minute cell must contain the accepted three-line card. */
+body[data-journey="10"] { --slot-h: 40px; }
+.j10-route-status { margin: 0 16px 12px; padding: 14px 16px; border: 1px solid var(--line); background: var(--surface); }
+.j10-status-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.j10-status-heading h1 { margin: 2px 0 0; font-size: 18px; }
+.j10-boundary-chip { flex: 0 0 auto; padding: 5px 8px; border: 1px solid var(--warning); color: var(--warning); font-size: 10px; font-weight: 800; letter-spacing: .05em; }
+.j10-route-status > p { margin: 10px 0; color: var(--text-quiet); }
+.j10-action-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+#j10-selection-summary { color: var(--text-quiet); font-size: 12px; font-weight: 700; }
+.j10-dialog-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.j10-wide { grid-column: 1 / -1; }
+.j10-error { min-height: 20px; margin: 8px 0 0; color: var(--danger); font-size: 12px; font-weight: 700; }
+.j10-block-event { position: absolute; z-index: 8; display: grid; align-content: center; gap: 2px; overflow: hidden; padding: 2px 5px; text-align: left; cursor: pointer; font: inherit; }
+.j10-block-event span { overflow: hidden; font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.j10-block-event:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Correction 004: exact temporary New card; visual-only and intentionally non-interactive. */
+body[data-journey="10"] .cal-event.j10-selection-card {
+  z-index: 6;
+  display: grid;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  align-content: center;
+  gap: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 2px 5px;
+  border: 1px solid #2f65c8;
+  border-radius: 3px;
+  background: #cee3fd;
+  color: #173b72;
+  font-size: 10px;
+  line-height: 1.15;
+  font-weight: 600;
+  pointer-events: none;
+  cursor: default;
+  user-select: none;
+}
+body[data-journey="10"] .j10-selection-card > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body[data-journey="10"] .j10-selection-card-time { font-weight: 800; }
+body[data-journey="10"] .j10-selection-card-kind,
+body[data-journey="10"] .j10-selection-card-asset { font-weight: 700; }
+@media (max-width: 600px) { .j10-status-heading, .j10-action-row { align-items: stretch; flex-direction: column; } .j10-boundary-chip { align-self: flex-start; } .j10-dialog-grid { grid-template-columns: 1fr; } .j10-wide { grid-column: 1; } }
+
+/* Correction-001: approved narrow treatment, target sizes, and shared Block semantics */
+body[data-journey="10"] .j10-block-dialog .dialog-close,
+body[data-journey="10"] .j10-block-dialog .dialog-actions button,
+body[data-journey="10"] .j10-block-dialog select,
+body[data-journey="10"] .j10-block-dialog input,
+body[data-journey="10"] #j10-delete-dialog .dialog-actions button { min-height: 44px; }
+body[data-journey="10"] .j10-block-dialog .dialog-close { width: 44px; height: 44px; }
+@media (max-width: 600px) {
+  body[data-journey="10"] .j10-block-dialog { inset: 0; width: 100vw; max-width: 100vw; height: 100vh; max-height: 100vh; margin: 0; padding: 0; border: 0; }
+  body[data-journey="10"] .j10-block-dialog > form { display: flex; flex-direction: column; min-height: 100%; margin: 0; }
+  body[data-journey="10"] .j10-block-dialog .dialog-head,
+  body[data-journey="10"] .j10-block-dialog .dialog-intro,
+  body[data-journey="10"] .j10-block-dialog .j10-dialog-grid,
+  body[data-journey="10"] .j10-block-dialog .j10-error { margin-left: 20px; margin-right: 20px; }
+  body[data-journey="10"] .j10-block-dialog .j10-dialog-grid { margin-top: 12px; }
+  body[data-journey="10"] .j10-block-dialog .dialog-actions { position: sticky; bottom: 0; z-index: 2; margin-top: auto; padding: 14px 20px 20px; background: var(--surface); border-top: 1px solid var(--line); }
+  /* Responsive correction 001: measured 392px card text must fit its 40px cell. */
+  body[data-journey="10"] .cal-event.j10-selection-card { padding-left: 3px; padding-right: 3px; font-size: 9px; line-height: 1; }
+}
+
+/* ===== Journey 11 isolated candidate — all additions gated to the candidate route ===== */
+body[data-journey="11"] .j11-route-status { margin: 0 16px 12px; padding: 14px 16px; border: 1px solid var(--line); background: var(--surface); }
+body[data-journey="11"] .j11-status-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+body[data-journey="11"] .j11-status-heading h1 { margin: 2px 0 0; font-size: 18px; }
+body[data-journey="11"] .j11-boundary-chip { flex: 0 0 auto; padding: 5px 8px; border: 1px solid var(--warning); color: var(--warning); font-size: 10px; font-weight: 800; letter-spacing: .05em; }
+body[data-journey="11"] .j11-route-status > p { margin: 10px 0 0; color: var(--text-quiet); }
+body[data-journey="11"] .j11-scope-copy { padding: 8px 10px; border-left: 3px solid var(--warning); background: var(--warning-bg); }
+body[data-journey="11"] .cal-day-header { cursor: pointer; }
+body[data-journey="11"] .cal-day-header:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; position: relative; z-index: 2; }
+body[data-journey="11"] .j11-note-marker { display: inline-block; margin-left: 5px; color: var(--diary-blue-600); font-size: 10px; vertical-align: 1px; }
+body[data-journey="11"] .j11-notes-dialog { width: min(640px, calc(100vw - 32px)); max-width: calc(100vw - 32px); }
+body[data-journey="11"] .j11-note-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+body[data-journey="11"] .j11-wide { grid-column: 1 / -1; }
+body[data-journey="11"] .j11-note-form h3 { margin: 0 0 12px; font-size: 16px; }
+body[data-journey="11"] .j11-note-form textarea { width: 100%; min-height: 76px; resize: vertical; box-sizing: border-box; }
+body[data-journey="11"] .j11-check-row { display: flex; align-items: center; gap: 8px; min-height: 40px; font-weight: 700; }
+body[data-journey="11"] .j11-check-row input { width: 18px; height: 18px; }
+body[data-journey="11"] .j11-fixture-label { margin: 8px 0 0; color: var(--text-quiet); font-size: 12px; }
+body[data-journey="11"] .j11-error { min-height: 20px; margin: 8px 0 0; color: var(--danger); font-size: 12px; font-weight: 700; }
+body[data-journey="11"] .j11-notes-list { display: grid; gap: 10px; }
+body[data-journey="11"] .j11-empty-state { margin: 0; padding: 16px; border: 1px dashed var(--line); color: var(--text-quiet); }
+body[data-journey="11"] .j11-note-card { display: grid; gap: 7px; padding: 12px; border: 1px solid var(--line); background: var(--canvas); }
+body[data-journey="11"] .j11-note-card-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+body[data-journey="11"] .j11-unavailable-badge { padding: 3px 6px; border: 1px solid var(--warning); color: var(--warning); font-size: 11px; font-weight: 800; }
+body[data-journey="11"] .j11-note-range { color: var(--text-quiet); font-size: 12px; font-weight: 700; }
+body[data-journey="11"] .j11-note-text { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+body[data-journey="11"] .j11-note-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+body[data-journey="11"] .j11-list-actions { justify-content: space-between; }
+body[data-journey="11"] #j11-delete-dialog { width: min(440px, calc(100vw - 32px)); max-width: calc(100vw - 32px); }
+@media (max-width: 600px) {
+  body[data-journey="11"] .j11-status-heading { align-items: stretch; flex-direction: column; gap: 8px; }
+  body[data-journey="11"] .j11-boundary-chip { align-self: flex-start; }
+  body[data-journey="11"] .j11-note-grid { grid-template-columns: 1fr; }
+  body[data-journey="11"] .j11-wide { grid-column: 1; }
+  body[data-journey="11"] .j11-notes-dialog { inset: 0; width: 100vw; max-width: 100vw; min-height: 100vh; max-height: 100vh; margin: 0; box-sizing: border-box; }
+  body[data-journey="11"] .j11-notes-dialog .dialog-actions button,
+  body[data-journey="11"] .j11-notes-dialog select,
+  body[data-journey="11"] .j11-notes-dialog input,
+  body[data-journey="11"] .j11-notes-dialog textarea,
+  body[data-journey="11"] #j11-delete-dialog .dialog-actions button { min-height: 44px; }
+}
+
+/* ===== Journey 11 UI refinement — candidate-only human reference direction ===== */
+body[data-journey="11"] .j11-notes-dialog {
+  width: min(680px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  padding: 0 0 4px;
+  border-color: var(--diary-border-strong);
+  background: var(--surface);
+}
+body[data-journey="11"] .j11-notes-dialog .dialog-head {
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--diary-border);
+  background: var(--surface);
+}
+body[data-journey="11"] .j11-context-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 3px 7px;
+  border: 1px solid var(--diary-blue-200);
+  background: var(--diary-blue-050);
+  color: var(--diary-blue-700);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+body[data-journey="11"] #j11-notes-title { margin-top: 7px; font-size: 21px; letter-spacing: -.01em; }
+body[data-journey="11"] .j11-active-date { margin: 4px 0 0; color: var(--diary-text-secondary); font-size: 12px; font-weight: 600; }
+body[data-journey="11"] .j11-info-strip {
+  margin: 14px 20px 16px !important;
+  padding: 10px 12px;
+  border: 1px solid var(--diary-blue-200);
+  border-left: 3px solid var(--diary-blue-500);
+  background: var(--diary-blue-050);
+  color: var(--diary-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+body[data-journey="11"] .j11-notes-list,
+body[data-journey="11"] .j11-note-form { margin-left: 20px; margin-right: 20px; }
+body[data-journey="11"] .j11-notes-list { gap: 8px; }
+body[data-journey="11"] .j11-empty-state {
+  padding: 18px 14px;
+  border: 1px dashed var(--diary-border-strong);
+  background: var(--diary-page);
+  color: var(--diary-text-secondary);
+  font-size: 13px;
+}
+body[data-journey="11"] .j11-note-card {
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--diary-border);
+  border-left: 3px solid var(--diary-blue-200);
+  background: var(--surface);
+}
+body[data-journey="11"] .j11-note-card-heading { gap: 8px; }
+body[data-journey="11"] .j11-note-card-heading strong { color: var(--diary-text); font-size: 14px; }
+body[data-journey="11"] .j11-note-range { color: var(--diary-text-secondary); font-weight: 600; }
+body[data-journey="11"] .j11-note-text { color: var(--diary-text); line-height: 1.45; }
+body[data-journey="11"] .j11-note-actions { padding-top: 3px; }
+body[data-journey="11"] .j11-note-form h3 { margin: 0 0 14px; color: var(--diary-text); font-size: 16px; }
+body[data-journey="11"] .j11-note-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+body[data-journey="11"] .j11-note-grid .dialog-field { gap: 6px; }
+body[data-journey="11"] .j11-note-grid select,
+body[data-journey="11"] .j11-note-grid input[type="date"],
+body[data-journey="11"] .j11-note-grid textarea { box-sizing: border-box; width: 100%; }
+body[data-journey="11"] .j11-note-grid select,
+body[data-journey="11"] .j11-note-grid input[type="date"] { min-height: 40px; }
+body[data-journey="11"] .j11-note-grid textarea {
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--text);
+  padding: 6px 8px;
+  font: inherit;
+}
+body[data-journey="11"] .j11-note-grid textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+body[data-journey="11"] .j11-note-form .j11-check-row {
+  grid-column: 1 / -1;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--diary-border);
+  background: var(--diary-page);
+  color: var(--diary-text);
+}
+body[data-journey="11"] .j11-note-form .j11-check-row input { accent-color: var(--diary-blue-500); }
+body[data-journey="11"] .j11-fixture-label { margin: 10px 0 0; color: var(--diary-text-secondary); font-size: 11px; }
+body[data-journey="11"] .j11-note-form .j11-error { margin-top: 8px; }
+body[data-journey="11"] .j11-list-actions,
+body[data-journey="11"] .j11-note-form > .dialog-actions {
+  margin-top: 16px;
+  padding: 14px 20px 16px;
+  border-top: 1px solid var(--diary-border);
+}
+body[data-journey="11"] .j11-list-actions { justify-content: flex-start; }
+body[data-journey="11"] .j11-note-form > .dialog-actions { justify-content: flex-end; }
+body[data-journey="11"] .j11-delete-dialog {
+  width: min(440px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  border-color: var(--diary-border-strong);
+}
+body[data-journey="11"] .j11-delete-dialog h2 { font-size: 19px; }
+body[data-journey="11"] .j11-delete-dialog .dialog-actions { padding-top: 14px; border-top: 1px solid var(--diary-border); }
+@media (max-width: 600px) {
+  body[data-journey="11"] .j11-notes-dialog { width: 100vw; max-width: 100vw; min-height: 100vh; max-height: 100vh; }
+  body[data-journey="11"] .j11-notes-dialog .dialog-head { padding: 16px 20px 13px; }
+  body[data-journey="11"] .j11-note-grid { grid-template-columns: 1fr; }
+  body[data-journey="11"] .j11-note-form .j11-check-row,
+  body[data-journey="11"] .j11-wide { grid-column: 1; }
+  body[data-journey="11"] .j11-list-actions,
+  body[data-journey="11"] .j11-note-form > .dialog-actions { flex-wrap: wrap; }
+  body[data-journey="11"] .j11-note-form > .dialog-actions button { flex: 1 1 120px; }
+}
