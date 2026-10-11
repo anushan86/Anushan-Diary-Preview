@@ -125,6 +125,8 @@
     host.appendChild(title);
     const list = document.createElement('ul');
     list.className = 'timeslot-legend-list';
+    const j1Legend = document.body.dataset.journey === '1';
+    let missingColour = false;
     [
       { key: 'confirmed', cue: 'solid' },
       { key: 'quotation', cue: 'quotation' },
@@ -142,14 +144,21 @@
         swatch.style.setProperty('--timeslot-color', entry.color);
       } else {
         swatch.classList.add('timeslot-colour-unavailable');
+        missingColour = true;
       }
       const label = document.createElement('span');
       label.className = 'timeslot-legend-label';
-      label.textContent = resolveTimeslotLegendLabel(key, entry);
+      label.textContent = j1Legend ? (entry.label || TIMESLOT_SEMANTIC_FALLBACK_LABELS[key] || key) : resolveTimeslotLegendLabel(key, entry);
       li.append(swatch, label);
       list.appendChild(li);
     });
     host.appendChild(list);
+    if (j1Legend && missingColour) {
+      const note = document.createElement('span');
+      note.className = 'j1-legend-fallback';
+      note.textContent = 'Dashed swatches: system option colour unavailable';
+      host.appendChild(note);
+    }
   }
 
   /* ===== Journey 2 Master integration — CR-J2-001–010 ===== */
@@ -169,12 +178,20 @@
     if (v === '9') return 9;
     if (v === '10') return 10;
     if (v === '11') return 11;
+    if (v === '12') return 12;
+    if (v === '13') return 13;
+    if (v === '14') return 14;
+    if (v === '15') return 15;
+    if (v === '16') return 16;
     return 1;
   }
 
   function applyJourneyBoot() {
-    const journey = parseJourneyBoot(window.location.search);
+    const requested = parseJourneyBoot(window.location.search);
+    const journey = requested === 14 || requested === 15 || requested === 16 ? 12 : requested;
     document.body.dataset.journey = String(journey);
+    if (requested === 14) document.body.dataset.j14Entry = 'open';
+    else delete document.body.dataset.j14Entry;
     if (journey === 1 || journey === 7) document.body.dataset.contextualWorkspace = 'true';
     else delete document.body.dataset.contextualWorkspace;
     return journey;
@@ -388,6 +405,10 @@
     return document.body.dataset.journey === '6';
   }
 
+  function j6PublicRescheduleWorkflowActive() {
+    return isJ6Journey() || (document.body.dataset.journey === '12' && j5Operation?.action === 'PublicReschedule');
+  }
+
   function j4FindFixture(id) {
     return J4_FIXTURES.find((fixture) => fixture.id === id) || null;
   }
@@ -521,7 +542,7 @@
 
   function j4ApplyFilters(announce) {
     let visibleCount = 0;
-    $$('.j4-timeslot[data-j4-kind]').forEach((card) => {
+    $$('.j4-timeslot[data-j4-kind], .j4-cal-block[data-j4-kind]').forEach((card) => {
       const visible = j4EnabledFilters.has(card.dataset.j4Kind);
       card.hidden = !visible;
       if (visible) visibleCount += 1;
@@ -740,8 +761,8 @@
       ? 'One staged selection was handed to the existing J1 New Selection state and handlers; no second Cart was created.'
       : `${fixture.label} · ${fixture.status}`;
     state.textContent = handedOff ? 'Selected' : fixture.label;
-    time.textContent = j4FixtureDateTime(fixture);
-    resource.textContent = fixture.resource;
+    time.textContent = handedOff ? j4StagedDateTime() : j4FixtureDateTime(fixture);
+    resource.textContent = handedOff ? j4StagedResource() : fixture.resource;
     access.textContent = handedOff ? 'Existing J1 New Selection state' : fixture.access;
     guidance.textContent = j4ViewState === 'access-denied'
       ? 'Access-denied fixture: all timeslot actions are disabled.'
@@ -758,10 +779,11 @@
     const fixture = j4FindFixture(fixtureId);
     if (!fixture) return;
     j4ActiveFixtureId = fixture.id;
-    $$('.j4-timeslot[data-j4-fixture]').forEach((card) => {
+    $$('.j4-timeslot[data-j4-fixture], .j4-cal-block[data-j4-fixture]').forEach((card) => {
       const selected = card.dataset.j4Fixture === fixture.id;
       card.classList.toggle('is-current', selected);
-      card.setAttribute('aria-selected', selected ? 'true' : 'false');
+      if (card.classList.contains('j4-cal-block')) { const main = card.querySelector('.j4-cal-main'); if (main) { if (selected) main.setAttribute('aria-current', 'true'); else main.removeAttribute('aria-current'); } }
+      else card.setAttribute('aria-selected', selected ? 'true' : 'false');
     });
     j4RenderSummary();
     announceLive(`${fixture.label} selected for read-only review.`);
@@ -770,7 +792,10 @@
 
   const J4_CART_HANDOFF_SURFACES = [
     '#booking-cart', '#cart-sheet', '#mismatch-dialog', '#large-data-picker',
-    '#large-data-picker-backdrop', '#configure-form', '#amount-region', '#cart-current-selection'
+    '#large-data-picker-backdrop', '#configure-form', '#amount-region', '#cart-current-selection',
+    // One Calendar candidate: the Cart's own dialogs too, so the bin, the line menu and Clear cart open visible dialogs
+    // (they opened hidden, inert modals that froze the page until Escape).
+    '#cart-item-editor-dialog', '#remove-dialog', '#clear-dialog'
   ];
 
   function j4SetCartHandoffVisible(visible) {
@@ -1006,6 +1031,203 @@
     j4ApplyFilters(false);
   }
 
+  /* ===== One Calendar candidate (Supervisor #19, 2026-10-11): Journeys 4–6 timeslots drawn in the Journey 12 calendar =====
+     Card-to-calendar mapping — every card action stays reachable with the same number of clicks:
+       Select interval -> 'Select interval' button on the Available block (or drag/click free time, Journey 12 style)
+       Open details / Open review flow -> click or Enter on the timeslot block
+       More actions -> the block's ⋯ button, right-click, Shift+F10 or the Context Menu key
+       card click / focus -> Selected summary (focus updates it; the summary's Open details / More actions are unchanged)
+       arrow keys, Home, End -> move between timeslot blocks; filters, review states and dialogs are unchanged. */
+  function j4VisibleFixtures() {
+    if (j4ViewState === 'loading' || j4ViewState === 'error') return [];
+    let list = isJ6Journey() ? J4_FIXTURES.filter((f) => f.journey6) : J4_FIXTURES.filter((f) => !f.journey6);
+    if (j4ViewState === 'empty') list = isJ6Journey() ? [] : list.filter((f) => f.kind === 'available');
+    return list;
+  }
+  function j4FixtureSlots(fixture) {
+    if (fixture.journey6) {
+      const [sh, sm] = j6PublicInterval.start.split(':').map(Number);
+      const [eh, em] = j6PublicInterval.end.split(':').map(Number);
+      return { startSlot: timeToSlot(sh, sm), endSlot: timeToSlot(eh, em) };
+    }
+    return { startSlot: fixture.startSlot, endSlot: fixture.endSlot };
+  }
+  function j4StagedDateTime() {
+    const s = stagedSelection;
+    if (!s) return '';
+    return `${formatShortDate(new Date(`${s.date}T12:00:00`))} · ${formatTime(s.startH, s.startM)}–${formatTime(s.endH, s.endM)}`;
+  }
+  function j4StagedResource() {
+    const s = stagedSelection;
+    return s ? ((ASSETS.find((a) => a.id === s.asset) || {}).name || s.asset) : '';
+  }
+  function j4PrimaryAction(fixture, trigger) {
+    if (j4ActionsBlocked()) { announceLive('Timeslot actions are unavailable in this review state.'); return; }
+    if (fixture.kind === 'available') { j4SelectAvailable(trigger); return; }
+    if (isJ6Journey() && fixture.journey6) { j6StartOperation('PublicReschedule', trigger); return; }
+    j4OpenDetails(fixture, trigger);
+  }
+  function j4FocusFixture(id) {
+    if (j4ActiveFixtureId === id || j4ActionsBlocked()) return;
+    j4ActiveFixtureId = id;
+    $$('.j4-cal-block[data-j4-fixture]').forEach((block) => {
+      const on = block.dataset.j4Fixture === id;
+      block.classList.toggle('is-current', on);
+      const main = block.querySelector('.j4-cal-main');
+      if (main) { if (on) main.setAttribute('aria-current', 'true'); else main.removeAttribute('aria-current'); }
+    });
+    j4RenderSummary();
+  }
+  function j4MoveBlockFocus(from, key) {
+    const order = j4VisibleFixtures().map((f) => f.id);
+    const targets = Array.from($$('.j4-cal-block[data-j4-fixture]:not([hidden])'))
+      .sort((a, b) => order.indexOf(a.dataset.j4Fixture) - order.indexOf(b.dataset.j4Fixture))
+      .map((block) => block.querySelector('.j4-cal-main, .j4-cal-select'))
+      .filter((t) => t && !t.disabled);
+    const index = targets.indexOf(from);
+    if (index < 0 || !targets.length) return;
+    let next = index;
+    if (key === 'ArrowRight' || key === 'ArrowDown') next = Math.min(targets.length - 1, index + 1);
+    else if (key === 'ArrowLeft' || key === 'ArrowUp') next = Math.max(0, index - 1);
+    else if (key === 'Home') next = 0;
+    else if (key === 'End') next = targets.length - 1;
+    targets[next].focus();
+  }
+  function j4BlockKeydown(event, fixture, el) {
+    if (['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+      event.preventDefault();
+      event.stopPropagation();
+      j4MoveBlockFocus(el, event.key);
+      return;
+    }
+    if ((event.key === 'F10' && event.shiftKey) || event.key === 'ContextMenu') {
+      if (!fixture.more || j4ActionsBlocked()) return;
+      event.preventDefault();
+      j4OpenContext(fixture, document.getElementById(`j4-more-${fixture.id}`) || el);
+    }
+  }
+  function j4BuildBlock(fixture) {
+    const blocked = j4ActionsBlocked();
+    const block = document.createElement('div');
+    block.className = `cal-event j4-cal-block is-${fixture.kind}`;
+    if (fixture.visualType) { block.classList.add(fixture.visualType); applyTimeslotVisual(block, fixture.visualType); }
+    block.dataset.j4Kind = fixture.kind;
+    block.dataset.j4Fixture = fixture.id;
+    block.style.setProperty('--j4-state-color', j4StateColor(fixture));
+    block.title = `${fixture.reference} · ${j4FixtureDateTime(fixture)} · ${fixture.resource} · ${fixture.status}`;
+    block.setAttribute('role', 'group');
+    block.setAttribute('aria-label', `${fixture.label}. ${fixture.reference}. ${j4FixtureDateTime(fixture)}. ${fixture.resource}. ${fixture.status}.`);
+    if (fixture.id === j4ActiveFixtureId) block.classList.add('is-current');
+    const text = `<strong>${escapeHtml(fixture.kind === 'available' ? 'Available interval' : fixture.reference)}</strong> <span class="event-status">${escapeHtml(fixture.status)}</span>`;
+    if (fixture.kind === 'available') {
+      const label = document.createElement('span');
+      label.className = 'j4-cal-text';
+      label.innerHTML = text;
+      const select = document.createElement('button');
+      select.type = 'button';
+      select.className = 'j4-cal-select';
+      select.id = 'j4-select-available';
+      select.textContent = stagedSelection && j4ActiveFixtureId === 'available' ? 'Selected' : 'Select interval';
+      select.disabled = blocked;
+      select.setAttribute('aria-label', `Select interval ${j4FixtureDateTime(fixture)}, ${fixture.resource}`);
+      select.addEventListener('click', (event) => { event.stopPropagation(); j4PrimaryAction(fixture, event.currentTarget); });
+      select.addEventListener('keydown', (event) => j4BlockKeydown(event, fixture, select));
+      block.append(label, select);
+      return block;
+    }
+    const main = document.createElement('button');
+    main.type = 'button';
+    main.className = 'j4-cal-main';
+    main.id = isJ6Journey() && fixture.journey6 ? 'j6-open-public-review' : `j4-open-${fixture.id}`;
+    main.innerHTML = text;
+    main.disabled = blocked;
+    const action = isJ6Journey() && fixture.journey6 ? 'Open review flow' : 'Open details';
+    main.setAttribute('aria-label', `${fixture.label}. ${fixture.reference}. ${j4FixtureDateTime(fixture)}. ${fixture.resource}. ${fixture.status}. ${action}${fixture.more ? '. More actions available' : ''}.`);
+    if (fixture.id === j4ActiveFixtureId) main.setAttribute('aria-current', 'true');
+    main.addEventListener('click', (event) => { event.stopPropagation(); j4PrimaryAction(fixture, main); });
+    main.addEventListener('keydown', (event) => j4BlockKeydown(event, fixture, main));
+    main.addEventListener('focus', () => j4FocusFixture(fixture.id));
+    block.appendChild(main);
+    if (fixture.more) {
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'j4-cal-more';
+      more.id = `j4-more-${fixture.id}`;
+      more.textContent = '⋯';
+      more.disabled = blocked;
+      more.setAttribute('aria-haspopup', 'menu');
+      more.setAttribute('aria-controls', 'j4-context-items');
+      more.setAttribute('aria-expanded', j4ContextFixture && j4ContextFixture.id === fixture.id ? 'true' : 'false');
+      more.setAttribute('aria-label', `More actions for ${fixture.reference}`);
+      more.addEventListener('click', (event) => { event.stopPropagation(); j4OpenContext(fixture, event.currentTarget); });
+      more.addEventListener('keydown', (event) => j4BlockKeydown(event, fixture, main));
+      block.appendChild(more);
+      block.addEventListener('contextmenu', (event) => {
+        if (j4ActionsBlocked()) return;
+        event.preventDefault();
+        j4OpenContext(fixture, more);
+      });
+    }
+    return block;
+  }
+  function j4RenderCalendarBlocks(col, assetId, dk, slotH) {
+    const total = (HOUR_END - HOUR_START) * SLOTS_PER_HOUR;
+    j4VisibleFixtures().forEach((fixture) => {
+      if (fixture.asset !== assetId || dateKey(j4FixtureDate(fixture)) !== dk) return;
+      const { startSlot, endSlot } = j4FixtureSlots(fixture);
+      const s = Math.max(0, Math.min(total - 1, startSlot));
+      const e = Math.max(s + 1, Math.min(total, endSlot));
+      const block = j4BuildBlock(fixture);
+      block.style.top = `${s * slotH}px`;
+      block.style.height = `${(e - s) * slotH}px`;
+      col.appendChild(block);
+    });
+  }
+  function j4RenderStackDay(col, lane, dk) {
+    col.classList.add('is-stack');
+    if (dk === dateKey(TODAY) && isCheckpointWeek()) col.classList.add('is-today-column');
+    const list = j4VisibleFixtures()
+      .filter((f) => f.asset === lane.id && dateKey(j4FixtureDate(f)) === dk)
+      .sort((a, b) => j4FixtureSlots(a).startSlot - j4FixtureSlots(b).startSlot);
+    if (!list.length) {
+      const empty = document.createElement('div');
+      empty.className = 'stack-empty';
+      empty.textContent = '—';
+      empty.setAttribute('aria-label', 'No fixture slots');
+      col.appendChild(empty);
+      return;
+    }
+    list.forEach((fixture) => {
+      const block = j4BuildBlock(fixture);
+      block.classList.add('stack-card', 'j4-stack-block');
+      col.appendChild(block);
+    });
+  }
+  function j4AfterCalendarRender(grid) {
+    grid.setAttribute('aria-label', 'Journey 4 labelled timeslot review fixtures');
+    j4RenderStatePanel();
+    j4RenderLegend();
+    const message = j4ViewState === 'loading'
+      ? 'Loading labelled calendar fixtures…'
+      : (j4ViewState === 'error' ? 'The calendar is unavailable. Use Retry or another review state; no selection was created.' : '');
+    const filterEmpty = document.createElement('div');
+    filterEmpty.className = 'j4-calendar-message j4-filter-empty';
+    filterEmpty.id = 'j4-filter-empty';
+    filterEmpty.setAttribute('role', 'status');
+    filterEmpty.hidden = true;
+    filterEmpty.textContent = 'No timeslots match the current session-only visual filters.';
+    grid.prepend(filterEmpty);
+    if (message) {
+      const note = document.createElement('div');
+      note.className = 'j4-calendar-message';
+      note.setAttribute('role', 'status');
+      note.textContent = message;
+      grid.prepend(note);
+    }
+    j4RenderSummary();
+    j4ApplyFilters(false);
+  }
+
   function j4ResetBootState() {
     j4CloseDetails(false);
     j4CloseContext(false);
@@ -1019,6 +1241,8 @@
     const caption = $('.calendar-caption');
     if (caption) caption.textContent = 'REVIEW FIXTURE — six labelled Journey 4 states on the shared calendar; not exhaustive tenant data.';
     j4SyncReviewControls();
+    selectedAssets = new Set(['hall1', 'hall2', 'studio2']); // One Calendar: every timeslot fixture lane is visible by default
+    setCartViewMode('detailed'); // the shared Cart opens in Detailed view here: Date, Time, Duration, Facility, Description, Price, Actions
     renderAssetTree();
     renderCalendar();
   }
@@ -1244,13 +1468,16 @@
   }
   function j5ReturnFromWorkflow() {
     if (j5WorkflowReturning) return; j5WorkflowReturning = true; const dialog = $('#j5-workflow-dialog'); if (dialog?.open) dialog.close(); const op = j5Operation; const trigger = j5WorkflowTrigger; const origin = op?.origin; const action = op?.action; j5WorkflowTrigger = null; j5Operation = null;
-    window.setTimeout(() => {
-      if (isJ6Journey()) {
-        const restored = (origin?.openerSelector && $(origin.openerSelector)) || (action === 'PublicReschedule' ? $('#j6-open-public-review') : $(`[data-j6-action="${action}"]`));
-        (restored || trigger)?.focus();
+    const finishReturn = () => {
+      if (isJ6Journey() || (document.body.dataset.journey === '12' && action === 'PublicReschedule')) {
+        if (document.body.dataset.journey === '12') window.__j12Review?.reopenPanelAfterWorkflow?.();
+        const restored = (origin?.openerSelector && $(origin.openerSelector)) || (action === 'PublicReschedule' ? ($('#j12-reschedule-event') || $('#j6-open-public-review')) : $(`[data-j6-action="${action}"]`));
+        (restored || trigger)?.focus({ preventScroll: true });
       } else { j5OpenActionHub(trigger || $('#j4-open-private')); const j5Action = trigger?.dataset?.j5Action; const restored = j5Action ? $(`.j5-action[data-j5-action="${j5Action}"]`) : null; (restored || trigger || $('#j4-details-back'))?.focus(); }
       j5WorkflowReturning = false;
-    }, 0);
+    };
+    if (document.body.dataset.journey === '12' && action === 'PublicReschedule') window.setTimeout(finishReturn, 50);
+    else window.setTimeout(finishReturn, 0);
   }
   function j5OpenWorkflow(action, trigger) {
     if (isJ6Journey()) return j6StartOperation(action, trigger);
@@ -1263,7 +1490,7 @@
   function j5SelectedRemoveFixture() { return J5_REMOVE_FIXTURES.find((item) => item.id === j5Operation?.selectedItem) || J5_REMOVE_FIXTURES[0]; }
 
   function j5RenderWorkflow() {
-    if (isJ6Journey()) return j6RenderWorkflow();
+    if (j6PublicRescheduleWorkflowActive()) return j6RenderWorkflow();
     const op = j5Operation; const stage = $('#j5-workflow-stage'); const preview = $('#j5-workflow-preview'); const footer = $('#j5-workflow-footer'); const title = $('#j5-workflow-title'); const description = $('#j5-workflow-description'); const announcement = $('#j5-workflow-announcement');
     if (!op || !stage || !preview || !footer || !title || !description || !announcement) return;
     const names = { Copy: 'Copy private booking', Edit: 'Update existing booking', Remove: 'Remove one booking item', Move: 'Move one private item', Batch: 'Batch move private items' }; title.textContent = names[op.action] || 'Local operation'; description.textContent = 'Review fixture only. Previews are non-writing; no server request is sent; reload resets it.'; preview.hidden = true; preview.replaceChildren(); announcement.textContent = '';
@@ -1326,7 +1553,7 @@
     j5RenderWorkflow(); j5RenderState(); announceLive(j5LocalResult(op.result.title));
   }
   function j5HandleWorkflowCommand(event) {
-    if (isJ6Journey()) return j6HandleWorkflowCommand(event);
+    if (j6PublicRescheduleWorkflowActive()) return j6HandleWorkflowCommand(event);
     const command = event.target.closest('[data-j5-command]')?.dataset.j5Command; if (!command || !j5Operation) return; const op = j5Operation; if (op.stage === 'setup') j5ReadWorkflowValues();
     if (command === 'permission-change' && op.stage === 'preview' && !op.result) { op.permissionChanged = true; return j5RenderWorkflow(); }
     if (command === 'permission-refresh' && op.permissionChanged) { op.permissionChanged = false; return j5RenderWorkflow(); }
@@ -1413,7 +1640,8 @@
     op.changed = op.date !== op.baseline.date || op.start !== op.baseline.start || op.end !== op.baseline.end;
   }
   function j6StartOperation(action, trigger) {
-    if (!isJ6Journey()) return;
+    const routeOk = isJ6Journey() || (document.body.dataset.journey === '12' && action === 'PublicReschedule');
+    if (!routeOk) return;
     if (!j6PermissionAllowed()) { announceLive('Permission denied before action entry. The local fixture remains unchanged.'); return; }
     const publicAction = action === 'PublicReschedule';
     j5WorkflowTrigger = trigger || document.activeElement;
@@ -2217,9 +2445,10 @@
     if (typeof j2PlayActive !== 'undefined') j2PlayActive = false;
   }
 
-  const J2_TODAY = new Date(2026, 8, 4);
-  const J2_HOUR_START = 7;
-  const J2_HOUR_END = 21;
+  // One Calendar candidate: Journey 2 starts on the same demo fixture as the Journey 12 calendar (dates stay navigable).
+  const J2_TODAY = new Date(TODAY);
+  const J2_HOUR_START = HOUR_START;
+  const J2_HOUR_END = HOUR_END;
   const J2_SLOTS_PER_HOUR = 2;
   const J2_MONTH_NAMES_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const J2_MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -2232,16 +2461,17 @@
   ];
 
   const J2_EVENTS = [
-    { id: 'BK-10501', asset: 'hall1', date: '2026-09-01', start: 10, end: 16, type: 'quotation', title: 'BK-10501', status: 'Quotation · Occupied' },
-    { id: 'BK-10482', asset: 'studio2', date: '2026-09-02', start: 9, end: 13, type: 'confirmed', title: 'BK-10482', status: 'Confirmed · Occupied' },
-    { id: 'BLK-220', asset: 'hall2', date: '2026-09-04', allDay: true, type: 'block', title: 'BLK-220', status: 'Block' },
-    { id: 'FNI-301', asset: 'studio2', date: '2026-09-05', start: 15, end: 17, type: 'facility-not-in-use', title: 'FNI-301', status: 'Facility not in use · Unavailable' }
+    { id: 'BK-10501', asset: 'hall1', date: '2026-08-27', start: 10, end: 16, type: 'quotation', title: 'BK-10501', status: 'Quotation · Occupied' },
+    { id: 'BK-10482', asset: 'studio2', date: '2026-08-28', start: 9, end: 13, type: 'confirmed', title: 'BK-10482', status: 'Confirmed · Occupied' },
+    { id: 'BLK-220', asset: 'hall2', date: '2026-08-29', allDay: true, type: 'block', title: 'BLK-220', status: 'Block' },
+    { id: 'FNI-301', asset: 'studio2', date: '2026-08-30', start: 15, end: 17, type: 'facility-not-in-use', title: 'FNI-301', status: 'Facility not in use · Unavailable' }
   ];
 
   const J2_FREE_SLOTS = [
-    { asset: 'hall1', date: '2026-09-04', start: 14, end: 17 },
-    { asset: 'studio2', date: '2026-09-03', start: 10, end: 12 },
-    { asset: 'hall2', date: '2026-09-03', start: 9, end: 11 }
+    { asset: 'hall1', date: '2026-08-28', start: 14, end: 17 },
+    { asset: 'hall1', date: '2026-08-29', start: 14, end: 17 },
+    { asset: 'hall1', date: '2026-08-30', start: 14, end: 17 },
+    { asset: 'studio2', date: '2026-08-29', start: 10, end: 12 }
   ];
 
   const J2_VIEW_LABELS = {
@@ -2499,6 +2729,7 @@
         for (let half = 0; half < J2_SLOTS_PER_HOUR; half++) {
           const lbl = document.createElement('div');
           lbl.className = 'time-label';
+          lbl.dataset.slot = String((h - J2_HOUR_START) * J2_SLOTS_PER_HOUR + half);
           lbl.textContent = half === 0 ? `${String(h).padStart(2, '0')}:00` : '';
           gutter.appendChild(lbl);
         }
@@ -2514,12 +2745,20 @@
       const selectable = j2State.mode === 'booking' && j2IsFreeSlot(asset.id, dk, slot);
       slotEl.className = `cal-slot${selectable ? ' selectable' : ''}`;
       if (selectable) slotEl.dataset.selectable = 'true';
+      slotEl.dataset.slot = String(slot);
+      slotEl.setAttribute('role', 'gridcell');
+      slotEl.tabIndex = selectable ? 0 : -1;
+      slotEl.setAttribute('aria-selected', 'false');
+      slotEl.addEventListener('pointerdown', (e) => j2OnSlotPointerDown(e, asset.id, dk, slot));
+      slotEl.addEventListener('mouseenter', () => j2OnSlotEnter(asset.id, dk, slot));
+      slotEl.addEventListener('keydown', (e) => j2OnSlotKeydown(e, asset.id, dk, slot));
       const { h, m } = j2SlotToTime(slot);
       slotEl.setAttribute('aria-label', `${asset.name} ${dk} ${j2FormatTime(h, m)}${selectable ? ' — Available' : ''}`);
       col.appendChild(slotEl);
     }
     j2EventOnDate(asset.id, dk).forEach((ev) => {
       const evEl = j2CreateEventElement(ev);
+      j2MakeEventInteractive(evEl, ev);
       if (ev.allDay) {
         evEl.style.top = '0';
         evEl.style.height = '100%';
@@ -2529,6 +2768,167 @@
       }
       col.appendChild(evEl);
     });
+  }
+
+  /* ===== One Calendar candidate (Supervisor #19, 2026-10-11): Journey 12 calendar interactions on the Journey 2 grid =====
+     Hover time line and time label, active day column, time row, click/drag selection with the Journey 12 selection card,
+     and booking selection. Journey 2 still has no Cart or Book (its accepted scope); views, dates and modes are unchanged. */
+  let j2Selection = null;
+  let j2SelectedEventId = null;
+  let j2Drag = null;
+  function j2InteractiveGrid() { return j2State.layout === 'column' && ['day', 'week', 'work-week'].includes(j2State.view); }
+  function j2PaintSelection() {
+    const grid = $('#calendar-grid');
+    if (!grid) return;
+    grid.querySelectorAll('.cal-slot.selected-range').forEach((el) => { el.classList.remove('selected-range', 'range-start', 'range-end'); el.setAttribute('aria-selected', 'false'); });
+    grid.querySelectorAll('.timeslot-context-label').forEach((el) => el.remove());
+    if (j2State.mode !== 'booking') { j2Selection = null; j2Drag = null; return; }
+    const s = j2Drag || j2Selection;
+    if (!s) return;
+    const col = grid.querySelector(`.cal-day-col[data-asset="${s.asset}"][data-date="${s.date}"]`);
+    if (!col) return;
+    const lo = Math.min(s.startSlot, s.endSlot);
+    const hi = Math.max(s.startSlot, s.endSlot) + 1;
+    col.querySelectorAll('.cal-slot').forEach((el) => {
+      const n = Number(el.dataset.slot);
+      const on = n >= lo && n < hi;
+      el.classList.toggle('selected-range', on);
+      el.classList.toggle('range-start', on && n === lo);
+      el.classList.toggle('range-end', on && n === hi - 1);
+      el.setAttribute('aria-selected', String(on));
+    });
+    const slotH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--slot-h') || '10');
+    const a = j2SlotToTime(lo);
+    const b = j2SlotToTime(hi);
+    const label = document.createElement('div');
+    label.className = 'timeslot-context-label';
+    label.setAttribute('aria-hidden', 'true');
+    const time = document.createElement('span');
+    time.className = 'timeslot-context-label-time';
+    time.textContent = `${j2FormatTime(a.h, a.m)} – ${j2FormatTime(b.h, b.m)}`;
+    const duration = document.createElement('span');
+    duration.className = 'timeslot-context-label-duration';
+    duration.textContent = `Duration · ${formatSlotDuration(lo, hi)}`;
+    label.append(time, duration);
+    col.appendChild(label);
+    const top = Math.max(2, lo * slotH + 2);
+    label.style.top = `${Math.min(top, Math.max(2, col.clientHeight - label.offsetHeight - 2))}px`;
+  }
+  function j2PaintEventSelection() {
+    $$('#calendar-grid .cal-event[data-j2-event]').forEach((el) => {
+      const on = el.dataset.j2Event === j2SelectedEventId;
+      el.classList.toggle('j2-event-selected', on);
+      if (el.getAttribute('role') === 'button') el.setAttribute('aria-pressed', String(on));
+    });
+  }
+  function j2SelectRange(asset, date, startSlot, endSlot) {
+    j2Selection = { asset, date, startSlot, endSlot };
+    j2SelectedEventId = null;
+    j2PaintSelection();
+    j2PaintEventSelection();
+    const a = j2SlotToTime(startSlot);
+    const b = j2SlotToTime(endSlot + 1);
+    const name = (J2_ASSETS.find((x) => x.id === asset) || {}).name || asset;
+    announceLive(`${name}, ${j2FormatTime(a.h, a.m)} to ${j2FormatTime(b.h, b.m)} selected. Journey 2 shows the selection only; Cart and Book stay absent.`);
+  }
+  function j2SelectEvent(ev) {
+    j2SelectedEventId = ev.id;
+    j2Selection = null;
+    j2Drag = null;
+    clearColumnCrosshair();
+    j2PaintSelection();
+    j2PaintEventSelection();
+    announceAlert(`${ev.title} — ${ev.status}. That interval is unavailable. Choose an available time.`);
+  }
+  function j2MakeEventInteractive(evEl, ev) {
+    evEl.dataset.j2Event = ev.id;
+    if (!isOccupiedEvent(ev)) return;
+    evEl.setAttribute('role', 'button');
+    evEl.tabIndex = 0;
+    evEl.setAttribute('aria-pressed', String(j2SelectedEventId === ev.id));
+    evEl.addEventListener('click', () => j2SelectEvent(ev));
+    evEl.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); j2SelectEvent(ev); } });
+  }
+  function j2OnSlotEnter(asset, date, slot) {
+    if (j2Drag) return;
+    if (j2IsFreeSlot(asset, date, slot)) applyColumnCrosshair(asset, date, slot);
+    else clearColumnCrosshair();
+  }
+  function j2OnSlotPointerDown(event, asset, date, slot) {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (!j2InteractiveGrid() || !j2IsFreeSlot(asset, date, slot)) return;
+    event.preventDefault();
+    j2SelectedEventId = null;
+    j2PaintEventSelection();
+    j2Drag = { asset, date, startSlot: slot, endSlot: slot };
+    applyColumnCrosshair(asset, date, slot);
+    j2PaintSelection();
+    const scroll = $('#calendar-scroll');
+    try { scroll.setPointerCapture(event.pointerId); } catch { /* document listeners still own the gesture */ }
+    const move = (e) => {
+      if (e.pointerId !== event.pointerId || !j2Drag) return;
+      const cell = document.elementsFromPoint(e.clientX, e.clientY).map((n) => n.closest?.('.cal-slot')).find(Boolean);
+      const col = cell ? cell.closest('.cal-day-col') : null;
+      if (!cell || !col || col.dataset.asset !== asset || col.dataset.date !== date) return;
+      const n = Number(cell.dataset.slot);
+      const lo = Math.min(j2Drag.startSlot, n);
+      const hi = Math.max(j2Drag.startSlot, n);
+      for (let k = lo; k <= hi; k++) if (!j2IsFreeSlot(asset, date, k)) return;
+      if (j2Drag.endSlot === n) return;
+      j2Drag.endSlot = n;
+      applyColumnCrosshair(asset, date, n);
+      j2PaintSelection();
+    };
+    const stop = () => {
+      document.removeEventListener('pointermove', move, true);
+      document.removeEventListener('pointerup', finish, true);
+      document.removeEventListener('pointercancel', cancel, true);
+      try { if (scroll.hasPointerCapture(event.pointerId)) scroll.releasePointerCapture(event.pointerId); } catch { /* already released */ }
+    };
+    const finish = (e) => {
+      if (e.pointerId !== event.pointerId) return;
+      stop();
+      const d = j2Drag;
+      j2Drag = null;
+      clearColumnCrosshair();
+      if (d) j2SelectRange(asset, date, Math.min(d.startSlot, d.endSlot), Math.max(d.startSlot, d.endSlot));
+    };
+    const cancel = (e) => {
+      if (e.pointerId !== event.pointerId) return;
+      stop();
+      j2Drag = null;
+      clearColumnCrosshair();
+      j2PaintSelection();
+    };
+    document.addEventListener('pointermove', move, true);
+    document.addEventListener('pointerup', finish, true);
+    document.addEventListener('pointercancel', cancel, true);
+  }
+  function j2OnSlotKeydown(event, asset, date, slot) {
+    const total = j2TotalSlots();
+    const col = event.target.closest('.cal-day-col');
+    const body = event.target.closest('.cal-lane-body');
+    const cols = body ? Array.from(body.querySelectorAll('.cal-day-col')) : [];
+    const ci = cols.indexOf(col);
+    let target = col;
+    let next = slot;
+    if (event.key === 'ArrowDown') next = Math.min(slot + 1, total - 1);
+    else if (event.key === 'ArrowUp') next = Math.max(slot - 1, 0);
+    else if (event.key === 'ArrowRight' && ci < cols.length - 1) target = cols[ci + 1];
+    else if (event.key === 'ArrowLeft' && ci > 0) target = cols[ci - 1];
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = total - 1;
+    else if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      if (j2IsFreeSlot(asset, date, slot)) j2SelectRange(asset, date, slot, slot);
+      return;
+    } else return;
+    event.preventDefault();
+    const cell = target ? target.querySelector(`.cal-slot[data-slot="${next}"]`) : null;
+    if (!cell) return;
+    cell.focus();
+    const c = cell.closest('.cal-day-col');
+    j2OnSlotEnter(c.dataset.asset, c.dataset.date, next);
   }
 
   function j2RenderMultiDayGrid(grid, days, colCount) {
@@ -2542,6 +2942,7 @@
       hdr.className = 'cal-day-header';
       hdr.setAttribute('role', 'columnheader');
       const dk = dateKey(day);
+      hdr.dataset.date = dk;
       if (j2IsToday(day)) hdr.classList.add('is-today');
       if (dk === dateKey(j2State.selectedDate)) {
         hdr.classList.add('is-selected');
@@ -2559,6 +2960,7 @@
       const laneEl = document.createElement('section');
       laneEl.className = 'cal-lane';
       laneEl.setAttribute('aria-label', asset.name);
+      laneEl.addEventListener('mouseleave', () => { if (!j2Drag) clearColumnCrosshair(); });
       const title = document.createElement('div');
       title.className = 'cal-lane-title';
       title.textContent = `${asset.name} · ${asset.venue}`;
@@ -2571,6 +2973,7 @@
         const col = document.createElement('div');
         col.className = 'cal-day-col';
         col.dataset.date = dk;
+        col.dataset.asset = asset.id;
         if (isStack) j2RenderStackDay(col, asset, dk);
         else j2RenderColumnDay(col, asset, dk);
         body.appendChild(col);
@@ -2751,12 +3154,15 @@
       case 'advanced-week': j2RenderAdvancedWeekView(grid); break;
       default: j2RenderWeekView(grid);
     }
+    if (j2InteractiveGrid()) { j2PaintSelection(); j2PaintEventSelection(); }
+    updateNowLine(); // One Calendar: the Journey 12 now line on the Journey 2 grid too
   }
 
   function j2SyncBodyDataset() {
     document.body.dataset.mode = j2State.mode;
     document.body.dataset.view = j2State.view;
     document.body.dataset.layout = j2State.layout;
+    document.body.dataset.slotLayout = j2State.layout; // One Calendar: shared calendar styles key on data-slot-layout
     document.body.dataset.date = dateKey(j2State.selectedDate);
     document.body.dataset.advanced = j2State.advancedEnabled ? 'true' : 'false';
     document.body.dataset.rights = j2State.rightsMode;
@@ -3214,7 +3620,10 @@
   }
 
   const FREE_SLOTS = [
+    // Journey 1 multi-day design REVIEW FIXTURE only; no production availability policy is implied.
+    { asset: 'hall1', date: '2026-08-28', start: 14, end: 17, j1Only: true },
     { asset: 'hall1', date: '2026-08-29', start: 14, end: 17 },
+    { asset: 'hall1', date: '2026-08-30', start: 14, end: 17, j1Only: true },
     { asset: 'studio2', date: '2026-08-29', start: 10, end: 12 }
   ];
 
@@ -4583,19 +4992,76 @@
     return `${minutes} min`;
   }
 
+  function j1DayCount(selection) {
+    const start = selection.date.split('-').map(Number);
+    const end = (selection.endDate || selection.date).split('-').map(Number);
+    return Math.round((Date.UTC(end[0], end[1] - 1, end[2]) - Date.UTC(start[0], start[1] - 1, start[2])) / 86400000) + 1;
+  }
+
+  function j1MultiDay(selection) {
+    return ['1', '12'].includes(document.body.dataset.journey) && !!selection?.j1DailyRectangle && j1DayCount(selection) > 1;
+  }
+
+  function j1SelectionIncludesDate(selection, dk) {
+    return selection.date === dk || (j1MultiDay(selection) && dk >= selection.date && dk <= selection.endDate);
+  }
+
+  function j1DailyDateSpan(selection) {
+    const start = new Date(`${selection.date}T12:00:00`);
+    const end = new Date(`${selection.endDate || selection.date}T12:00:00`);
+    const first = formatShortDate(start);
+    const last = formatShortDate(end);
+    return start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()
+      ? `${first.split(' ').slice(0, 2).join(' ')}–${last}` : `${first}–${last}`;
+  }
+
+  function j1DailyDescription(selection) {
+    const hours = (slotRangeForSelection(selection).endSlot - slotRangeForSelection(selection).startSlot) * j1DayCount(selection) / 2;
+    return `${j1DailyDateSpan(selection)} · ${formatSelectionTime(selection.startH, selection.startM)}–${formatSelectionTime(selection.endH, selection.endM)} daily · ${j1DayCount(selection)} days · ${hours} hour${hours === 1 ? '' : 's'} · local review fixture`;
+  }
+
+  function j1VisualSelection(assetId) {
+    if (dragState?.j1Rectangle && dragState.asset === assetId) {
+      const start = slotToTime(dragState.startSlot);
+      const end = slotToTime(dragState.endSlot + 1);
+      return { asset: assetId, date: dragState.startDate, endDate: dragState.endDate, startH: start.h, startM: start.m, endH: end.h, endM: end.m, j1DailyRectangle: true };
+    }
+    return stagedSelection?.asset === assetId ? stagedSelection : null;
+  }
+
   function activeColumnRange(assetId, dk) {
+    if (dragState && dragState.asset === assetId && dragState.j1Rectangle) {
+      return dk >= dragState.startDate && dk <= dragState.endDate
+        ? { startSlot: dragState.startSlot, endSlot: dragState.endSlot + 1 }
+        : null;
+    }
     if (dragState && dragState.asset === assetId && dragState.date === dk) {
       const startSlot = Math.min(dragState.startSlot, dragState.endSlot);
       return { startSlot, endSlot: Math.max(startSlot + 1, Math.max(dragState.startSlot, dragState.endSlot) + 1) };
     }
-    if (stagedSelection && stagedSelection.asset === assetId && stagedSelection.date === dk) {
+    if (stagedSelection && stagedSelection.asset === assetId && j1SelectionIncludesDate(stagedSelection, dk)) {
       return slotRangeForSelection(stagedSelection);
     }
     return null;
   }
 
   function isGenericColumnCrosshairRoute() {
-    return slotLayout === 'column' && ['1', '3', '7', '8', '9', '10'].includes(document.body.dataset.journey);
+    // One Calendar candidate: the Journey 12 hover time line, time label, day column and time row on every calendar journey.
+    const journey = document.body.dataset.journey;
+    if (journey === '2') return j2InteractiveGrid() && j2State.mode === 'booking';
+    if (journey === '13' || journey === '15') return false;
+    if (isJ4Journey() && j4ActionsBlocked()) return false;
+    return slotLayout === 'column';
+  }
+
+  // One Calendar candidate: Journey 12 pointer selection (incl. touch) wherever the journey already selects free time.
+  // Journey 10 keeps its own one-cell Block selection, Journey 11 its notes behaviour, Journey 6 has no free-time selection.
+  function isOneCalendarPointerRoute() {
+    return ['1', '3', '4', '5', '7', '8', '9', '12'].includes(document.body.dataset.journey);
+  }
+
+  function oneCalendarSelectionBlocked() {
+    return document.body.dataset.journey === '6' || (isJ4Journey() && j4ActionsBlocked());
   }
 
   function clearColumnCrosshair() {
@@ -4655,6 +5121,7 @@
       slotEl.classList.toggle('selected-range', selected);
       slotEl.classList.toggle('range-start', selected && slot === range.startSlot);
       slotEl.classList.toggle('range-end', selected && slot === range.endSlot - 1);
+      slotEl.setAttribute('aria-selected', String(selected));
     });
     refreshColumnRangeLabel(assetId, dk);
   }
@@ -4663,6 +5130,74 @@
     if (slotLayout !== 'column') return;
     const range = activeColumnRange(assetId, dk);
     if (!range) return;
+    if (document.body.dataset.journey === '1') {
+      const selection = j1VisualSelection(assetId);
+      const primary = dk === (selection?.endDate || selection?.date);
+      const multi = selection && j1DayCount(selection) > 1;
+      const start = slotToTime(range.startSlot);
+      const end = slotToTime(range.endSlot);
+      const band = document.createElement('div');
+      band.className = `j1-selection-band ${primary ? 'is-primary' : 'is-secondary'}`;
+      band.classList.toggle('is-short', range.endSlot - range.startSlot < 5);
+      band.classList.toggle('is-multiday', multi);
+      if (!primary) band.setAttribute('aria-hidden', 'true');
+      band.style.top = `${range.startSlot * slotH}px`;
+      band.style.height = `${(range.endSlot - range.startSlot) * slotH}px`;
+      if (primary) {
+        const label = document.createElement('span');
+        label.className = 'timeslot-context-label';
+        label.setAttribute('aria-hidden', 'true');
+        label.dataset.rangeStart = String(range.startSlot);
+        label.dataset.rangeEnd = String(range.endSlot);
+        if (multi) {
+          const dates = document.createElement('span');
+          dates.className = 'j1-selection-dates';
+          dates.textContent = j1DailyDateSpan(selection);
+          label.appendChild(dates);
+        }
+        const time = document.createElement('span');
+        time.className = 'timeslot-context-label-time';
+        time.textContent = `${formatTime(start.h, start.m)}–${formatTime(end.h, end.m)}${multi ? ' daily' : ` · ${formatSlotDuration(range.startSlot, range.endSlot)}`}`;
+        label.appendChild(time);
+        if (multi) {
+          const total = document.createElement('span');
+          total.className = 'j1-selection-total';
+          const hours = (range.endSlot - range.startSlot) * j1DayCount(selection) / 2;
+          total.textContent = `${j1DayCount(selection)} days · ${hours} h`;
+          label.appendChild(total);
+        }
+        const booking = document.createElement('strong');
+        booking.className = 'j1-selection-title';
+        booking.textContent = 'New booking';
+        const resource = document.createElement('span');
+        resource.className = 'j1-selection-resource';
+        resource.textContent = ASSETS.find((asset) => asset.id === assetId)?.name || assetId;
+        label.append(booking, resource);
+        band.appendChild(label);
+        for (const corner of ['tl', 'tr', 'bl']) {
+          const marker = document.createElement('span');
+          marker.className = `j1-selection-handle is-${corner}`;
+          marker.setAttribute('aria-hidden', 'true');
+          band.appendChild(marker);
+        }
+        const handle = document.createElement('button');
+        handle.type = 'button';
+        handle.className = 'j1-selection-handle is-br';
+        handle.setAttribute('aria-label', `Resize ${resource.textContent} daily selection, ending ${formatShortDate(new Date(`${dk}T12:00:00`))} ${formatTime(end.h, end.m)}. Drag or use arrow keys to change end date and time.`);
+        handle.addEventListener('pointerdown', (event) => j1StartPointerDrag(event, assetId, dk, range.startSlot, true));
+        handle.addEventListener('keydown', j1HandleKeydown);
+        handle.addEventListener('click', (event) => event.stopPropagation());
+        band.appendChild(handle);
+      } else {
+        const day = document.createElement('span');
+        day.className = 'j1-band-day';
+        day.textContent = formatShortDate(new Date(`${dk}T12:00:00`));
+        day.setAttribute('aria-hidden', 'true');
+        band.appendChild(day);
+      }
+      col.appendChild(band);
+      return;
+    }
     const start = slotToTime(range.startSlot);
     const end = slotToTime(range.endSlot);
     const label = document.createElement('div');
@@ -4681,15 +5216,24 @@
     col.appendChild(label);
     const lowerBound = 2;
     const requestedTop = Math.max(lowerBound, range.startSlot * slotH + lowerBound);
-    const maxTop = Math.max(lowerBound, col.clientHeight - label.offsetHeight - lowerBound);
-    label.style.top = `${Math.min(requestedTop, maxTop)}px`;
+    // One Calendar candidate: keep the card inside its column only once the column is laid out (it has no height while the
+    // calendar is still being built off screen, which used to force the card to the top of the lane).
+    const placeInside = () => {
+      const maxTop = Math.max(lowerBound, col.clientHeight - label.offsetHeight - lowerBound);
+      label.style.top = `${Math.min(requestedTop, maxTop)}px`;
+    };
+    if (col.isConnected && col.clientHeight) placeInside();
+    else {
+      label.style.top = `${requestedTop}px`;
+      requestAnimationFrame(() => { if (label.isConnected && col.clientHeight) placeInside(); });
+    }
   }
 
   function refreshColumnRangeLabel(assetId, dk) {
     if (slotLayout !== 'column') return;
     const col = document.querySelector(`.cal-day-col[data-asset="${assetId}"][data-date="${dk}"]`);
     if (!col) return;
-    col.querySelectorAll('.timeslot-context-label').forEach((label) => label.remove());
+    col.querySelectorAll('.j1-selection-band, .timeslot-context-label').forEach((label) => label.remove());
     const slotH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--slot-h') || '10');
     renderColumnRangeLabel(col, assetId, dk, slotH);
   }
@@ -4714,20 +5258,20 @@
     if (ev) return true;
     for (const line of cartLines) {
       if (line.id === editingLineId) continue;
-      if (line.asset !== assetId || line.date !== dk) continue;
+      if (line.asset !== assetId || !j1SelectionIncludesDate(line, dk)) continue;
       const range = slotRangeForSelection(line);
       if (slot >= range.startSlot && slot < range.endSlot) return true;
     }
     if (stagedSelection && !editingLineId) {
       const s = stagedSelection;
-      if (s.asset === assetId && s.date === dk) {
+      if (s.asset === assetId && j1SelectionIncludesDate(s, dk)) {
         const range = slotRangeForSelection(s);
         if (slot >= range.startSlot && slot < range.endSlot) return true;
       }
     }
     if (draft.created) {
       const c = draft.created;
-      if (c.asset === assetId && c.date === dk) {
+      if (c.asset === assetId && j1SelectionIncludesDate(c, dk)) {
         const range = slotRangeForSelection(c);
         if (slot >= range.startSlot && slot < range.endSlot) return true;
       }
@@ -4735,11 +5279,30 @@
     return false;
   }
 
+  // An all-free daily rectangle is a local fixture preview, not a server availability policy.
+  function j1RectangleIsFree(assetId, startDate, endDate, startSlot, endSlotExclusive) {
+    const days = getWeekDays().map(dateKey);
+    const from = days.indexOf(startDate);
+    const to = days.indexOf(endDate);
+    if (!isCheckpointWeek() || from < 0 || to < from || endSlotExclusive <= startSlot || startSlot < 0 || endSlotExclusive > 24) return false;
+    for (let index = from; index <= to; index++) {
+      const dk = days[index];
+      for (let slot = startSlot; slot < endSlotExclusive; slot++) {
+        const hour = slotToTime(slot).h;
+        if (!FREE_SLOTS.some((entry) => entry.asset === assetId && entry.date === dk && hour >= entry.start && hour < entry.end)) return false;
+        if (getEventAtSlot(assetId, dk, slot)) return false;
+        if (cartLines.some((line) => line.id !== editingLineId && line.asset === assetId && j1SelectionIncludesDate(line, dk) && slot >= slotRangeForSelection(line).startSlot && slot < slotRangeForSelection(line).endSlot)) return false;
+        if (draft.created && draft.created.asset === assetId && j1SelectionIncludesDate(draft.created, dk) && slot >= slotRangeForSelection(draft.created).startSlot && slot < slotRangeForSelection(draft.created).endSlot) return false;
+      }
+    }
+    return true;
+  }
+
   function isFreeSlot(assetId, dk, slot) {
     if (!isCheckpointWeek()) return false;
     const { h } = slotToTime(slot);
     for (const fs of FREE_SLOTS) {
-      if (fs.asset !== assetId || fs.date !== dk) continue;
+      if (fs.asset !== assetId || fs.date !== dk) continue; // One Calendar: the same free intervals as Journey 12 on every journey
       if (h >= fs.start && h < fs.end) {
         if (!isSlotOccupied(assetId, dk, slot)) return true;
       }
@@ -4749,7 +5312,7 @@
 
   function getFixtureFreeRange(assetId, dk, slot) {
     for (const fs of FREE_SLOTS) {
-      if (fs.asset !== assetId || fs.date !== dk) continue;
+      if (fs.asset !== assetId || fs.date !== dk) continue; // One Calendar: the same free intervals as Journey 12 on every journey
       const startSlot = timeToSlot(fs.start, 0);
       const endSlot = timeToSlot(fs.end, 0);
       if (slot >= startSlot && slot < endSlot) {
@@ -4761,7 +5324,7 @@
 
   function isInCart(assetId, dk, slot) {
     for (const line of cartLines) {
-      if (line.asset !== assetId || line.date !== dk) continue;
+      if (line.asset !== assetId || !j1SelectionIncludesDate(line, dk)) continue;
       const range = slotRangeForSelection(line);
       if (slot >= range.startSlot && slot < range.endSlot) return true;
     }
@@ -4771,18 +5334,39 @@
   function isCreatedSlot(assetId, dk, slot) {
     if (!draft.created) return false;
     const c = draft.created;
-    if (c.asset !== assetId || c.date !== dk) return false;
+    if (c.asset !== assetId || !j1SelectionIncludesDate(c, dk)) return false;
     const range = slotRangeForSelection(c);
     return slot >= range.startSlot && slot < range.endSlot;
   }
 
   function showToast(msg, duration) {
     const region = $('#toast-region');
+    placeToastRegion(region);
     const el = document.createElement('div');
     el.className = 'toast';
     el.textContent = msg;
     region.appendChild(el);
-    setTimeout(() => el.remove(), duration || 3500);
+    setTimeout(() => {
+      el.remove();
+      if (!region.querySelector('.toast')) placeToastRegion(region, true);
+    }, duration || 3500);
+  }
+
+  // One Calendar candidate (conditional Gate A item 2): on phone and tablet the notification sits just above the Cart's
+  // sticky Add another / Book buttons (or the collapsed Cart bar at the bottom of a phone), never on top of them.
+  function placeToastRegion(region, reset) {
+    ['bottom', 'left', 'max-width'].forEach((p) => region.style.removeProperty(p));
+    if (reset || window.innerWidth > 1100) return;
+    const bars = [...document.querySelectorAll('.booking-cart .cart-sticky-actions, #sheet-handle')]
+      .filter((el) => !el.closest('[hidden]'))
+      .map((el) => el.getBoundingClientRect())
+      .filter((r) => r.width > 0 && r.height > 0 && r.top < window.innerHeight && r.bottom > 0)
+      .filter((r, i, all) => all.length === 1 || r.bottom >= window.innerHeight - 40);
+    if (!bars.length) return;
+    const bar = bars.reduce((a, b) => (b.top < a.top ? b : a));
+    region.style.bottom = `${Math.round(window.innerHeight - bar.top + 8)}px`;
+    region.style.left = `${Math.round(bar.left + bar.width / 2)}px`;
+    region.style.maxWidth = `${Math.max(200, Math.round(bar.width - 16))}px`;
   }
 
   function announceAlert(msg) {
@@ -4870,6 +5454,10 @@
   }
 
   function lineDurationMinutes(line) {
+    if (j1MultiDay(line)) {
+      const range = slotRangeForSelection(line);
+      return (range.endSlot - range.startSlot) * 30 * j1DayCount(line);
+    }
     const start = new Date(`${line.date}T${pad(line.startH, 2)}:${pad(line.startM, 2)}:00`);
     const endDate = line.endDate || line.date;
     const end = new Date(`${endDate}T${pad(line.endH, 2)}:${pad(line.endM, 2)}:00`);
@@ -5025,7 +5613,8 @@
     const readyCount = count - pendingCount;
     const attentionCount = pendingCount;
     const total = pricedLines.reduce((sum, line) => sum + line.amount, 0);
-    const formattedTotal = `AU$ ${total.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const formattedTotal = document.body.dataset.journey === '1' && count > 0 && pendingCount === count && actualLines.some(j1MultiDay)
+      ? 'Quote pending' : `AU$ ${total.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const itemLabel = count === 1 ? '1 item' : `${count} items`;
     return {
       lines: actualLines,
@@ -5123,7 +5712,7 @@
     const confirmBtn = $('#confirm-booking-btn');
     const helper = $('#confirm-helper');
     const j7BookReady = !isJourney7Route() || (cartLines.length === 1 && j7LineMatchesAcceptedGraph(cartLines[0]));
-    const bookReady = j7BookReady && cartLines.length >= 1 && !stagedSelection && !editingLineId &&
+    const bookReady = j7BookReady && !cartLines.some(j1MultiDay) && cartLines.length >= 1 && !stagedSelection && !editingLineId &&
       ['select', 'configure', 'cart'].includes(phase);
     confirmBtn.hidden = !bookReady;
     confirmBtn.disabled = !bookReady;
@@ -5282,11 +5871,13 @@
   }
 
   function renderCompactLineSummary(line, lineNum, asset, item, pkg, isEditingLine, isExpanded) {
-    const dateStr = formatShortDate(new Date(line.date + 'T12:00:00'));
+    const daily = j1MultiDay(line);
+    const dateStr = daily ? j1DailyDateSpan(line) : formatShortDate(new Date(line.date + 'T12:00:00'));
     const endDate = line.endDate || line.date;
     const endDateSuffix = endDate !== line.date ? ` ${formatShortDate(new Date(endDate + 'T12:00:00'))}` : '';
-    const timeStr = `${formatSelectionTime(line.startH, line.startM)}–${endDateSuffix}${formatSelectionTime(line.endH, line.endM)}`;
-    const durationStr = formatLineDuration(line);
+    const timeStr = daily ? `${formatSelectionTime(line.startH, line.startM)}–${formatSelectionTime(line.endH, line.endM)} daily`
+      : `${formatSelectionTime(line.startH, line.startM)}–${endDateSuffix}${formatSelectionTime(line.endH, line.endM)}`;
+    const durationStr = daily ? `${j1DayCount(line)} days · ${formatLineDuration(line)} total · local review fixture` : formatLineDuration(line);
     const amountPending = line.amountPending;
     const amount = Number.isFinite(line.amount) ? line.amount : 2750;
     const readyState = /recalculated/i.test(line.priceStatus || '')
@@ -5404,7 +5995,9 @@
       const lineNum = line.lineNumber || idx + 1;
       if (lines.length >= 10 && line.groupIndex !== undefined && !expandedGroups.has(line.groupIndex)) return;
       li.dataset.bookingLine = line.id;
-      li.setAttribute('aria-label', `Booking selection ${lineNum}: ${asset.name}, ${formatShortDate(new Date(line.date + 'T12:00:00'))}, ${formatSelectionTime(line.startH, line.startM)} to ${formatSelectionTime(line.endH, line.endM)}`);
+      li.setAttribute('aria-label', j1MultiDay(line)
+        ? `Booking selection ${lineNum}: ${asset.name}, ${j1DailyDescription(line)}`
+        : `Booking selection ${lineNum}: ${asset.name}, ${formatShortDate(new Date(line.date + 'T12:00:00'))}, ${formatSelectionTime(line.startH, line.startM)} to ${formatSelectionTime(line.endH, line.endM)}`);
 
       if (isEditorOpenForLine) {
         li.className = 'cart-line is-expanded' + (expandedMode === 'edit' ? ' is-editing' : '') + (selectedLineIds.has(line.id) ? ' is-selected' : '');
@@ -5556,6 +6149,7 @@
       ? `<div class="detail-field detail-wide allocation-boundary"><label>Unallocated Standard Item</label><b>${line.allocationSelected ? 'Selected for allocation' : 'Not selected for allocation'}</b><button type="button" class="btn-secondary btn-sm" data-allocation-select="${line.id}" aria-pressed="${!!line.allocationSelected}">${line.allocationSelected ? 'Deselect allocation card' : 'Select for allocation'}</button><small>Proven select/deselect boundary only; resource-allocation policy is not inferred.</small></div>`
       : '';
     const fields = `
+      ${j1MultiDay(line) ? `<div class="detail-field detail-wide j1-daily-detail"><label>Daily selection · local review only</label><b>${escapeHtml(j1DailyDescription(line))}</b><small>Not a continuous overnight booking; no production price or creation policy is claimed.</small></div>` : ''}
       <div class="detail-field"><label>Item</label><b>${escapeHtml(item.label)}</b><button type="button" class="inline-picker-btn" data-inline-picker="${line.id}" data-field="item">Change Item</button></div>
       <div class="detail-field"><label>Package</label><b>${escapeHtml(pkg.label)} · ${escapeHtml(packageValue)}</b><button type="button" class="btn-ghost btn-sm" data-package="${line.id}">Contents &amp; change</button></div>
       <div class="detail-field"><label>Included Package Items</label><b>${escapeHtml(included)}</b></div>
@@ -5668,7 +6262,8 @@
     const hours = selectionDurationHours(s);
     const endDate = s.endDate || s.date;
     const endDateSuffix = endDate !== s.date ? ` ${formatShortDate(new Date(endDate + 'T12:00:00'))}` : '';
-    const when = `${formatShortDate(new Date(s.date + 'T12:00:00'))} · ${formatSelectionTime(s.startH, s.startM)}–${endDateSuffix}${formatSelectionTime(s.endH, s.endM)} · ${hours} hour${hours !== 1 ? 's' : ''}`;
+    const when = j1MultiDay(s) ? j1DailyDescription(s)
+      : `${formatShortDate(new Date(s.date + 'T12:00:00'))} · ${formatSelectionTime(s.startH, s.startM)}–${endDateSuffix}${formatSelectionTime(s.endH, s.endM)} · ${hours} hour${hours !== 1 ? 's' : ''}`;
     const item = getItemRecord(getCommitted('item')).label;
     const packageId = getCommitted('package');
     const packageRecord = getPackageRecord(packageId);
@@ -5708,7 +6303,7 @@
     const item = getCommitted('item');
     const pkg = getCommitted('package');
     const compatible = isCompatible(item, pkg) && isJourneyItem(item) && isJourneyPackage(pkg);
-    $('#amount-region').hidden = isJourney9Route() || !compatible;
+    $('#amount-region').hidden = isJourney9Route() || !compatible || j1MultiDay(stagedSelection);
     const amountEl = $('#amount-region .amount-value');
     if (amountEl && !isJourney9Route()) {
       if (!isJourneyItem(item) || !isJourneyPackage(pkg)) amountEl.textContent = 'Quote pending';
@@ -5734,8 +6329,13 @@
     announceAlert('This asset does not have an Item with matching Sales Categories with the selected Package.');
   }
 
-  function createSelection(assetId, dk, startSlot, endSlotExclusive) {
+  function createSelection(assetId, dk, startSlot, endSlotExclusive, endDate = dk) {
+    if (isJ4Journey()) { j4ActiveFixtureId = 'available'; j4SetCartHandoffVisible(true); if (isNarrowViewport()) setSheetExpanded(true); } // One Calendar: same Cart handoff as 'Select interval'
     stagedSelection = selectionFromSlots(assetId, dk, startSlot, endSlotExclusive);
+    if (['1', '12'].includes(document.body.dataset.journey)) {
+      stagedSelection.endDate = endDate;
+      stagedSelection.j1DailyRectangle = true;
+    }
     currentSelectionDetailsExpanded = false;
     editingLineId = null;
     draft.unavailableSelection = null;
@@ -5789,9 +6389,9 @@
       concession: getCommitted('concession'),
       configuration: $('#cfg-configuration').value,
       allocationMode: 'single',
-      amountPending: cartLines.length >= 1 && !editingLineId,
-      amount: 2750,
-      priceStatus: 'Calculated · review fixture',
+      amountPending: j1MultiDay(stagedSelection) || (cartLines.length >= 1 && !editingLineId),
+      amount: j1MultiDay(stagedSelection) ? null : 2750,
+      priceStatus: j1MultiDay(stagedSelection) ? 'Multi-day local review fixture · pricing policy unconfirmed' : 'Calculated · review fixture',
       pricingOption: 'standard',
       priceMode: 'default',
       priceType: 'standard-rate',
@@ -5799,7 +6399,7 @@
     };
     if (editingLineId) {
       const idx = cartLines.findIndex((l) => l.id === editingLineId);
-      if (idx >= 0) cartLines[idx] = { ...line, id: editingLineId, amountPending: cartLines[idx].amountPending };
+      if (idx >= 0) cartLines[idx] = { ...line, id: editingLineId, amountPending: j1MultiDay(line) || cartLines[idx].amountPending };
       editingLineId = null;
     } else {
       cartLines.push(line);
@@ -5942,6 +6542,23 @@
       tab.removeAttribute('aria-pressed');
     });
     setStagedPricingSurface(draftTarget);
+    const selection = draftTarget ? stagedSelection : cartLines.find((line) => line.id === cartItemEditor?.ids?.[0]);
+    const daily = j1MultiDay(selection);
+    const form = $('#time-form');
+    form.hidden = daily;
+    form.inert = daily;
+    let note = $('#j1-daily-time-note');
+    if (daily && !note) {
+      note = document.createElement('p');
+      note.id = 'j1-daily-time-note';
+      note.className = 'j1-daily-time-note';
+      $('#cie-panel-time').appendChild(note);
+    }
+    if (note) {
+      note.hidden = !daily;
+      if (daily) note.textContent = `${j1DailyDescription(selection)}. Time editing is unavailable for this local rectangular review fixture; use the calendar handle before adding to Cart.`;
+    }
+    if (daily) $('#time-desc').textContent = 'Daily rectangle · local review only. Other Item, configuration, Package and pricing controls remain available.';
   }
 
   function updateEditorTabLabels(lineId) {
@@ -5968,7 +6585,7 @@
   }
 
   function focusEditorTab(tab) {
-    if (tab === 'time') $('#time-start-date').focus();
+    if (tab === 'time') ($('#time-form').hidden ? $('#cie-panel-time') : $('#time-start-date')).focus();
     else if (tab === 'config') $('#configuration-choice').focus();
     else if (tab === 'package') $('#package-picker-btn').focus();
     else if (tab === 'pricing') (cartItemEditorTargetsStagedSelection() ? $('#pricing-concession') : $('#pricing-configuration'))?.focus();
@@ -6076,6 +6693,7 @@
     });
     timeEditor = { ids: uniqueIds, mode: 'common', drafts, candidates: {}, target: draftTarget ? 'staged-selection' : 'cart-line' };
     const first = draftTarget ? stagedSelection : getEditorTargetRecord(uniqueIds[0]);
+    if (j1MultiDay(first)) return true; // No continuous overnight editor for a daily rectangle.
     const start = toDateAndTime(lineInterval(first).start);
     const end = toDateAndTime(lineInterval(first).end);
     $('#time-start-date').value = start.date;
@@ -6161,7 +6779,8 @@
     $('#pricing-unit').value = line.pricingUnit || 'hour';
     $('#changed-price-fields').hidden = mode !== 'change';
     const amount = Number.isFinite(line.amount) ? line.amount : 2750;
-    $('#pricing-amount').textContent = `AU$ ${amount.toLocaleString('en-AU', { minimumFractionDigits: 2 })}`;
+    $('#pricing-amount').textContent = j1MultiDay(line) ? 'Quote pending · multi-day review fixture'
+      : `AU$ ${amount.toLocaleString('en-AU', { minimumFractionDigits: 2 })}`;
     return true;
   }
 
@@ -6688,8 +7307,10 @@
     line.priceMode = mode;
     line.priceType = priceType;
     line.pricingUnit = pricingUnit;
-    line.amountPending = false;
-    line.priceStatus = 'Pricing choices applied · local review fixture; formula open';
+    line.amountPending = j1MultiDay(line);
+    line.priceStatus = j1MultiDay(line)
+      ? 'Pricing choices recorded · multi-day local review; total policy unconfirmed'
+      : 'Pricing choices applied · local review fixture; formula open';
     closeCartItemEditor();
     showToast('Pricing choices applied · booking is not saved');
     updateCartUI();
@@ -6735,6 +7356,10 @@
   }
 
   function confirmBooking() {
+    if (document.body.dataset.journey === '1' && cartLines.some(j1MultiDay)) {
+      announceAlert('Multi-day selection is a local review fixture only. Booking creation is unavailable.');
+      return;
+    }
     if (isJourney9Route()) { j9BlockReview('Journey 9 cannot create a Booking or show a Booking-created success state.'); return; }
     if (isJourney7Route()) {
       j7BlockReview('Journey 7 cannot create a Booking or open an external handoff.');
@@ -6851,6 +7476,15 @@
     if (free) classes.push('free');
     if (isInCart(assetId, dk, slot)) classes.push('in-cart');
     if (isCreatedSlot(assetId, dk, slot)) classes.push('created');
+    if (['1', '12'].includes(document.body.dataset.journey) && slotLayout === 'column') {
+      const range = activeColumnRange(assetId, dk);
+      if (range && slot >= range.startSlot && slot < range.endSlot) {
+        classes.push('selected-range');
+        if (slot === range.startSlot) classes.push('range-start');
+        if (slot === range.endSlot - 1) classes.push('range-end');
+      }
+      return classes.join(' ');
+    }
     if (stagedSelection) {
       const s = stagedSelection;
       if (s.asset === assetId && s.date === dk) {
@@ -6925,18 +7559,18 @@
     });
 
     cartLines.forEach((line, index) => {
-      if (line.asset !== assetId || line.date !== dk) return;
+      if (line.asset !== assetId || !j1SelectionIncludesDate(line, dk)) return;
       if (editingLineId === line.id && stagedSelection) return;
       const range = slotRangeForSelection(line);
       items.push({ id: `cart-${line.id}`, kind: 'cart', source: line, startSlot: range.startSlot, endSlot: Math.min(slots, range.endSlot), order: index });
     });
 
-    if (stagedSelection && stagedSelection.asset === assetId && stagedSelection.date === dk) {
+    if (stagedSelection && stagedSelection.asset === assetId && j1SelectionIncludesDate(stagedSelection, dk)) {
       const range = slotRangeForSelection(stagedSelection);
       items.push({ id: 'staged-selection', kind: 'staged', source: stagedSelection, startSlot: range.startSlot, endSlot: Math.min(slots, range.endSlot) });
     }
 
-    if (draft.created && draft.created.asset === assetId && draft.created.date === dk) {
+    if (draft.created && draft.created.asset === assetId && j1SelectionIncludesDate(draft.created, dk)) {
       const range = slotRangeForSelection(draft.created);
       items.push({ id: 'created-booking', kind: 'created', source: draft.created, startSlot: range.startSlot, endSlot: Math.min(slots, range.endSlot) });
     }
@@ -7068,7 +7702,7 @@
   function renderCalendar() {
     clearColumnCrosshair();
     if (document.body.dataset.journey === '2') { j2RenderCalendar(); return; }
-    if (document.body.dataset.journey === '4' || document.body.dataset.journey === '5' || document.body.dataset.journey === '6') { j4RenderCalendar(); return; }
+    // One Calendar candidate: Journeys 4–6 draw their timeslots in the Journey 12 calendar (j4RenderCalendar card board retired).
     const grid = $('#calendar-grid');
     grid.innerHTML = '';
     grid.classList.remove('j4-calendar-grid');
@@ -7108,8 +7742,18 @@
       hdr.className = 'cal-day-header';
       hdr.dataset.date = dateKey(day);
       hdr.setAttribute('role', 'columnheader');
-      if (dateKey(day) === dateKey(TODAY) && isCheckpointWeek()) {
-        hdr.classList.add('is-today');
+      const today = dateKey(day) === dateKey(TODAY) && isCheckpointWeek();
+      if (today) hdr.classList.add('is-today');
+      if (document.body.dataset.journey === '1') {
+        const main = document.createElement('span');
+        main.className = 'j1-day-main';
+        main.textContent = `${dayNames[di]} ${day.getDate()}`;
+        const month = document.createElement('span');
+        month.className = 'j1-day-month';
+        month.textContent = day.toLocaleString('en', { month: 'short' });
+        hdr.append(main, month);
+        if (today) hdr.setAttribute('aria-label', `Today, ${dayNames[di]} ${day.getDate()} ${month.textContent} ${day.getFullYear()}`);
+      } else if (today) {
         hdr.innerHTML = `${dayNames[di]} ${day.getDate()}<span class="today-tag">Today</span>`;
       } else {
         hdr.textContent = `${dayNames[di]} ${day.getDate()}`;
@@ -7162,9 +7806,10 @@
         col.className = 'cal-day-col';
         col.dataset.asset = lane.id;
         col.dataset.date = dk;
+        if (document.body.dataset.journey === '1' && dk === dateKey(TODAY) && isCheckpointWeek()) col.classList.add('j1-today-column');
 
         if (slotLayout === 'stack') {
-          renderStackDay(col, lane, dk);
+          if (isJ4Journey()) j4RenderStackDay(col, lane, dk); else renderStackDay(col, lane, dk);
           body.appendChild(col);
           return;
         }
@@ -7185,13 +7830,15 @@
           slotEl.setAttribute('aria-label', label);
 
           slotEl.addEventListener('mousedown', (e) => onSlotMouseDown(e, lane.id, dk, slot));
+          if (isOneCalendarPointerRoute()) slotEl.addEventListener('pointerdown', (e) => j1StartPointerDrag(e, lane.id, dk, slot));
+          slotEl.setAttribute('aria-selected', String(slotEl.classList.contains('selected-range')));
           slotEl.addEventListener('mouseenter', () => onSlotMouseEnter(lane.id, dk, slot));
           slotEl.addEventListener('keydown', (e) => onSlotKeydown(e, lane.id, dk, slot));
           col.appendChild(slotEl);
         }
 
         EVENTS.forEach((ev) => {
-          if (ev.asset !== lane.id || ev.date !== dk) return;
+          if (isJ4Journey() || ev.asset !== lane.id || ev.date !== dk) return; // Journeys 4–6 draw their own timeslot fixtures
           const evEl = document.createElement('div');
           evEl.className = `cal-event ${ev.type}`;
           applyTimeslotVisual(evEl, ev.type);
@@ -7206,7 +7853,12 @@
             evEl.style.top = `${top}px`;
             evEl.style.height = `${height}px`;
           }
-          evEl.innerHTML = `<strong>${ev.title}</strong> <span class="event-status">${ev.status}</span>`;
+          if (document.body.dataset.journey === '1') {
+            const eventTime = ev.allDay ? 'All day' : `${formatTime(ev.start, 0)}–${formatTime(ev.end, 0)}`;
+            evEl.innerHTML = `<strong>${escapeHtml(ev.title)}</strong><span class="j1-event-time">${eventTime}</span><span class="event-status">${escapeHtml(ev.status)}</span>${isOccupiedEvent(ev) ? '<span class="j1-event-menu" aria-hidden="true">⋯</span>' : ''}`;
+          } else {
+            evEl.innerHTML = `<strong>${ev.title}</strong> <span class="event-status">${ev.status}</span>`;
+          }
           evEl.setAttribute('aria-label', eventAccessibleLabel(ev));
           evEl.setAttribute('title', eventAccessibleLabel(ev));
           if (isOccupiedEvent(ev)) {
@@ -7220,6 +7872,8 @@
           }
           col.appendChild(evEl);
         });
+
+        if (isJ4Journey()) j4RenderCalendarBlocks(col, lane.id, dk, slotH);
 
         if (draft.created && draft.created.asset === lane.id && draft.created.date === dk) {
           const c = draft.created;
@@ -7246,7 +7900,8 @@
     updateNowLine();
     $('#date-range-label').textContent = formatRangeLabel(weekStart);
     document.body.dataset.week = isCheckpointWeek() ? 'checkpoint' : 'other';
-    renderTimeslotLegend();
+    if (isJ4Journey()) j4AfterCalendarRender(grid); else renderTimeslotLegend();
+    if (document.body.dataset.journey === '12') document.dispatchEvent(new Event('j12:calendar-rendered'));
   }
 
   function onSlotKeydown(e, assetId, dk, slot) {
@@ -7271,9 +7926,8 @@
         selectUnavailable(assetId, dk, ev);
         return;
       }
-      if (isFreeSlot(assetId, dk, slot)) {
-        const range = getFixtureFreeRange(assetId, dk, slot);
-        createSelection(assetId, dk, range.startSlot, range.endSlot);
+      if (isFreeSlot(assetId, dk, slot) && !oneCalendarSelectionBlocked()) {
+        createSelection(assetId, dk, slot, slot + 1);
       }
       return;
     } else return;
@@ -7291,20 +7945,156 @@
 
   function updateNowLine() {
     const line = $('#now-line');
-    if (!isCheckpointWeek() || slotLayout === 'stack') {
-      line.hidden = true;
+    // One Calendar candidate (conditional Gate A item 4): drawn inside every lane at the checkpoint's 'now' (08:05) so it
+    // scrolls with the calendar and never crosses the lane title, legend or day headers. Journey 1 and Journeys 4-6 keep
+    // no now line (accepted behaviour); the August checkpoint has no truthful live-now position.
+    if (line) line.hidden = true;
+    document.querySelectorAll('#calendar-grid .cal-now-line').forEach((n) => n.remove());
+    const journey = document.body.dataset.journey;
+    if (journey === '1' || isJ4Journey()) return;
+    if (journey === '2' ? !j2InteractiveGrid() : slotLayout === 'stack') return;
+    if (!document.querySelector('#calendar-grid .cal-day-header.is-today')) return;
+    const slotH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--slot-h') || '10');
+    const top = (5 / 30) * slotH; // 08:05 is five minutes into the first 30-minute row; every grid starts at 08:00
+    document.querySelectorAll('#calendar-grid .cal-lane-body').forEach((body) => {
+      if (!body.querySelector('.cal-day-col .cal-slot')) return;
+      const n = document.createElement('div');
+      n.className = 'now-line cal-now-line';
+      n.setAttribute('aria-hidden', 'true');
+      n.style.top = `${top}px`;
+      body.appendChild(n);
+    });
+  }
+
+  function j1RefreshDragPreview(assetId) {
+    if (slotLayout !== 'column') return;
+    $$('#calendar-grid .cal-day-col').forEach((col) => {
+      if (col.dataset.asset === assetId) refreshColumnSelectionDom(assetId, col.dataset.date);
+    });
+  }
+
+  function j1DragToPoint(x, y) {
+    const state = dragState;
+    if (!state?.j1Rectangle) return;
+    const col = document.elementsFromPoint(x, y).map((node) => node.closest?.('.cal-day-col')).find((node) => node?.dataset.asset === state.asset);
+    if (!col) return;
+    const slotH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--slot-h'));
+    const slot = Math.max(0, Math.min(23, Math.floor((y - col.getBoundingClientRect().top) / slotH)));
+    const date = col.dataset.date;
+    if (!['1', '12'].includes(document.body.dataset.journey) && date !== state.anchorDate) return; // multi-day rectangles stay a Journey 1/12 function
+    if (state.kind === 'resize' && (date < state.anchorDate || slot < state.anchorSlot)) return;
+    const startDate = state.kind === 'resize' ? state.anchorDate : (date < state.anchorDate ? date : state.anchorDate);
+    const endDate = state.kind === 'resize' ? date : (date > state.anchorDate ? date : state.anchorDate);
+    const startSlot = state.kind === 'resize' ? state.anchorSlot : Math.min(slot, state.anchorSlot);
+    const endSlot = state.kind === 'resize' ? slot : Math.max(slot, state.anchorSlot);
+    if (!j1RectangleIsFree(state.asset, startDate, endDate, startSlot, endSlot + 1)) return;
+    if (state.startDate === startDate && state.endDate === endDate && state.startSlot === startSlot && state.endSlot === endSlot) return;
+    Object.assign(state, { startDate, endDate, startSlot, endSlot });
+    applyColumnCrosshair(state.asset, date, slot);
+    j1RefreshDragPreview(state.asset);
+  }
+
+  function j1StartPointerDrag(event, assetId, dk, slot, resize = false) {
+    if (!isOneCalendarPointerRoute() || slotLayout !== 'column') return;
+    if (oneCalendarSelectionBlocked()) return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (resize && (!stagedSelection || stagedSelection.asset !== assetId)) return;
+    if (!resize && !isFreeSlot(assetId, dk, slot)) {
+      const occupied = getEventAtSlot(assetId, dk, slot);
+      if (isOccupiedEvent(occupied)) selectUnavailable(assetId, dk, occupied);
       return;
     }
-    const slotH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--slot-h') || '10');
-    const header = document.querySelector('.cal-header');
-    const caption = document.querySelector('.calendar-caption');
-    const headerH = (header ? header.offsetHeight : 0) + (caption ? caption.offsetHeight : 0);
-    const nowSlot = timeToSlot(8, 5);
-    line.style.top = `${headerH + nowSlot * slotH + 36}px`;
-    line.hidden = false;
+    event.preventDefault();
+    event.stopPropagation();
+    const previous = resize ? stagedSelection : null;
+    const range = previous ? slotRangeForSelection(previous) : null;
+    dragState = {
+      j1Rectangle: true, kind: resize ? 'resize' : 'create', asset: assetId,
+      anchorDate: previous ? previous.date : dk, anchorSlot: previous ? range.startSlot : slot,
+      startDate: previous ? previous.date : dk, endDate: previous ? previous.endDate || previous.date : dk,
+      startSlot: previous ? range.startSlot : slot, endSlot: previous ? range.endSlot - 1 : slot
+    };
+    applyColumnCrosshair(assetId, dk, slot);
+    j1RefreshDragPreview(assetId);
+    const scroll = $('#calendar-scroll');
+    try { scroll.setPointerCapture(event.pointerId); } catch { /* document listeners still own the gesture */ }
+    let pointerX = event.clientX;
+    let pointerY = event.clientY;
+    let moved = false;
+    const move = (e) => {
+      if (e.pointerId !== event.pointerId || !dragState?.j1Rectangle) return;
+      pointerX = e.clientX;
+      pointerY = e.clientY;
+      moved = true;
+      j1DragToPoint(pointerX, pointerY);
+    };
+    const edge = setInterval(() => {
+      if (!dragState?.j1Rectangle || !moved) return;
+      const rect = scroll.getBoundingClientRect();
+      if (pointerY < rect.top || pointerY > rect.bottom) return;
+      if (pointerX >= rect.right - 24) scroll.scrollLeft += 18;
+      else if (pointerX <= rect.left + 24) scroll.scrollLeft -= 18;
+      j1DragToPoint(pointerX, pointerY);
+    }, 60);
+    const finish = (e) => {
+      if (e.pointerId !== event.pointerId) return;
+      document.removeEventListener('pointermove', move, true);
+      document.removeEventListener('pointerup', finish, true);
+      document.removeEventListener('pointercancel', cancel, true);
+      clearInterval(edge);
+      try { if (scroll.hasPointerCapture(event.pointerId)) scroll.releasePointerCapture(event.pointerId); } catch { /* already released */ }
+      if (!dragState?.j1Rectangle) return;
+      const final = { ...dragState };
+      dragState = null;
+      clearColumnCrosshair();
+      if (final.kind === 'resize') {
+        const start = slotToTime(final.startSlot);
+        const end = slotToTime(final.endSlot + 1);
+        Object.assign(stagedSelection, { date: final.startDate, endDate: final.endDate, startH: start.h, startM: start.m, endH: end.h, endM: end.m, j1DailyRectangle: true });
+        updateCartUI();
+        renderCalendar();
+      } else {
+        createSelection(assetId, final.startDate, final.startSlot, final.endSlot + 1, final.endDate);
+      }
+    };
+    const cancel = (e) => {
+      if (e.pointerId !== event.pointerId) return;
+      document.removeEventListener('pointermove', move, true);
+      document.removeEventListener('pointerup', finish, true);
+      document.removeEventListener('pointercancel', cancel, true);
+      clearInterval(edge);
+      dragState = null;
+      clearColumnCrosshair();
+      j1RefreshDragPreview(assetId);
+    };
+    document.addEventListener('pointermove', move, true);
+    document.addEventListener('pointerup', finish, true);
+    document.addEventListener('pointercancel', cancel, true);
+  }
+
+  function j1HandleKeydown(event) {
+    if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key) || !stagedSelection) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const dates = getWeekDays().map(dateKey);
+    const range = slotRangeForSelection(stagedSelection);
+    const endIndex = dates.indexOf(stagedSelection.endDate || stagedSelection.date);
+    const nextIndex = endIndex + (event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0);
+    const nextSlot = range.endSlot - 1 + (event.key === 'ArrowDown' ? 1 : event.key === 'ArrowUp' ? -1 : 0);
+    if (nextIndex < dates.indexOf(stagedSelection.date) || nextIndex >= dates.length || nextSlot < range.startSlot || !j1RectangleIsFree(stagedSelection.asset, stagedSelection.date, dates[nextIndex], range.startSlot, nextSlot + 1)) {
+      announceLive('That daily rectangle includes an unavailable review-fixture cell; selection unchanged.');
+      return;
+    }
+    const end = slotToTime(nextSlot + 1);
+    Object.assign(stagedSelection, { endDate: dates[nextIndex], endH: end.h, endM: end.m, j1DailyRectangle: true });
+    updateCartUI();
+    renderCalendar();
+    requestAnimationFrame(() => $('.j1-selection-band.is-primary .j1-selection-handle.is-br')?.focus({ preventScroll: true }));
   }
 
   function onSlotMouseDown(e, assetId, dk, slot) {
+    if (isOneCalendarPointerRoute() && slotLayout === 'column') return; // Journey 12 pointer events (incl. touch) own the gesture.
+    if (oneCalendarSelectionBlocked()) return;
     const ev = getEventAtSlot(assetId, dk, slot);
     if (isOccupiedEvent(ev)) {
       selectUnavailable(assetId, dk, ev);
@@ -7312,8 +8102,7 @@
     }
     if (!isFreeSlot(assetId, dk, slot)) return;
     e.preventDefault();
-    const anchor = getFixtureFreeRange(assetId, dk, slot);
-    dragState = { asset: assetId, date: dk, startSlot: anchor.startSlot, endSlot: anchor.endSlot - 1 };
+    dragState = { asset: assetId, date: dk, startSlot: slot, endSlot: slot };
     applyColumnCrosshair(assetId, dk, slot);
     refreshColumnSelectionDom(assetId, dk);
     const onUp = () => {
@@ -7329,6 +8118,8 @@
   }
 
   function onSlotMouseEnter(assetId, dk, slot) {
+    if (isOneCalendarPointerRoute() && dragState?.j1Rectangle) return;
+    if (isJ4Journey() && j4ActionsBlocked()) { clearColumnCrosshair(); return; }
     if (isFreeSlot(assetId, dk, slot)) applyColumnCrosshair(assetId, dk, slot);
     else clearColumnCrosshair();
     if (!dragState || dragState.asset !== assetId || dragState.date !== dk) return;
@@ -7616,6 +8407,14 @@
   }
 
   function activateGuidedCalendarSlot(el) {
+    if (document.body.dataset.journey === '1' && slotLayout === 'column') {
+      const col = el.closest('.cal-day-col');
+      const slot = Number(el.dataset.slot);
+      if (col && Number.isInteger(slot) && isFreeSlot(col.dataset.asset, col.dataset.date, slot)) {
+        createSelection(col.dataset.asset, col.dataset.date, slot, slot + 1);
+      }
+      return;
+    }
     el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }));
     document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0 }));
   }
@@ -8172,6 +8971,21 @@
     const isJ7 = document.body.dataset.journey === '7';
     const isJ8 = document.body.dataset.journey === '8';
     const calendarGrid = $('#calendar-grid');
+    if (document.body.dataset.journey === '12') {
+      const clearFreeSelectionForPublicEvent = (event) => {
+        if (!event.target.closest?.('#j12-public-event')) return;
+        if (event.type === 'keydown' && !['Enter', ' ', 'Spacebar'].includes(event.key)) return;
+        clearColumnCrosshair();
+        if (!stagedSelection && !dragState) return;
+        stagedSelection = null;
+        dragState = null;
+        editingLineId = null;
+        $$('#calendar-grid .cal-day-col').forEach((col) => refreshColumnSelectionDom(col.dataset.asset, col.dataset.date));
+        updateCartUI();
+      };
+      document.addEventListener('click', clearFreeSelectionForPublicEvent, true);
+      document.addEventListener('keydown', clearFreeSelectionForPublicEvent, true);
+    }
     if (calendarGrid) {
       calendarGrid.addEventListener('mouseleave', clearColumnCrosshair);
       calendarGrid.addEventListener('mouseover', (event) => {
@@ -8578,7 +9392,7 @@
     setupPickerEvents();
     if (isJ8) j8BindEvents();
     if (isJ4 || isJ5 || isJ6) j4SetupEvents();
-    if (isJ5 || isJ6) j5SetupEvents();
+    if (isJ5 || isJ6 || document.body.dataset.journey === '12') j5SetupEvents();
     if (!isJ2) {
       setupAssetExplorerEvents();
       if (!isJ3) {
@@ -9117,7 +9931,7 @@
       if (j8State === 'persist_blocked') { j8FocusTerminalCancel(); return; }
       j8CancelToHub();
     }, true);
-    $('#j5-workflow-close').addEventListener('click', () => { if (j8State !== 'persist_blocked') j8CancelToHub(); });
+    $('#j5-workflow-close').addEventListener('click', () => { if (!isJ8Journey() || j8State === 'persist_blocked') return; j8CancelToHub(); });
     $('#j5-workflow-dialog').addEventListener('cancel', (event) => { event.preventDefault(); if (j8State !== 'persist_blocked') j8CancelToHub(); });
     $('#j5-workflow-dialog').addEventListener('close', () => { if (j8PickerSuspendedWorkflow) return; if (!j8Closing && j8State !== 'persist_blocked' && j8Operation) j8CancelToHub(); });
   }
@@ -9140,15 +9954,16 @@
   }
 
   function boot() {
+    window.__j6PublicRescheduleRoot = Object.freeze({ startOperation: j6StartOperation, renderWorkflow: j6RenderWorkflow, handleWorkflowCommand: j6HandleWorkflowCommand, rootFunction: 'j6StartOperation' });
     window.__journey10Shared = Object.freeze({ renderCalendar, trapDialogFocus, applyTimeslotVisual, isFreeSlot, getFixtureFreeRange, announceLive });
     const journey = applyJourneyBoot();
-    if (journey === 10) document.documentElement.style.setProperty('--slot-h', '40px');
+    // One Calendar candidate: Journey 10 uses the Journey 12 calendar density (was 40px rows, Correction 005).
     applyJourneySurfaces(journey);
     closeAllJourneyOverlays();
     if (journey === 2) {
       document.title = 'Optimo Diary — Journey 2 Master-Ancestry Candidate';
       const pickerInput = $('#picker-input');
-      if (pickerInput) pickerInput.value = '2026-09-04';
+      if (pickerInput) pickerInput.value = '2026-08-29';
     } else if (journey === 3) {
       document.title = 'Optimo Diary — Journey 3 Asset Search, Hierarchy and Selection';
     } else if (journey === 4) {
@@ -9170,6 +9985,17 @@
     }
     init();
   }
+
+
+  window.__j15DiaryData = Object.freeze({
+    events: EVENTS,
+    assets: ASSETS,
+    hourLabel(h) {
+      const hr = Math.floor(h);
+      const min = Math.round((h - hr) * 60);
+      return `${String(hr).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+    }
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);
@@ -9497,3 +10323,1232 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => window.setTimeout(installRouteSurface, 0)); else window.setTimeout(installRouteSurface, 0);
 })();
+
+
+/* ===== Journey 12 isolated candidate — UJ-14 / Public Event Actions ===== */
+(function journey12IsolatedCandidate() {
+  'use strict';
+  const isJ12 = () => document.body.dataset.journey === '12';
+  const $ = (id) => document.getElementById(id);
+  const FIXTURE = { title: 'Community Open Day', asset: 'hall1', assetName: 'Hall 1', date: '2026-08-26', startSlot: 4, endSlot: 8, time: '10:00–12:00' };
+  const state = { selected: false, panelOpen: false, eventTrigger: null, boundaryKind: null };
+  const setHidden = (el, hidden) => {
+    if (!el) return;
+    el.hidden = hidden;
+    el.inert = hidden;
+    if (hidden) el.setAttribute('aria-hidden', 'true'); else el.removeAttribute('aria-hidden');
+  };
+  const announce = (text) => {
+    const live = $('ldp-live');
+    if (live) live.textContent = text;
+    const toast = $('toast-region');
+    if (toast) toast.textContent = text;
+  };
+  const slotHeight = (col) => parseFloat(getComputedStyle(col).getPropertyValue('--slot-h') || '10');
+  let paintingFixture = false;
+  function paintFixture() {
+    if (paintingFixture || !isJ12()) return;
+    paintingFixture = true;
+    try {
+      const col = document.querySelector(`body[data-journey="12"] .cal-day-col[data-asset="${FIXTURE.asset}"][data-date="${FIXTURE.date}"]`);
+      let node = document.getElementById('j12-public-event');
+      if (!col) {
+        node?.remove();
+        return;
+      }
+      if (!node) {
+        node = document.createElement('button');
+        node.type = 'button';
+        node.id = 'j12-public-event';
+        node.dataset.j12Event = 'fixture';
+        node.innerHTML = `<strong>${FIXTURE.title}</strong><span class="j12-event-meta">${FIXTURE.assetName} · ${FIXTURE.time}</span><span class="j12-event-tag">Public event · local fixture</span>`;
+        col.appendChild(node);
+      } else if (node.parentElement !== col) {
+        col.appendChild(node);
+      }
+      node.className = 'cal-event j12-public-event' + (state.selected ? ' j12-selected' : '');
+      if (state.selected && !state.eventTrigger?.isConnected) state.eventTrigger = node;
+      node.setAttribute('aria-pressed', String(state.selected));
+      node.setAttribute('aria-label', `${FIXTURE.title} · ${FIXTURE.assetName} · ${FIXTURE.time} · local in-memory review fixture`);
+      const h = slotHeight(col);
+      node.style.top = `${FIXTURE.startSlot * h}px`;
+      node.style.height = `${(FIXTURE.endSlot - FIXTURE.startSlot) * h}px`;
+    } finally {
+      paintingFixture = false;
+    }
+  }
+  function selectEvent(trigger) {
+    state.selected = true;
+    state.eventTrigger = trigger || $('j12-public-event');
+    paintFixture();
+    openPanel();
+    announce(`${FIXTURE.title} selected. Event actions are available for local review only.`);
+  }
+  function openPanel() {
+    if (!state.selected) return;
+    const panel = $('j12-event-actions-panel');
+    setHidden(panel, false);
+    state.panelOpen = true;
+    $('j12-panel-context').textContent = `${FIXTURE.title} · ${FIXTURE.assetName} · Wed 26 Aug 2026 · ${FIXTURE.time}`;
+    $('j12-event-actions-close')?.focus();
+  }
+  function closePanel(restoreFocus = true) {
+    const panel = $('j12-event-actions-panel');
+    setHidden(panel, true);
+    state.panelOpen = false;
+    if (restoreFocus && state.eventTrigger?.isConnected) state.eventTrigger.focus();
+  }
+  const boundaryCopy = {
+    config: 'Configuration and capacity components exist in the legacy trace, but rights, confirmation policy and successful mutation outcomes are UNCONFIRMED. This prototype shows the boundary only — no Save, Update, API, persistence or production destination.',
+    maps: 'Venue/table and asset map handoffs exist as EXTERNAL HANDOFF boundaries only. No URL, map key, coordinates, network call, redirect or destination success is available in this review fixture.',
+    external: 'Corporate Booking, Open Booking, Booking Manager, Call Center, Edit Layout and Event Setup remain DEFECT-AFFECTED external contracts. No URL, navigation, authentication or destination availability is claimed.'
+  };
+  function openBoundary(kind) {
+    state.boundaryKind = kind;
+    const titles = { config: 'Configuration & capacity', maps: 'Venue/table and asset maps', external: 'External applications' };
+    $('j12-boundary-title').textContent = titles[kind] || 'Boundary review';
+    $('j12-boundary-copy').textContent = boundaryCopy[kind] || '';
+    const dialog = $('j12-boundary-dialog');
+    dialog.showModal();
+    $('j12-boundary-close').focus();
+  }
+  function closeBoundary() {
+    const dialog = $('j12-boundary-dialog');
+    if (dialog?.open) dialog.close();
+    const restore = state.boundaryKind === 'config' ? $('j12-boundary-config') : state.boundaryKind === 'maps' ? $('j12-boundary-maps') : $('j12-boundary-external');
+    state.boundaryKind = null;
+    if (restore?.isConnected) restore.focus(); else if (state.panelOpen) $('j12-event-actions-close')?.focus(); else state.eventTrigger?.focus();
+  }
+  function startReschedule() {
+    const root = window.__j6PublicRescheduleRoot;
+    const trigger = $('j12-reschedule-event');
+    if (!root?.startOperation || root.rootFunction !== 'j6StartOperation') {
+      announce('Journey 6 public-reschedule root is unavailable. No duplicate flow was started.');
+      return;
+    }
+    root.startOperation('PublicReschedule', trigger);
+  }
+  function hookCalendar() {
+    const grid = $('calendar-grid');
+    if (!grid || grid.dataset.j12Hooked === 'true') return;
+    grid.dataset.j12Hooked = 'true';
+    const observer = new MutationObserver(() => {
+      if (!document.getElementById('j12-public-event')) window.requestAnimationFrame(paintFixture);
+    });
+    observer.observe(grid, { childList: true, subtree: true });
+    ['date-prev', 'date-next', 'date-today', 'picker-apply'].forEach((id) => $(id)?.addEventListener('click', () => window.setTimeout(paintFixture, 0), true));
+    paintFixture();
+  }
+  function installRouteSurface() {
+    if (!isJ12()) return;
+    document.title = 'Optimo Diary — Journey 12 / UJ-14 Public Event Actions';
+    document.body.dataset.j12PublicEvents = 'true';
+    document.querySelectorAll('.mode-nav .mode-btn').forEach((button) => {
+      button.classList.remove('is-active');
+      button.setAttribute('aria-pressed', 'false');
+    });
+    setHidden($('j12-route-status'), false);
+    setHidden($('j12-event-actions-panel'), true);
+    setHidden($('j12-boundary-dialog'), false);
+    hookCalendar();
+    document.addEventListener('click', (event) => {
+      if (!isJ12()) return;
+      const eventBtn = event.target.closest('#j12-public-event, .j12-public-event');
+      if (eventBtn) { event.preventDefault(); event.stopImmediatePropagation(); selectEvent(eventBtn); return; }
+      if (event.target.closest('.mode-nav .mode-btn')) { event.preventDefault(); event.stopImmediatePropagation(); announce('Public Events review context is active for Journey 12. No API, persistence or external navigation.'); return; }
+      if (event.target.closest('#j12-event-actions-close')) { event.preventDefault(); closePanel(); return; }
+      if (event.target.closest('#j12-reschedule-event')) { event.preventDefault(); startReschedule(); return; }
+      if (event.target.closest('#j12-boundary-config')) { event.preventDefault(); openBoundary('config'); return; }
+      if (event.target.closest('#j12-boundary-maps')) { event.preventDefault(); openBoundary('maps'); return; }
+      if (event.target.closest('#j12-boundary-external')) { event.preventDefault(); openBoundary('external'); return; }
+      if (event.target.closest('#j12-boundary-close')) { event.preventDefault(); closeBoundary(); }
+    }, true);
+    document.addEventListener('keydown', (event) => {
+      if (!isJ12()) return;
+      const eventBtn = event.target.closest('#j12-public-event, .j12-public-event');
+      if (eventBtn && (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar')) { event.preventDefault(); event.stopImmediatePropagation(); selectEvent(eventBtn); return; }
+      if (event.key !== 'Escape') return;
+      const boundary = $('j12-boundary-dialog');
+      if (boundary?.open) { event.preventDefault(); event.stopImmediatePropagation(); closeBoundary(); return; }
+      if ($('j5-workflow-dialog')?.open) return;
+      const panel = $('j12-event-actions-panel');
+      if (panel && !panel.hidden) { event.preventDefault(); event.stopImmediatePropagation(); closePanel(); }
+    }, true);
+    $('j12-boundary-dialog')?.addEventListener('cancel', (event) => { event.preventDefault(); closeBoundary(); });
+    const reopenPanelAfterWorkflow = () => {
+      if (!state.selected) return;
+      setHidden($('j12-event-actions-panel'), false);
+      state.panelOpen = true;
+    };
+    $('#j5-workflow-dialog')?.addEventListener('close', () => {
+      if (!isJ12() || !state.selected) return;
+      window.setTimeout(() => {
+        reopenPanelAfterWorkflow();
+        $('j12-reschedule-event')?.focus({ preventScroll: true });
+      }, 60);
+    });
+    window.__j12Review = Object.freeze({ fixture: FIXTURE, state, rescheduleRoot: () => window.__j6PublicRescheduleRoot, reopenPanelAfterWorkflow });
+    // Intentional initial focus: the directly opened Event actions panel begins at its Close control.
+    if (location.hash !== '#agenda') selectEvent($('j12-public-event'));
+  }
+  document.addEventListener('j12:calendar-rendered', paintFixture);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => window.setTimeout(installRouteSurface, 0)); else window.setTimeout(installRouteSurface, 0);
+})();
+
+/* ===== Journey 13 isolated candidate — Configuration & Capacity Preview ===== */
+(function journey13IsolatedCandidate() {
+  'use strict';
+  const isJ13 = () => document.body.dataset.journey === '13';
+  const root = () => document.getElementById('j13-standalone-surface');
+  const $ = (sel) => root()?.querySelector(sel);
+  const $$ = (sel) => [...(root()?.querySelectorAll(sel) || [])];
+  const initial = { config: 'Theatre', facilities: ['Hall 1'], caps: { 'Hall 1': 180 } };
+  const state = structuredClone(initial);
+  const applied = structuredClone(initial);
+  const max = { 'Hall 1': 240, 'Conference Suite': 80, 'Studio 2': 60 };
+  const defaults = { 'Hall 1': 180, 'Conference Suite': 40, 'Studio 2': 60 };
+  const clone = (x) => JSON.parse(JSON.stringify(x));
+  function compatible(name) { return !(name === 'Studio 2' && state.config !== 'Cabaret'); }
+  function ensureCaps() { state.facilities.forEach((name) => { if (state.caps[name] == null) state.caps[name] = defaults[name]; }); }
+  function changed() { return JSON.stringify(state) !== JSON.stringify(applied); }
+  function rebuildCaps() {
+    ensureCaps();
+    const host = $('#capacities');
+    if (!host) return;
+    host.innerHTML = '';
+    state.facilities.forEach((name) => {
+      const card = document.createElement('article');
+      card.className = 'capacity-card';
+      card.dataset.card = name;
+      card.innerHTML = `<div class="capacity-top"><strong>${name}</strong><span class="max">max. ${max[name]}</span></div><div class="counter"><button type="button" aria-label="Decrease ${name} capacity" data-delta="-10">−</button><output aria-live="polite">${state.caps[name]}</output><button type="button" aria-label="Increase ${name} capacity" data-delta="10">+</button></div>`;
+      host.append(card);
+    });
+    if (!state.facilities.length) host.innerHTML = '<div class="help">Select at least one compatible facility to set capacity.</div>';
+  }
+  function render() {
+    if (!isJ13()) return;
+    $$('.config').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.config === state.config)));
+    $$('[data-facility]').forEach((input) => {
+      const name = input.dataset.facility;
+      const ok = compatible(name);
+      input.disabled = !ok;
+      input.checked = ok && state.facilities.includes(name);
+      input.closest('.facility').classList.toggle('selected', input.checked);
+      input.closest('.facility').classList.toggle('unavailable', !ok);
+    });
+    const reason = $('#studio-reason');
+    if (reason) reason.textContent = compatible('Studio 2') ? 'Supported' : 'Only Cabaret supported';
+    rebuildCaps();
+    const sc = $('#summary-config'); if (sc) sc.textContent = state.config;
+    const sf = $('#summary-facilities'); if (sf) sf.textContent = state.facilities.join(', ') || 'None';
+    const count = (state.config !== applied.config ? 1 : 0)
+      + state.facilities.filter((n) => !applied.facilities.includes(n)).length
+      + applied.facilities.filter((n) => !state.facilities.includes(n)).length
+      + state.facilities.filter((n) => (state.caps[n] ?? 0) !== (applied.caps[n] ?? defaults[n])).length;
+    const scount = $('#summary-count'); if (scount) scount.textContent = String(count);
+    const review = $('#review'); if (review) review.disabled = !changed() || !state.facilities.length;
+    const reset = $('#reset'); if (reset) reset.disabled = JSON.stringify(state) === JSON.stringify(initial);
+  }
+  const targetElement = (e) => (e.target instanceof Element ? e.target : e.target?.parentElement);
+  function installRouteSurface() {
+    if (!isJ13()) return;
+    document.title = 'Journey 13 — Configuration & capacity preview';
+    const surface = root();
+    if (surface) { surface.hidden = false; surface.inert = false; surface.removeAttribute('aria-hidden'); }
+    $('#configs')?.addEventListener('click', (e) => {
+      const b = targetElement(e)?.closest('.config');
+      if (!b) return;
+      state.config = b.dataset.config;
+      state.facilities = state.facilities.filter(compatible);
+      render();
+    });
+    $$('.config').forEach((btn) => {
+      btn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); btn.click(); }
+      });
+    });
+    $('.facility-list')?.addEventListener('change', (e) => {
+      const input = targetElement(e)?.closest('[data-facility]');
+      if (!input) return;
+      const n = input.dataset.facility;
+      if (input.checked && !state.facilities.includes(n)) state.facilities.push(n);
+      if (!input.checked) state.facilities = state.facilities.filter((x) => x !== n);
+      render();
+    });
+    $('#capacities')?.addEventListener('click', (e) => {
+      const b = targetElement(e)?.closest('[data-delta]');
+      if (!b) return;
+      const n = b.closest('[data-card]').dataset.card;
+      state.caps[n] = Math.max(0, Math.min(max[n], state.caps[n] + Number(b.dataset.delta)));
+      render();
+    });
+    $('#reset')?.addEventListener('click', () => { Object.assign(state, clone(initial)); render(); $('#configs .config')?.focus(); });
+    const modal = $('#modal');
+    const cancel = $('#cancel');
+    const shell = $('.shell');
+    $('#review')?.addEventListener('click', () => {
+      const list = $('#change-list');
+      if (!list) return;
+      list.innerHTML = '';
+      const rows = [];
+      if (state.config !== applied.config) rows.push(['Configuration', applied.config, state.config]);
+      state.facilities.forEach((n) => {
+        const before = applied.facilities.includes(n) ? `${applied.caps[n]} people` : 'Not selected';
+        const after = `${state.caps[n]} people`;
+        if (before !== after) rows.push([n, before, after]);
+      });
+      applied.facilities.filter((n) => !state.facilities.includes(n)).forEach((n) => rows.push([n, `${applied.caps[n]} people`, 'Not selected']));
+      rows.forEach(([label, before, after]) => {
+        const d = document.createElement('div');
+        d.className = 'change';
+        d.innerHTML = `<div><strong>${label}</strong><span>${before} → ${after}</span></div><span class="arrow">PREVIEW</span>`;
+        list.append(d);
+      });
+      if (shell) shell.inert = true;
+      modal?.classList.add('open');
+      cancel?.focus();
+    });
+    function close() {
+      modal?.classList.remove('open');
+      if (shell) shell.inert = false;
+      $('#review')?.focus();
+    }
+    if (cancel) cancel.onclick = close;
+    modal?.addEventListener('click', (e) => { if (e.target === modal) close(); });
+    $('#apply')?.addEventListener('click', () => {
+      Object.assign(applied, clone(state));
+      close();
+      render();
+      const t = $('#toast');
+      t?.classList.add('show');
+      window.setTimeout(() => t?.classList.remove('show'), 2600);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (!isJ13() || e.key !== 'Escape' || !modal?.classList.contains('open')) return;
+      close();
+    });
+    window.__j13Review = Object.freeze({ initial, state, applied, render, reset: () => window.location.reload() });
+    render();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => window.setTimeout(installRouteSurface, 0));
+  else window.setTimeout(installRouteSurface, 0);
+})();
+
+/* ===== Journey 14 in-Diary module ===== */
+(function journey14InDiary() {
+  'use strict';
+  const isJ14 = () => document.body.dataset.journey === '14';
+  const root = () => document.getElementById('j14-standalone-surface');
+  const byId = (id) => root()?.querySelector('#' + id);
+  let installed = false;
+
+  function guardSideEffects() {
+    var blocked = function(name) {
+            return function() {
+              console.warn("[J14 review] Blocked:", name);
+              return null;
+            };
+          };
+          window.open = blocked("window.open");
+          if (window.fetch) window.fetch = blocked("fetch");
+          try {
+            var XHR = window.XMLHttpRequest;
+            window.XMLHttpRequest = function() {
+              throw new Error("Network disabled in Journey 14 planning preview");
+            };
+            window.XMLHttpRequest.UNSENT = XHR.UNSENT;
+          } catch (e) { /* noop */ }
+  }
+
+  function installRouteSurface() {
+    if (installed) return;
+    installed = true;
+    const surface = root();
+    if (surface) {
+      surface.hidden = false;
+      surface.inert = false;
+      surface.removeAttribute('aria-hidden');
+    }
+    guardSideEffects();
+    var tabs = ["tab-seating", "tab-venue", "tab-external"];
+        var panels = ["panel-seating", "panel-venue", "panel-external"];
+        var live = byId("live-region");
+        var lastFocus = null;
+
+        function announce(msg) {
+          live.textContent = "";
+          requestAnimationFrame(function() { live.textContent = msg; });
+        }
+
+        function activateTab(index) {
+          tabs.forEach(function(id, i) {
+            var tab = byId(id);
+            var panel = byId(panels[i]);
+            var selected = i === index;
+            tab.setAttribute("aria-selected", selected ? "true" : "false");
+            tab.tabIndex = selected ? 0 : -1;
+            if (selected) {
+              panel.hidden = false;
+              panel.focus();
+            } else {
+              panel.hidden = true;
+            }
+          });
+          announce(byId(tabs[index]).textContent + " section active");
+        }
+
+        byId("handoff-tabs").addEventListener("click", function(e) {
+          var tab = e.target.closest('[role="tab"]');
+          if (!tab) return;
+          var idx = tabs.indexOf(tab.id);
+          if (idx >= 0) activateTab(idx);
+        });
+
+        byId("handoff-tabs").addEventListener("keydown", function(e) {
+          var tab = e.target.closest('[role="tab"]');
+          if (!tab) return;
+          var idx = tabs.indexOf(tab.id);
+          if (e.key === "ArrowRight") { e.preventDefault(); activateTab((idx + 1) % tabs.length); byId(tabs[(idx + 1) % tabs.length]).focus(); }
+          if (e.key === "ArrowLeft") { e.preventDefault(); activateTab((idx + tabs.length - 1) % tabs.length); byId(tabs[(idx + tabs.length - 1) % tabs.length]).focus(); }
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); activateTab(idx); }
+        });
+
+        root()?.querySelectorAll(".seat-block").forEach(function(el) {
+          function selectSeat() {
+            root()?.querySelectorAll(".seat-block").forEach(function(s) {
+              s.classList.remove("is-selected");
+              s.setAttribute("aria-pressed", "false");
+            });
+            el.classList.add("is-selected");
+            el.setAttribute("aria-pressed", "true");
+            announce("Seat block " + el.getAttribute("data-seat") + " selected for review");
+          }
+          el.addEventListener("click", selectSeat);
+          el.addEventListener("keydown", function(e) {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectSeat(); }
+          });
+        });
+
+        var mapPlaceholders = {
+          available: { title: "Neutral local map placeholder", body: "Riverside Pavilion · schematic grid only · no API key", pill: "Map placeholder · Available", cls: "status-available" },
+          loading: { title: "Loading map presentation", body: "Simulated loading state from asset description pattern", pill: "Map placeholder · Loading", cls: "status-loading" },
+          unavailable: { title: "No location available", body: "Degraded state — venue fallback also missing in this fixture", pill: "Map placeholder · No location", cls: "status-unavailable" }
+        };
+
+        root()?.querySelectorAll('input[name="map-state"]').forEach(function(radio) {
+          radio.addEventListener("change", function() {
+            var state = radio.value;
+            var surf = root(); if (surf) surf.setAttribute("data-map-state", state);
+            var cfg = mapPlaceholders[state];
+            byId("map-placeholder").setAttribute("data-state", state);
+            byId("map-placeholder-title").textContent = cfg.title;
+            byId("map-placeholder-body").textContent = cfg.body;
+            var pill = byId("map-status-pill");
+            pill.className = "status-pill " + cfg.cls;
+            pill.textContent = cfg.pill;
+            announce(cfg.pill);
+          });
+        });
+
+        var dialog = byId("handoff-dialog");
+        var dialogPanel = byId("handoff-dialog-panel");
+        var paramTemplates = {
+          "Review seating-map handoff": [
+            ["primaryEventId", "evt-summer-2026-fixture"],
+            ["sessionId", "ses-evening-1900-fixture"],
+            ["packageId", "pkg-standard-seated-fixture"],
+            ["route pattern", "seating-view/{eventId} with session and package query placeholders"],
+            ["handoff mode", "OPEN — DEC-INT-001"]
+          ],
+          "Corporate Booking": [["booking token", "@BookingId@ (placeholder)"], ["expand flag", "?expand=true (label only)"], ["target", "new tab — unverified"]],
+          "Call Center": [["booking reference", "@BookingRef@ (placeholder)"], ["target behaviour", "legacy _black typo noted in evidence"]],
+          "Maintain Table Plan": [["entitlement", "rights/settings gated — not public seating map"], ["action", "Edit Layout external handoff"]],
+          "Event Setup": [["context", "booking / event identifiers (fixture)"], ["route", "named in inventory — URL not shown"]],
+          "Booking Manager": [["observed defect", "missing directory in evidence"], ["status", "Unavailable in evidence"]]
+        };
+
+        function openDialog(triggerEl, destinationKey) {
+          lastFocus = triggerEl;
+          byId("j14-dialog-destination").textContent = destinationKey;
+          var list = byId("j14-dialog-params");
+          list.innerHTML = "";
+          var rows = paramTemplates[destinationKey] || [["context", "Review fixture"]];
+          rows.forEach(function(pair) {
+            var li = document.createElement("li");
+            li.innerHTML = "<span>" + pair[0] + "</span><span>" + pair[1] + "</span>";
+            list.appendChild(li);
+          });
+          dialog.hidden = false;
+          var sh = root()?.querySelector(".shell"); if (sh) sh.inert = true;
+          var rl = root()?.querySelector(".review-rail"); if (rl) rl.inert = true;
+          var sk = root()?.querySelector(".skip-link"); if (sk) sk.inert = true;
+          byId("j14-dialog-back").focus();
+          announce("Handoff review sheet opened for " + destinationKey);
+        }
+
+        function closeDialog(returnFocus) {
+          dialog.hidden = true;
+          var sh2 = root()?.querySelector(".shell"); if (sh2) sh2.inert = false;
+          var rl2 = root()?.querySelector(".review-rail"); if (rl2) rl2.inert = false;
+          var sk2 = root()?.querySelector(".skip-link"); if (sk2) sk2.inert = false;
+          if (returnFocus !== false && lastFocus) lastFocus.focus();
+          announce("Handoff review sheet closed");
+        }
+
+        byId("btn-review-seating").addEventListener("click", function(e) {
+          openDialog(e.currentTarget, "Review seating-map handoff");
+        });
+        root()?.querySelectorAll(".btn-review-handoff").forEach(function(btn) {
+          btn.addEventListener("click", function(e) {
+            openDialog(e.currentTarget, btn.getAttribute("data-destination"));
+          });
+        });
+        byId("j14-dialog-close").addEventListener("click", function() { closeDialog(true); });
+        byId("j14-dialog-back").addEventListener("click", function() { closeDialog(true); });
+        byId("j14-dialog-ack").addEventListener("click", function() {
+          announce("Preview acknowledged locally — no navigation");
+          closeDialog(true);
+        });
+        document.addEventListener("keydown", function(e) {
+          if (dialog.hidden) return;
+          if (e.key === "Escape") {
+            e.preventDefault();
+            closeDialog(true);
+            return;
+          }
+          if (e.key === "Tab") {
+            var focusable = Array.from(dialogPanel.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+            if (!focusable.length) return;
+            var first = focusable[0];
+            var last = focusable[focusable.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+              e.preventDefault();
+              last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+              e.preventDefault();
+              first.focus();
+            }
+          }
+        });
+
+        var failurePanel = byId("failure-panel");
+        var externalList = byId("external-list");
+        byId("btn-demo-failure").addEventListener("click", function() {
+          activateTab(2);
+          failurePanel.hidden = false;
+          var surfF = root(); if (surfF) surfF.setAttribute("data-failure-visible", "true");
+          externalList.setAttribute("aria-hidden", "true");
+          externalList.inert = true;
+          byId("failure-title").focus();
+          announce("Destination unavailable demonstration");
+        });
+        byId("btn-return-handoffs").addEventListener("click", function() {
+          failurePanel.hidden = true;
+          var surfR = root(); if (surfR) surfR.setAttribute("data-failure-visible", "false");
+          externalList.removeAttribute("aria-hidden");
+          externalList.inert = false;
+          byId("btn-demo-failure").focus();
+          announce("Returned to external handoff list");
+        });
+    window.__j14Review = Object.freeze({ reset: () => window.location.reload() });
+  }
+
+  window.__j14Install = installRouteSurface;
+})();
+
+/* IN-DIARY ONLY — Journey 14 inside the main Diary. Review artifact, not Product.
+   Flow: public event in the calendar -> existing Event actions panel -> new "Location & handoffs" card
+   -> Journey 14 opens in the same Diary side-panel slot (calendar stays in view on desktop)
+   -> "Event actions" / Esc goes back one step; × returns to the calendar through the existing Journey 12 close. */
+(function journey14InDiaryIntegrationInDiary() {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const isJ12 = () => document.body.dataset.journey === '12';
+  const state = { ready: false, open: false, trigger: null, tries: 0 };
+
+  function setHidden(el, hidden) {
+    if (!el) return;
+    el.hidden = hidden;
+    el.inert = hidden;
+    if (hidden) el.setAttribute('aria-hidden', 'true'); else el.removeAttribute('aria-hidden');
+  }
+  function announce(text) {
+    // Same pattern as the Journey 12 panel: screen-reader live region plus the visible Diary toast.
+    const live = $('ldp-live');
+    if (live) live.textContent = text;
+    const toast = $('toast-region');
+    if (toast) toast.textContent = text;
+  }
+
+
+
+
+  function contextText() {
+    const event = ($('j12-panel-context') && $('j12-panel-context').textContent.trim()) || 'Community Open Day · Hall 1 · Wed 26 Aug 2026 · 10:00–12:00';
+    const week = $('date-range-label') && $('date-range-label').textContent.trim();
+    return week ? event + ' · Diary week ' + week : event;
+  }
+
+  function openJ14(trigger) {
+    if (!state.ready) return;
+    state.trigger = trigger || $('j14-open-location-handoffs');
+    if (typeof window.__j14Install === 'function') window.__j14Install();
+    $('j14-diary-context').textContent = contextText();
+    setHidden($('j12-event-actions-panel'), true);
+    setHidden($('j14-diary-panel'), false);
+    if ($('j14-open-location-handoffs')) $('j14-open-location-handoffs').setAttribute('aria-expanded', 'true');
+    state.open = true;
+    document.body.dataset.j14InDiary = 'open';
+    $('j14-diary-back').focus();
+    announce('Location and handoffs opened inside the Diary for Community Open Day. The calendar is unchanged.');
+  }
+  function hideJ14Panel() {
+    setHidden($('j14-diary-panel'), true);
+    if ($('j14-open-location-handoffs')) $('j14-open-location-handoffs').setAttribute('aria-expanded', 'false');
+    state.open = false;
+    delete document.body.dataset.j14InDiary;
+  }
+  function backToEventActions() {
+    hideJ14Panel();
+    setHidden($('j12-event-actions-panel'), false);
+    const target = state.trigger && state.trigger.isConnected ? state.trigger : $('j14-open-location-handoffs');
+    if (target) target.focus();
+    announce('Back to Event actions. Community Open Day is still selected.');
+  }
+  function closeToCalendar() {
+    hideJ14Panel();
+    setHidden($('j12-event-actions-panel'), false);
+    // Existing Journey 12 close: hides Event actions and returns focus to the selected event.
+    if ($('j12-event-actions-close')) $('j12-event-actions-close').click();
+    announce('Closed. Back on the calendar with Community Open Day still selected.');
+  }
+
+  function watchHandoffSheet() {
+    const sheet = $('handoff-dialog');
+    if (!sheet) return;
+    const outside = ['j14-diary-panel-head', 'app-shell', 'review-rail', 'inDiary-guide'];
+    new MutationObserver(() => {
+      const open = !sheet.hidden;
+      outside.forEach((id) => { const el = $(id); if (el) el.inert = open; });
+    }).observe(sheet, { attributes: true, attributeFilter: ['hidden'] });
+  }
+
+  window.addEventListener('click', (event) => {
+    if (!isJ12() || !state.ready) return;
+    const t = event.target;
+    const opener = t.closest('#j14-open-location-handoffs');
+    if (opener) { event.preventDefault(); openJ14(opener); return; }
+    if (t.closest('#j14-diary-back')) { event.preventDefault(); backToEventActions(); return; }
+    if (t.closest('#j14-diary-close')) { event.preventDefault(); closeToCalendar(); return; }
+    // Selecting the event again while Journey 14 is open: step back so Journey 12 reopens Event actions as before.
+    if (state.open && t.closest('#j12-public-event, .j12-public-event')) hideJ14Panel();
+  }, true);
+
+  window.addEventListener('keydown', (event) => {
+    if (!state.open || event.key !== 'Escape') return;
+    const sheet = $('handoff-dialog');
+    if (sheet && !sheet.hidden) return; // Journey 14's own handoff sheet handles Escape first (accepted behaviour)
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    backToEventActions();
+  }, true);
+
+  function init() {
+    if (!isJ12()) return;
+    if (!window.__j12Review) {
+      state.tries += 1;
+      if (state.tries < 80) window.setTimeout(init, 50);
+      return;
+    }
+    watchHandoffSheet();
+    state.ready = true;
+    document.body.dataset.j14InDiary = 'ready';
+    window.__j14InDiaryInDiary = Object.freeze({ open: openJ14, back: backToEventActions, close: closeToCalendar, state });
+    if (window.location.hash === '#location-handoffs') openJ14($('j14-open-location-handoffs'));
+    if (document.body.dataset.j14Entry === 'open') {
+      openJ14($('j14-open-location-handoffs'));
+      document.title = 'Optimo Diary — Journey 14 Location & handoffs';
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => window.setTimeout(init, 60));
+  else window.setTimeout(init, 60);
+})();
+
+/* MOCKUP ONLY — Journey 15 v2 (UJ-15): Agenda as a first-class Diary view, booked-only filter,
+   Excel export preview and Custom view, inside the Diary. Review artifact for planning approval;
+   not Product. No storage, no network, no file is created, no new business functionality. */
+(function journey15Candidate() {
+  'use strict';
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const state = { view: 'week', bookedOnly: false, agendaState: 'populated', custom: null, trigger: null, tries: 0, ready: false };
+  const WEEK_LABEL = '24–30 Aug 2026';
+  const VENUE = 'Northside Leisure Centre';
+  // Review fixture: exactly the events the Diary week grid shows on this route (Hall 1 and Studio 2 selected).
+
+  const EXPORT_COLUMNS = ['Start Date', 'End Date', 'Event Name', 'Assets', 'Number of Bookings', 'Bookings', 'Customer Name',
+    'Contact Name (Organisation only)', 'Contact Number', 'Guest Count', 'Host Name', 'Host Contact Number', 'Name of the Guest(s)'];
+  const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+  const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function j15AgendaRows() {
+    const data = window.__j15DiaryData;
+    const assets = data?.assets || [];
+    const assetName = (id) => (assets.find((a) => a.id === id) || {}).name || id;
+    const rows = [];
+    const pub = window.__j12Review?.fixture;
+    if (pub) {
+      const [start, end] = String(pub.time || '10:00–12:00').split('–');
+      const d = new Date(pub.date + 'T12:00:00');
+      rows.push({
+        date: pub.date, dow: DAY_NAMES[d.getDay()].slice(0, 3), day: d.getDate(), start: start.trim(), end: end.trim(),
+        title: pub.title, kind: 'public', status: 'Public event', category: 'Public event',
+        asset: pub.assetName || assetName(pub.asset), bookingId: null
+      });
+    }
+    (data?.events || []).filter((e) => e.type === 'quotation' || e.type === 'confirmed').forEach((ev) => {
+      const d = new Date(ev.date + 'T12:00:00');
+      rows.push({
+        date: ev.date, dow: DAY_NAMES[d.getDay()].slice(0, 3), day: d.getDate(), start: data.hourLabel(ev.start), end: data.hourLabel(ev.end),
+        title: ev.title, kind: ev.type === 'quotation' ? 'quotation' : 'confirmed',
+        status: ev.type === 'quotation' ? 'Quotation' : 'Confirmed', category: 'Private booking',
+        asset: assetName(ev.asset), bookingId: ev.id
+      });
+    });
+    return rows.sort((a, b) => a.date.localeCompare(b.date));
+  }
+  function j15NonEvents() {
+    const data = window.__j15DiaryData;
+    return (data?.events || []).filter((e) => e.type === 'facility-not-in-use').map((e) => ({
+      date: e.date, start: data.hourLabel(e.start), end: data.hourLabel(e.end),
+      title: 'Facility not in use', kind: 'unavailable',
+      asset: (data.assets.find((a) => a.id === e.asset) || {}).name || e.asset
+    }));
+  }
+
+  function announce(text) {
+    const live = $('#ldp-live');
+    if (live) live.textContent = text;
+    const toast = $('#toast-region');
+    if (toast) toast.textContent = text;
+  }
+  function rangeLabel() { return ($('#date-range-label') && $('#date-range-label').textContent.trim()) || WEEK_LABEL; }
+  function visibleRows() {
+    if (state.agendaState !== 'populated' || rangeLabel() !== WEEK_LABEL) return [];
+    const base = j15AgendaRows(); return state.bookedOnly ? base.filter((r) => r.bookingId) : base;
+  }
+
+  /* ---------- panels and view switching ---------- */
+  function closePanels() {
+    const j14 = $('#j14-diary-panel');
+    if (j14 && !j14.hidden && $('#j14-diary-close')) $('#j14-diary-close').click();
+    const j12 = $('#j12-event-actions-panel');
+    if (j12 && !j12.hidden && $('#j12-event-actions-close')) $('#j12-event-actions-close').click();
+  }
+  function markButtons() {
+    $$('.view-switch .view-btn[data-view]').forEach((b) => {
+      const on = b.dataset.view === state.view;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+  }
+  function setView(view) {
+    state.view = view;
+    if (view === 'week') delete document.body.dataset.j15View;
+    else {
+      document.body.dataset.j15View = view;
+      ensureBuilt();
+      document.title = 'Optimo Diary — Journey 15 Agenda, Custom view and Excel export candidate';
+    }
+    markButtons();
+    render();
+    if (view !== 'week') {
+      const t = $('#j15-title');
+      if (t) t.focus();
+    }
+  }
+
+  /* ---------- Agenda ---------- */
+  function rowCells(r, i, group) {
+    const dateCell = i === 0
+      ? `<td class="j15-c-date" rowspan="${group.rows.length}"><span class="j15-dow">${r.dow}</span><span class="j15-day">${r.day}</span></td>`
+      : '';
+    const booking = r.kind === 'public'
+      ? `<span class="j15-sub">Bookings and guests open from the row's Details.</span>`
+      : `<b>${esc(r.bookingId)}</b><span class="j15-sub">Client details are not in this review fixture.</span>`;
+    const details = r.kind === 'public'
+      ? '<button type="button" class="j15-details-btn" data-j15-details aria-expanded="false">Details</button>' +
+        '<div class="j15-details" hidden><div class="j15-mini-actions"><button type="button" class="j15-btn" disabled>Bookings</button><button type="button" class="j15-btn" disabled>Guest List</button></div>' +
+        '<div class="j15-why">Bookings opens a dialog that is defect-affected today (UJ-06). Guest List is an external handoff (UJ-14).</div></div>'
+      : '<button type="button" class="j15-details-btn" data-j15-details aria-expanded="false">Details</button>' +
+        '<div class="j15-details" hidden><div class="j15-why">The Corporate Booking link is an external handoff and is not opened in this review (UJ-14).</div></div>';
+    return `${dateCell}` +
+      `<td class="j15-c-time"><b>${r.start}</b><span> – ${r.end}</span></td>` +
+      `<td class="j15-c-event"><div class="j15-title-line">${esc(r.title)}</div><div class="j15-cat">${esc(r.category)}</div></td>` +
+      `<td class="j15-c-status"><span class="st-${r.kind}">${esc(r.status)}</span></td>` +
+      `<td class="j15-c-asset">${esc(r.asset)}<span class="j15-venue">${VENUE}</span></td>` +
+      `<td class="j15-c-booking">${booking}${details}</td>`;
+  }
+  function agendaBody() {
+    if (state.agendaState === 'loading') return '<tr class="j15-state-row"><td colspan="6"><div class="j15-state"><span class="j15-spinner" role="progressbar" aria-label="Loading"></span></div></td></tr>';
+    if (state.agendaState === 'no-search') return '<tr class="j15-state-row"><td colspan="6"><div class="j15-state">Click on the \'Show Search\' option to make a venue selection</div></td></tr>';
+    const rows = visibleRows();
+    if (!rows.length) return '<tr class="j15-state-row"><td colspan="6"><div class="j15-state">No Records Found</div></td></tr>';
+    const groups = [];
+    rows.forEach((r) => {
+      const g = groups.find((x) => x.date === r.date);
+      if (g) g.rows.push(r); else groups.push({ date: r.date, rows: [r] });
+    });
+    return groups.map((g) => g.rows.map((r, i) => `<tr class="j15-kind-${r.kind}">${rowCells(r, i, g)}</tr>`).join('')).join('');
+  }
+  function renderAgenda(host) {
+    const rows = visibleRows();
+    const exportDisabled = rows.length === 0 ? 'disabled title="Nothing to export (proposed behaviour)"' : '';
+    host.innerHTML =
+      '<div class="j15-head"><h2 id="j15-title" tabindex="-1">Agenda</h2>' +
+      `<span class="j15-context">${esc(rangeLabel())} · from Week view · ${VENUE}</span>` +
+      `<span class="j15-count" id="j15-count" role="status">${rows.length} event${rows.length === 1 ? '' : 's'}</span></div>` +
+      '<p class="j15-note-line">Evidence: partially confirmed · Review fixture — local data only, no API call · Export shows a preview, no file is created.</p>' +
+      `<div class="j15-toolbar"><label class="j15-toggle"><input type="checkbox" id="j15-booked-only" ${state.bookedOnly ? 'checked' : ''}> Show booked events only</label>` +
+      `<button type="button" class="j15-btn" id="j15-export" ${exportDisabled}><span aria-hidden="true">⤓</span> Export</button></div>` +
+      '<div class="j15-list-wrap"><table class="j15-list"><thead><tr>' +
+      '<th scope="col">Date</th><th scope="col">Time</th><th scope="col">Event</th><th scope="col">Status</th><th scope="col">Assets</th><th scope="col">Booking/Customers</th>' +
+      `</tr></thead><tbody>${agendaBody()}</tbody></table></div>`;
+  }
+
+  /* ---------- Export preview ---------- */
+  function exportRows() {
+    return visibleRows().map((r) => ({
+      'Start Date': `${r.date.replace(/-/g, '/')} ${r.start}`, 'End Date': `${r.date.replace(/-/g, '/')} ${r.end}`, 'Event Name': r.title,
+      'Assets': `${r.start} - ${r.end}  ${r.asset} (Facility)`, 'Number of Bookings': r.kind === 'public' ? '— (not in fixture)' : 'N/A',
+      'Bookings': r.bookingId || '—'
+    }));
+  }
+  function openExport() {
+    const btn = $('#j15-export');
+    if (!btn || btn.disabled) return;
+    state.trigger = btn;
+    btn.disabled = true;
+    btn.textContent = 'Preparing…';
+    announce('Preparing export preview.');
+    window.setTimeout(() => {
+      const rows = exportRows();
+      const head = EXPORT_COLUMNS.map((c) => `<th scope="col">${esc(c)}</th>`).join('');
+      const body = rows.map((r) => '<tr>' + EXPORT_COLUMNS.map((c) => `<td data-col="${esc(c)}">${esc(r[c] || '—')}</td>`).join('') + '</tr>').join('');
+      $('#j15-export-body').innerHTML =
+        `<p class="j15-meta-line"><b>AgendaDetails_export_<i>YYYYMMDDHHmmss</i>.xlsx</b> <span class="muted">· sheet AgendaDetails · ${rows.length} row${rows.length === 1 ? '' : 's'} ${state.bookedOnly ? '(booked events only)' : '(all events shown)'} · rows currently shown in the Agenda</span></p>` +
+        '<p class="j15-coltitle">Columns (13) <span class="muted">— code-defined · downloaded file not verified</span></p>' +
+        `<p class="j15-cols-line">${EXPORT_COLUMNS.map((c) => esc(c)).join(' · ')}</p>` +
+        `<div class="j15-preview-wrap"><table class="j15-preview-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>` +
+        '<div class="j15-proposed"><h3>Proposed export behaviour — needs your decision (DEC-J15-03)</h3><ul>' +
+        '<li>Disable Export while the file is being prepared, so it cannot run twice.</li>' +
+        '<li>Confirm when the file is ready (“Agenda exported: N rows”).</li>' +
+        '<li>When there is nothing to export, disable Export and say so.</li>' +
+        '<li>If the export fails, show an error message (the current system only writes to the browser console).</li></ul></div>' +
+        '<p class="j15-fixture-note">Values marked “—” are not in the review fixture. The current system defines this file name, sheet and columns in code, but the downloaded file has not been verified (AGENDA-EXPORT-01 is open). No file is created in this review.</p>';
+      openDialog('#j15-export-dialog');
+      btn.disabled = false;
+      btn.innerHTML = '<span aria-hidden="true">⤓</span> Export';
+      announce(`Export preview opened: ${rows.length} rows. No file is created in this review.`);
+    }, 450);
+  }
+
+  /* ---------- Custom view ---------- */
+  function iso(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+  function parse(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
+  function fmt(d) { return `${DAY_NAMES[d.getDay()].slice(0, 3)} ${d.getDate()} ${MONTHS[d.getMonth()]}`; }
+  function readCustom() {
+    const f = $('#j15-custom-form');
+    const pattern = f.querySelector('input[name="j15-pattern"]:checked').value;
+    return {
+      from: $('#j15-from').value, to: $('#j15-to').value, pattern,
+      repeat: Number($('#j15-repeat').value), days: $$('input[name="j15-day"]', f).filter((x) => x.checked).map((x) => Number(x.value)),
+      monthMode: f.querySelector('input[name="j15-month-mode"]:checked').value, monthDay: Number($('#j15-month-day').value),
+      monthEvery: Number($('#j15-month-every').value), ordinal: $('#j15-ordinal').value, weekday: Number($('#j15-weekday').value),
+      monthEvery2: Number($('#j15-month-every2').value)
+    };
+  }
+  function customDates(c) {
+    const out = [];
+    const from = parse(c.from); const to = parse(c.to);
+    if (c.pattern === 'weekly') {
+      const startWeek = new Date(from); startWeek.setDate(from.getDate() - from.getDay());
+      for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
+        const weekIndex = Math.floor((d - startWeek) / (7 * 86400000));
+        if (weekIndex % c.repeat === 0 && c.days.includes(d.getDay())) out.push(new Date(d));
+      }
+    } else {
+      const every = c.monthMode === 'day' ? c.monthEvery : c.monthEvery2;
+      for (let m = new Date(from.getFullYear(), from.getMonth(), 1); m <= to; m = new Date(m.getFullYear(), m.getMonth() + every, 1)) {
+        let d = null;
+        if (c.monthMode === 'day') {
+          const last = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
+          d = new Date(m.getFullYear(), m.getMonth(), Math.min(c.monthDay, last)); /* DEC-J15-07 RESOLVED — A APPROVED (2026-10-08): months without the selected day show the last valid calendar day; the selected day is preserved for subsequent months; no rollover, no skipped months */
+        } else {
+          const matches = [];
+          for (let x = new Date(m); x.getMonth() === m.getMonth(); x.setDate(x.getDate() + 1)) if (x.getDay() === c.weekday) matches.push(new Date(x));
+          d = c.ordinal === 'last' ? matches[matches.length - 1] : matches[['first', 'second', 'third', 'fourth'].indexOf(c.ordinal)];
+        }
+        if (d && d >= from && d <= to) out.push(d);
+      }
+    }
+    return out;
+  }
+  function validateCustom() {
+    const c = readCustom();
+    const errs = [];
+    const warn = [];
+    const missing = !c.from || !c.to;
+    if (!missing && parse(c.to) < parse(c.from)) errs.push('To Date can\'t be lower than the From Date');
+    if (c.pattern === 'weekly' && c.days.length === 0) errs.push('You have to select at-least one day');
+    if (c.pattern === 'monthly' && c.monthMode === 'day' && c.monthDay >= 29) warn.push(`Some months have fewer than ${c.monthDay} days. For these months, the last day of the month will be shown`);
+    $('#j15-custom-errors').innerHTML = errs.map((e) => `<div class="j15-error">${esc(e)}</div>`).join('') + warn.map((w) => `<div class="j15-warn">${esc(w)}</div>`).join('');
+    $('#j15-custom-apply').disabled = missing || errs.length > 0;
+    $$('.j15-weekly-only').forEach((el) => { el.hidden = c.pattern !== 'weekly'; });
+    $$('.j15-monthly-only').forEach((el) => { el.hidden = c.pattern !== 'monthly'; });
+    $('#j15-custom-title').textContent = `Custom view with ${c.pattern === 'weekly' ? 'Weekly' : 'Monthly'} pattern`;
+    return missing || errs.length ? null : c;
+  }
+  function openCustom(trigger) {
+    ensureBuilt();
+    state.trigger = trigger || $('.view-switch .view-btn[data-view="custom"]');
+    openDialog('#j15-custom-dialog');
+    validateCustom();
+  }
+  function applyCustom() {
+    const c = validateCustom();
+    if (!c) return;
+    const dates = customDates(c);
+    const days = c.days.map((d) => DAY_NAMES[d].slice(0, 3)).join(', ');
+    const desc = c.pattern === 'weekly'
+      ? `Weekly · every ${c.repeat} week${c.repeat > 1 ? 's' : ''} · ${days}`
+      : (c.monthMode === 'day' ? `Monthly · day ${c.monthDay} of every ${c.monthEvery} month(s)` : `Monthly · the ${c.ordinal} ${DAY_NAMES[c.weekday]} of every ${c.monthEvery2} month(s)`);
+    state.custom = { ...c, dates, desc };
+    closeDialog('#j15-custom-dialog', false);
+    setView('custom');
+    announce(`Custom view applied: ${dates.length} date${dates.length === 1 ? '' : 's'}.`);
+  }
+  function renderCustom(host) {
+    const c = state.custom;
+    const items = j15AgendaRows().map((r) => ({ ...r })).concat(j15NonEvents());
+    const head = c.dates.map((d) => `<th scope="col">${fmt(d)}</th>`).join('');
+    const row = (asset) => `<tr><th scope="row">${asset} · ${VENUE}</th>` + c.dates.map((d) => {
+      const chips = items.filter((x) => x.asset === asset && x.date === iso(d)).map((x) => `<span class="j15-chip ${x.kind}">${esc(x.title)}<span class="j15-muted">${x.start}–${x.end}</span></span>`).join('');
+      return `<td>${chips}</td>`;
+    }).join('') + '</tr>';
+    host.innerHTML =
+      '<div class="j15-head"><h2 id="j15-title" tabindex="-1">Custom view</h2>' +
+      `<span class="j15-context">${esc(c.desc)} · ${fmt(parse(c.from))} – ${fmt(parse(c.to))} ${parse(c.to).getFullYear()} · ${c.dates.length} date${c.dates.length === 1 ? '' : 's'}</span></div>` +
+      '<p class="j15-note-line">Review preview — this simplified grid stands in for the Diary\'s timeslot grid. Date navigation and the Stack/Column switch are hidden, as today. The view is not saved.</p>' +
+      '<div class="j15-toolbar"><button type="button" class="j15-btn" id="j15-custom-edit">Edit custom view</button></div>' +
+      (c.dates.length
+        ? `<div class="j15-grid-wrap"><table class="j15-custom-grid"><thead><tr><th scope="col">Asset</th>${head}</tr></thead><tbody>${row('Hall 1')}${row('Studio 2')}</tbody></table></div>`
+        : '<div class="j15-state" role="status">No dates match this pattern in the chosen range.</div>');
+  }
+
+  /* ---------- dialogs ---------- */
+  function openDialog(sel) {
+    const bd = $(sel);
+    bd.hidden = false;
+    const app = $('#app-shell'); if (app) app.inert = true;
+    const g = $('#j15-guide'); if (g) g.inert = true;
+    const first = bd.querySelector('[data-autofocus]') || bd.querySelector('button, input, select');
+    if (first) first.focus();
+  }
+  function closeDialog(sel, restore = true) {
+    const bd = $(sel);
+    if (!bd || bd.hidden) return;
+    bd.hidden = true;
+    const app = $('#app-shell'); if (app) app.inert = false;
+    const g = $('#j15-guide'); if (g) g.inert = false;
+    if (restore && state.trigger && state.trigger.isConnected) state.trigger.focus();
+  }
+  function openDialogSel() { return ['#j15-export-dialog', '#j15-custom-dialog'].find((s) => $(s) && !$(s).hidden); }
+
+  function render() {
+    const host = $('#j15-surface');
+    if (!host) return;
+    if (state.view === 'agenda') renderAgenda(host);
+    else if (state.view === 'custom' && state.custom) renderCustom(host);
+    else host.innerHTML = '';
+  }
+
+  /* ---------- static markup ---------- */
+  function build() {
+    const cal = $('#calendar');
+    if (!cal || $('#j15-surface')) return;
+    const surface = document.createElement('section');
+    surface.id = 'j15-surface';
+    surface.className = 'j15-surface';
+    surface.setAttribute('aria-labelledby', 'j15-title');
+    cal.appendChild(surface);
+    const dayBoxes = DAYS.map((d, i) => `<label><input type="checkbox" name="j15-day" value="${i}"> ${d}</label>`).join('');
+    const opts = (n, from = 1) => Array.from({ length: n }, (_, i) => `<option value="${i + from}">${i + from}</option>`).join('');
+    document.body.insertAdjacentHTML('beforeend',
+      '<div class="j15-backdrop" id="j15-export-dialog" hidden><div class="j15-dialog" role="dialog" aria-modal="true" aria-labelledby="j15-export-title">' +
+      '<header><div style="flex:1"><h2 id="j15-export-title">Export preview — Agenda to Excel</h2><p>No file is created in this review.</p></div><button type="button" class="j15-x" data-close aria-label="Close export preview">×</button></header>' +
+      '<div class="j15-body" id="j15-export-body"></div><footer><button type="button" class="j15-btn j15-btn-primary" data-close data-autofocus>Close</button></footer></div></div>' +
+      '<div class="j15-backdrop" id="j15-custom-dialog" hidden><div class="j15-dialog narrow" role="dialog" aria-modal="true" aria-labelledby="j15-custom-title">' +
+      '<header><div style="flex:1"><h2 id="j15-custom-title">Custom view with Weekly pattern</h2><p>Choose dates and a repeat pattern. The Diary shows only the matching days.</p></div><button type="button" class="j15-x" data-close aria-label="Close custom view">×</button></header>' +
+      '<div class="j15-body"><form class="j15-form" id="j15-custom-form" onsubmit="return false">' +
+      '<div class="j15-block"><span class="j15-label">View type</span><div class="j15-row">' +
+      '<label class="j15-muted"><input type="radio" name="j15-main" value="create" checked disabled> Create Custom View</label>' +
+      '<label class="j15-muted"><input type="radio" name="j15-main" value="bookedDays" disabled> Show Booked Days Only</label></div>' +
+      '<p class="j15-hint">The current system shows this choice only while a booking selection is in progress in the Diary, with a package filter when the selection spans two or more packages. There is no selection on this review page, so it is not available here.</p></div>' +
+      '<div class="j15-block"><span class="j15-label">Date range</span><div class="j15-row"><label>From <input type="date" id="j15-from" value="2026-08-01" data-autofocus></label><label>To <input type="date" id="j15-to" value="2026-08-31"></label></div></div>' +
+      '<div class="j15-block"><span class="j15-label">Pattern</span><div class="j15-row"><label><input type="radio" name="j15-pattern" value="weekly" checked> Weekly</label><label><input type="radio" name="j15-pattern" value="monthly"> Monthly</label></div></div>' +
+      `<div class="j15-block j15-weekly-only"><span class="j15-label">Weekly</span><div class="j15-row"><label>Repeat every <select id="j15-repeat">${opts(6)}</select> week(s) on</label><button type="button" class="j15-btn" id="j15-all-days">Select all days</button></div><div class="j15-days">${dayBoxes}</div></div>` +
+      `<div class="j15-block j15-monthly-only" hidden><span class="j15-label">Monthly</span><div class="j15-row"><label><input type="radio" name="j15-month-mode" value="day" checked> Day</label><select id="j15-month-day" aria-label="Day of month">${opts(31)}</select><label>of every <select id="j15-month-every">${opts(3)}</select> month(s)</label></div>` +
+      '<div class="j15-row" style="margin-top:8px"><label><input type="radio" name="j15-month-mode" value="the"> The</label><select id="j15-ordinal" aria-label="Which week"><option value="first">First</option><option value="second">Second</option><option value="third">Third</option><option value="fourth">Fourth</option><option value="last">Last</option></select>' +
+      `<select id="j15-weekday" aria-label="Weekday">${DAY_NAMES.map((n, i) => `<option value="${i}">${n}</option>`).join('')}</select><label>of every <select id="j15-month-every2">${opts(3)}</select> month(s)</label></div></div>` +
+      '<div class="j15-block"><div class="j15-row"><label class="j15-muted"><input type="checkbox" id="j15-save-view" disabled> Save this View</label><span class="j15-muted">Not saved in this review. Saving a view is a settings behaviour (UJ-16) and is an open decision.</span></div></div>' +
+      '<div id="j15-custom-errors" role="alert" aria-live="assertive"></div></form></div>' +
+      '<footer><button type="button" class="j15-btn" data-close>Cancel</button><button type="button" class="j15-btn j15-btn-primary" id="j15-custom-apply" disabled>Apply</button></footer></div></div>' +
+      '<aside class="j15-guide" id="j15-guide" aria-label="Mockup guide (review aid, not Product)"><div class="j15-guide-head"><strong>Journey 15 v2 · not product</strong>' +
+      '<div class="j15-states" role="group" aria-label="Agenda state"><button type="button" data-state="populated" aria-pressed="true">Events</button><button type="button" data-state="no-search" aria-pressed="false">No search yet</button><button type="button" data-state="empty" aria-pressed="false">Empty</button><button type="button" data-state="loading" aria-pressed="false">Loading</button></div>' +
+      '<button type="button" id="j15-guide-toggle" aria-expanded="true">Hide</button></div>' +
+      '<div class="j15-guide-body"><ol><li><em>Agenda</em> in the view bar shows this week\'s events full-width.</li><li>Tick <em>Show booked events only</em>.</li><li><em>Export</em> shows the export preview (no file is created).</li><li><em>Details</em> on a row opens its secondary actions.</li><li><em>Custom</em> → pick dates and days → <em>Apply</em>.</li><li><em>Week</em> returns to the normal calendar.</li></ol>' +
+      '<p class="j15-note">Proposed, not current behaviour: Export\'s “Preparing…” step and its lock when there is nothing to export (decision DEC-J15-03). Today\'s Export gives no feedback.</p>' +
+      '<p class="j15-note">Phones: here the Agenda and Custom buttons are cut off at the end of the view bar; in the current system and some Master journeys the view buttons are hidden on small screens. Mobile entry is an open decision.</p></div></aside>');
+    if (window.innerWidth <= 600) { // phones: start with the slim guide bar so it never covers the list
+      const g = $('#j15-guide');
+      if (g) g.dataset.collapsed = 'true';
+      const tg = $('#j15-guide-toggle');
+      if (tg) { tg.textContent = 'Journey 15 guide'; tg.setAttribute('aria-expanded', 'false'); }
+    }
+  }
+
+  /* ---------- events ---------- */
+  window.addEventListener('click', (event) => {
+    if (!state.ready) return;
+    const t = event.target;
+    const vb = t.closest('.view-switch .view-btn[data-view]');
+    if (vb && vb.dataset.view === 'agenda') { event.preventDefault(); event.stopImmediatePropagation(); closePanels(); setView('agenda'); announce('Agenda view. Review fixture.'); return; }
+    if (vb && vb.dataset.view === 'custom') { event.preventDefault(); event.stopImmediatePropagation(); closePanels(); openCustom(vb); return; }
+    if (vb && vb.dataset.view === 'week' && state.view !== 'week') { setView('week'); announce('Week view.'); return; }
+    if (t.closest('#j15-export')) { event.preventDefault(); openExport(); return; }
+    if (t.closest('#j15-custom-apply')) { event.preventDefault(); applyCustom(); return; }
+    if (t.closest('#j15-custom-edit')) { event.preventDefault(); openCustom(t.closest('#j15-custom-edit')); return; }
+    if (t.closest('#j15-all-days')) { $$('input[name="j15-day"]').forEach((x) => { x.checked = true; }); validateCustom(); return; }
+    if (t.closest('[data-close]')) { const s = openDialogSel(); if (s) closeDialog(s); return; }
+    if (t.closest('[data-j15-details]')) {
+      const btn = t.closest('[data-j15-details]');
+      const details = btn.nextElementSibling;
+      const open = !details || details.hidden;
+      if (details) details.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+      if (!open) btn.focus();
+      return;
+    }
+    const sb = t.closest('#j15-guide [data-state]');
+    if (sb) {
+      state.agendaState = sb.dataset.state;
+      $$('#j15-guide [data-state]').forEach((b) => b.setAttribute('aria-pressed', String(b === sb)));
+      if (state.view !== 'agenda') { closePanels(); setView('agenda'); } else render();
+      return;
+    }
+    if (t.closest('#j15-guide-toggle')) {
+      const g = $('#j15-guide'); const collapse = g.dataset.collapsed !== 'true';
+      g.dataset.collapsed = String(collapse);
+      t.closest('#j15-guide-toggle').setAttribute('aria-expanded', String(!collapse));
+      t.closest('#j15-guide-toggle').textContent = collapse ? 'Journey 15 guide' : 'Hide';
+      return;
+    }
+    if (state.view === 'agenda' && t.closest('#date-prev, #date-next, #date-today, #picker-apply')) window.setTimeout(render, 80);
+  }, true);
+  document.addEventListener('change', (event) => {
+    if (event.target.id === 'j15-booked-only') {
+      state.bookedOnly = event.target.checked;
+      render();
+      const cb = $('#j15-booked-only'); if (cb) cb.focus();
+      announce(state.bookedOnly ? 'Showing booked events only.' : 'Showing all events.');
+      return;
+    }
+    if (event.target.closest && event.target.closest('#j15-custom-form')) validateCustom();
+  });
+  document.addEventListener('input', (event) => { if (event.target.closest && event.target.closest('#j15-custom-form')) validateCustom(); });
+  window.addEventListener('keydown', (event) => {
+    const s = openDialogSel();
+    if (!s) return;
+    if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); closeDialog(s); return; }
+    if (event.key === 'Tab') {
+      const f = $$('button:not([disabled]), input:not([disabled]), select:not([disabled])', $(s)).filter((x) => !x.closest('[hidden]'));
+      if (!f.length) return;
+      if (event.shiftKey && document.activeElement === f[0]) { event.preventDefault(); f[f.length - 1].focus(); }
+      else if (!event.shiftKey && document.activeElement === f[f.length - 1]) { event.preventDefault(); f[0].focus(); }
+    }
+  }, true);
+
+  function ensureBuilt() { if (!$('#j15-surface')) build(); }
+  function init() {
+    const isJ12 = () => document.body.dataset.journey === '12';
+    document.body.dataset.j15Candidate = 'ready';
+    if (!isJ12()) return;
+    if (!window.__j12Review) { state.tries += 1; if (state.tries < 80) window.setTimeout(init, 50); return; }
+    state.ready = true;
+    window.__j15V2 = Object.freeze({ state, setView, openCustom, openExport });
+    if (location.hash === '#agenda') { closePanels(); setView('agenda'); }
+    else if (location.hash === '#custom') { closePanels(); openCustom(); }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => window.setTimeout(init, 60));
+  else window.setTimeout(init, 60);
+})();
+
+(function journey16Candidate() {
+  'use strict';
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const state = { tries: 0, ready: false, trigger: null };
+
+  function announce(text) {
+    const live = $('#ldp-live');
+    if (live) live.textContent = text;
+    const toast = $('#toast-region');
+    if (toast) toast.textContent = text;
+  }
+
+  function build() {
+    if ($('#j16-settings-dialog')) return;
+    document.body.insertAdjacentHTML('beforeend',
+      '<div class="j16-backdrop" id="j16-settings-dialog" hidden><div class="j16-dialog" role="dialog" aria-modal="true" aria-labelledby="j16-settings-title">' +
+      '<header><div style="flex:1"><h2 id="j16-settings-title">Diary settings</h2><p>Proposed Journey 16 surface — review only, nothing is saved.</p></div><button type="button" class="j16-x" data-j16-close aria-label="Close settings">×</button></header>' +
+      '<div class="j16-body"><form onsubmit="return false">' +
+      '<div class="j16-block"><span class="j16-label">Default date behaviour</span><div class="j16-row">' +
+      '<label><input type="radio" name="j16-datebehaviour" value="today" checked> Today (current system default)</label>' +
+      '<label><input type="radio" name="j16-datebehaviour" value="remember"> Remember last view</label></div>' +
+      '<p class="j16-hint">From the current system\'s DiarySettings defaultDateBehavior offers these two values (today is the default). Every combination is unverified (SETTINGS-01).</p></div>' +
+      '<div class="j16-block"><span class="j16-label">Timeslot colours</span><div class="j16-row">' +
+      '<label><input type="checkbox" id="j16-colours" checked> Show timeslot colours in the calendar</label></div>' +
+      '<p class="j16-hint">The current system loads colour options at startup (selected reads confirmed). Proposed as a settings toggle.</p></div>' +
+      '<div class="j16-block"><span class="j16-label">Rights displays (proposed — display only)</span>' +
+      '<div class="j16-row"><span class="j16-muted">Example: Agenda requires right <b>959</b> · shown as a label, nothing is enforced · the intended UI/API right matrix is RIGHTS-01 (open).</span></div></div>' +
+      '<div class="j16-block"><span class="j16-label">Outlook and SignalR</span>' +
+      '<p class="j16-hint">Outlook: no verifiable runtime outcome exists — excluded. SignalR: connection and one send are confirmed in the evidence, but collaboration, reconnect and topology are unverified, so no prototype behaviour is proposed. (DEC-J16-05)</p></div>' +
+      '<p class="j16-hint"><b>Not persisted:</b> the prototype stores nothing. Whether settings persist (session-only vs storage) is DEC-J16-02 — open.</p>' +
+      '</form></div>' +
+      '<footer><button type="button" class="j16-btn" data-j16-close>Cancel</button><button type="button" class="j16-btn j16-btn-primary" id="j16-save" data-autofocus>Save</button></footer></div></div>' +
+      '<aside class="j16-guide" id="j16-guide" aria-label="Journey 16 review guide (review aid, not Product)"><div class="j16-guide-head"><strong>Journey 16 review · not product</strong>' +
+      '<button type="button" id="j16-guide-toggle" aria-expanded="true">Hide</button></div>' +
+      '<div class="j16-guide-body"><ol>' +
+      '<li>This page opened with the Settings dialog (review entry).</li>' +
+      '<li>Choose options and press <em>Save</em> — you get a message, nothing persists (DEC-J16-02).</li>' +
+      '<li>Open <em>Agenda</em> — a rights strip appears under the Agenda toolbar: display proposal only (RIGHTS-01 open).</li>' +
+      '<li>On a phone, the view bar now scrolls horizontally — proposed fix for DEC-J15-05 (DEC-J16-04).</li>' +
+      '<li>Agenda, Custom and Week still work exactly as in Journey 15.</li></ol>' +
+      '<p class="j16-note">Out of the proposal: Outlook behaviour, SignalR collaboration behaviour, the notification catalogue, settings persistence, any rights enforcement, any Journey 15-or-earlier change.</p></div></aside>');
+    if (window.innerWidth <= 600) {
+      const g = $('#j16-guide');
+      if (g) g.dataset.collapsed = 'true';
+      const tg = $('#j16-guide-toggle');
+      if (tg) { tg.textContent = 'Journey 16 guide'; tg.setAttribute('aria-expanded', 'false'); }
+    }
+    placeGuide();
+  }
+
+  // keep the J16 review guide directly above the J15 review guide when both are shown (both are pinned to the same corner)
+  function placeGuide() {
+    const g = $('#j16-guide'); if (!g) return;
+    const j15 = $('#j15-guide');
+    const r = j15 && j15.getClientRects().length ? j15.getBoundingClientRect() : null;
+    g.style.bottom = r ? Math.round(window.innerHeight - r.top + 6) + 'px' : '';
+    if (j15 && window.ResizeObserver && !state.guideRO) { state.guideRO = new ResizeObserver(placeGuide); state.guideRO.observe(j15); }
+  }
+
+  function openSettings(trigger) {
+    state.trigger = trigger || $('#j16-settings-entry') || $('.view-switch .view-btn[data-view="agenda"]');
+    const open = $('#j16-settings-dialog') && !$('#j16-settings-dialog').hidden;
+    if (!open) state.prevTitle = document.title;
+    document.title = 'Optimo Diary — Journey 16 settings candidate';
+    if (!$('#j16-settings-dialog')) build();
+    const d = $('#j16-settings-dialog');
+    d.hidden = false;
+    const app = $('#app-shell'); if (app) app.inert = true;
+    const g = $('#j16-guide'); if (g) g.inert = true;
+    const first = d.querySelector('[data-autofocus]');
+    if (first) first.focus();
+  }
+  function closeSettings(restore) {
+    const d = $('#j16-settings-dialog');
+    if (!d || d.hidden) return;
+    d.hidden = true;
+    const app = $('#app-shell'); if (app) app.inert = false;
+    const g = $('#j16-guide'); if (g) g.inert = false;
+    if (state.prevTitle) { document.title = state.prevTitle; state.prevTitle = null; }
+    placeGuide();
+    if (restore && state.trigger && state.trigger.isConnected) state.trigger.focus();
+  }
+
+  window.addEventListener('click', (event) => {
+    if (!state.ready) return;
+    const t = event.target;
+    if (t.closest('#j16-settings-entry')) { event.preventDefault(); openSettings(t.closest('#j16-settings-entry')); return; }
+    if (t.closest('[data-j16-close]')) { event.preventDefault(); closeSettings(true); return; }
+    if (t.closest('#j16-save')) {
+      event.preventDefault();
+      announce('Settings review saved — nothing persists in this review (DEC-J16-02 open).');
+      closeSettings(true);
+      return;
+    }
+    if (t.closest('#j16-guide-toggle')) {
+      const g = $('#j16-guide'); const collapse = g.dataset.collapsed !== 'true';
+      g.dataset.collapsed = String(collapse);
+      t.closest('#j16-guide-toggle').setAttribute('aria-expanded', String(!collapse));
+      t.closest('#j16-guide-toggle').textContent = collapse ? 'Journey 16 guide' : 'Hide';
+      return;
+    }
+  }, true);
+  window.addEventListener('keydown', (event) => {
+    const d = $('#j16-settings-dialog');
+    if (!d || d.hidden) return;
+    if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); closeSettings(true); return; }
+    if (event.key === 'Tab') {
+      const f = $$('button:not([disabled]), input:not([disabled])', d).filter((x) => !x.closest('[hidden]'));
+      if (!f.length) return;
+      if (event.shiftKey && document.activeElement === f[0]) { event.preventDefault(); f[f.length - 1].focus(); }
+      else if (!event.shiftKey && document.activeElement === f[f.length - 1]) { event.preventDefault(); f[0].focus(); }
+    }
+  }, true);
+
+  function init() {
+    if (document.body.dataset.journey !== '12') return;
+    if (document.body.dataset.j14Entry === 'open') return; // the Journey 14 in-Diary view must stay untouched
+    document.body.dataset.j16Candidate = 'ready'; // review-readiness marker, Diary route only (Journey 15's marker is unchanged)
+    const bar = $('#view-bar');
+    if (bar && !$('#j16-settings-entry')) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = 'j16-settings-entry';
+      btn.className = 'j16-btn';
+      btn.textContent = 'Settings';
+      btn.setAttribute('title', 'Proposed Journey 16 settings entry (review only)');
+      bar.appendChild(btn);
+    }
+    // rights strip: kept in sync with the Agenda view whatever shows it (view-bar click, deep link, re-render).
+    // Display proposal only — nothing is enforced (RIGHTS-01 open). The J15 hook is left untouched.
+    const syncRightsStrip = () => {
+      const agenda = document.body.dataset.j15View === 'agenda';
+      const tb = document.querySelector('#j15-surface .j15-toolbar');
+      const strip = $('#j16-rights-strip');
+      if (agenda && tb && !strip) {
+        tb.insertAdjacentHTML('afterend',
+          '<div class="j16-rights-strip" id="j16-rights-strip"><span class="j16-right"><b>Agenda</b> requires right 959</span>' +
+          '<span class="j16-right"><b>Week/Custom</b> inherit the Diary view rights</span>' +
+          '<span>proposed display only — nothing is enforced · RIGHTS-01 open</span></div>');
+      } else if (!agenda && strip) strip.remove();
+    };
+    const cal = $('#calendar');
+    if (cal && window.MutationObserver) {
+      const mo = new MutationObserver(() => { syncRightsStrip(); placeGuide(); });
+      mo.observe(cal, { childList: true, subtree: true });
+      mo.observe(document.body, { attributes: true, attributeFilter: ['data-j15-view'] });
+    }
+    syncRightsStrip();
+    window.addEventListener('resize', placeGuide);
+    state.ready = true;
+    window.__j16Review = Object.freeze({ openSettings });
+    if (location.hash === '#settings') openSettings();
+  }
+  document.addEventListener('DOMContentLoaded', () => window.setTimeout(init, 80));
+})();
+

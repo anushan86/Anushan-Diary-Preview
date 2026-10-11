@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="optimo-core">
 <head>
+<script>/* Journey 16 candidate routing: ?journey=16 → J12 Diary with Settings review. Plain URL keeps the Master default (Journey 1). */
+(function () { var q = location.search, p = location.pathname;
+  if (/[?&]journey=16(&|$)/.test(q)) location.replace(p + '?journey=12' + (location.hash || '#settings')); })();</script>
+
+<script>/* Journey 15 candidate routing: ?journey=15 → J12 Diary with Agenda active. Plain URL keeps the Master default (Journey 1). */
+(function () { var q = location.search, p = location.pathname;
+  if (/[?&]journey=15(&|$)/.test(q)) location.replace(p + '?journey=12' + (location.hash || '#agenda')); })();</script>
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Optimo Diary — Contextual Workspace Candidate</title>
@@ -139,6 +147,57 @@
       </details>
     </div>
   </div>
+
+  <div id="j13-standalone-surface" class="j13-standalone-surface" hidden inert aria-hidden="true">
+    <div class="banner">JOURNEY 13 PLANNING ONLY · LOCAL PREVIEW · Nothing is saved or sent</div>
+    <header class="top"><div class="brand">Optimo Diary</div><div class="crumb">Journey 13 planning · Configuration &amp; capacity</div><div class="user">Evidence-backed review fixture</div></header>
+    <div class="shell">
+      <aside class="side" aria-label="Diary navigation">
+        <h2>Diary workspace</h2>
+        <button type="button" class="nav">Calendar</button><button type="button" class="nav">Public Events</button><button type="button" class="nav active">Configuration &amp; capacity</button>
+        <div class="context"><h2>Selected context</h2><div class="fixture"><strong>Community Open Day</strong><span>Wed 26 Aug · 10:00–12:00</span><span>Hall 1 + 2 facilities</span><span class="review-tag">LOCAL REVIEW FIXTURE</span></div></div>
+      </aside>
+      <main class="main">
+        <div class="heading"><div><h1>Configuration &amp; capacity</h1><p>Choose a configuration, select compatible facilities, and review capacity changes.</p></div><span class="step">Local preview only</span></div>
+        <div class="notice" role="note"><strong>Planning boundary.</strong> The interaction shape is evidenced. Production saving, access rights, confirmation policy and rollback remain unverified.</div>
+        <section class="section" aria-labelledby="config-title">
+          <div class="sectionhead"><span class="number">1</span><div><h2 id="config-title">Choose configuration</h2><div class="help">Theatre is the deterministic starting state.</div></div></div>
+          <div class="config-grid" id="configs">
+            <button type="button" class="config" data-config="Theatre" aria-pressed="true"><strong>Theatre</strong><span>Forward-facing seating</span><span class="pill default">DEFAULT · 240</span></button>
+            <button type="button" class="config" data-config="Classroom" aria-pressed="false"><strong>Classroom</strong><span>Tables with paired seating</span><span class="pill">CAPACITY 120</span></button>
+            <button type="button" class="config" data-config="Cabaret" aria-pressed="false"><strong>Cabaret</strong><span>Round-table layout</span><span class="pill">CAPACITY 160</span></button>
+          </div>
+        </section>
+        <section class="section" aria-labelledby="facility-title">
+          <div class="sectionhead"><span class="number">2</span><div><h2 id="facility-title">Choose compatible facilities</h2><div class="help">Unsupported facilities stay visible with a reason.</div></div></div>
+          <div class="facility-list">
+            <label class="facility selected"><input type="checkbox" data-facility="Hall 1" checked><span><strong>Hall 1</strong><small>Current: Theatre · 180 people</small></span></label>
+            <label class="facility"><input type="checkbox" data-facility="Conference Suite"><span><strong>Conference Suite</strong><small>Current: Boardroom · 40 people</small></span></label>
+            <label class="facility unavailable" id="studio-row"><input type="checkbox" data-facility="Studio 2" disabled><span><strong>Studio 2</strong><small>Current: Open floor · 60 people</small></span><span class="reason" id="studio-reason">Theatre not supported</span></label>
+          </div>
+        </section>
+        <section class="section" aria-labelledby="capacity-title">
+          <div class="sectionhead"><span class="number">3</span><div><h2 id="capacity-title">Set preview capacity</h2><div class="help">Values cannot exceed the evidenced facility maximum shown here.</div></div></div>
+          <div class="capacity-grid" id="capacities">
+            <article class="capacity-card" data-card="Hall 1"><div class="capacity-top"><strong>Hall 1</strong><span class="max">max. 240</span></div><div class="counter"><button type="button" aria-label="Decrease Hall 1 capacity" data-delta="-10">−</button><output aria-live="polite">180</output><button type="button" aria-label="Increase Hall 1 capacity" data-delta="10">+</button></div></article>
+          </div>
+        </section>
+        <div class="actions"><button type="button" class="btn" id="reset" disabled>Reset preview</button><button type="button" class="btn primary" id="review" disabled>Review changes</button><span class="link">No API · no storage · no navigation</span></div>
+      </main>
+      <aside class="review" aria-label="Evidence summary">
+        <h2>Preview summary</h2><p>Updates as you stage a local-only change.</p>
+        <div class="status-card"><div class="status-line"><span>Configuration</span><strong id="summary-config">Theatre</strong></div><div class="status-line"><span>Facilities</span><strong id="summary-facilities">Hall 1</strong></div><div class="status-line"><span>Changes staged</span><strong id="summary-count">0</strong></div><div class="status-line"><span>Persistence</span><strong>None</strong></div></div>
+        <div class="evidence"><div class="eyebrow">Evidence status</div><div class="fact">Configuration selection, facility compatibility and bounded capacity controls are represented in current source.</div><div class="fact warn">Save/Update outcomes, rights, skip-confirmation, persistence and rollback remain unverified.</div></div>
+        <div class="boundary"><strong>Outside Journey 13</strong><br>Maps and external application handoffs.<br>Agenda, custom views, Excel and reports.<br>Rights, settings and operational services.</div>
+      </aside>
+    </div>
+    <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+      <div class="dialog"><h2 id="dialog-title">Review local preview</h2><p>Confirm the staged visual result. This does not call Save or Update.</p><div id="change-list"></div><div class="dialog-note">Applying changes updates only this open mockup. Reloading restores the seed fixture.</div><div class="dialog-actions"><button type="button" class="btn" id="cancel">Back</button><button type="button" class="btn primary" id="apply">Apply to local preview</button></div></div>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite">Local preview updated — nothing saved.</div>
+  </div>
+
+
 
   <div class="app-shell" id="app-shell">
     <header class="top-bar" id="top-bar" role="banner">
@@ -321,6 +380,13 @@
           </div>
           <p id="j11-route-copy">Open a calendar date to review, add, edit or remove Diary Notes. The note-type list is a sample fixture and has not been confirmed against production.</p>
           <p class="j11-scope-copy"><strong>Sample types — real list to be confirmed:</strong> General, Staffing, Facility.</p>
+        </section>
+        <section class="j12-route-status" id="j12-route-status" hidden inert aria-hidden="true" aria-labelledby="j12-route-title">
+          <div class="j12-status-heading">
+            <div><span class="j4-kicker">Journey 12 · UJ-14 · Public Events</span><h1 id="j12-route-title">Public Event Actions</h1></div>
+            <span class="j12-boundary-chip">LOCAL IN-MEMORY REVIEW FIXTURE · NO API · NO PERSISTENCE · NO EXTERNAL NAVIGATION</span>
+          </div>
+          <p id="j12-route-copy">The local fixture <strong>Community Open Day · Hall 1 · 10:00–12:00</strong> is selected on entry, with Event actions open. Close the panel to explore the calendar. Reschedule reuses the accepted Journey 6 public-reschedule root. Public delete, real configuration, maps, keys and external destinations are excluded.</p>
         </section>
         <div class="timeslot-legend-wrap">
           <div id="timeslot-colours-legend" class="timeslot-colours-legend" role="region" aria-label="Timeslot colours"></div>
@@ -640,6 +706,238 @@
   <dialog class="modal j11-delete-dialog" id="j11-delete-dialog" role="alertdialog" aria-labelledby="j11-delete-title" aria-describedby="j11-delete-description">
     <h2 id="j11-delete-title">Delete note?</h2><p id="j11-delete-description">This local Diary Note will be removed. Confirm to delete it.</p>
     <div class="dialog-actions"><button type="button" class="btn-secondary" id="j11-delete-cancel">Cancel</button><button type="button" class="btn-primary btn-danger" id="j11-delete-confirm">Delete note</button></div>
+  </dialog>
+  <aside class="j12-event-actions-panel" id="j12-event-actions-panel" hidden inert aria-hidden="true" aria-labelledby="j12-panel-title" role="complementary">
+    <header class="j12-panel-head">
+      <span class="j12-head-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4m8-4v4M3 10h18"/></svg></span>
+      <h2 id="j12-panel-title">Event actions</h2>
+      <button type="button" class="dialog-close" id="j12-event-actions-close" aria-label="Close Event actions panel">×</button>
+    </header>
+    <div class="j12-panel-sub"><p class="j12-panel-kicker">Evidence-aware local review workspace</p><span class="j12-pill j12-pill-purple">Local review only</span></div>
+    <article class="j12-event-card" aria-label="Selected public event">
+      <div class="j12-action-top">
+        <span class="j12-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4m8-4v4M3 10h18"/></svg></span>
+        <div class="j12-title-group"><h3>Community Open Day</h3>
+          <div class="j12-event-detail"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>Hall 1 · Northside Leisure Centre</div>
+          <div class="j12-event-detail"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4m8-4v4M3 10h18"/></svg>Wed 26 Aug 2026 · 10:00–12:00</div>
+        </div>
+      </div>
+      <div class="j12-event-chips"><span class="j12-pill j12-pill-purple">✦ Public event</span><span class="j12-pill j12-pill-grey">◉ Local review fixture</span><span class="j12-pill j12-pill-grey">⌁ Read-only</span></div>
+    </article>
+    <article class="j12-action-card j12-action-primary">
+      <div class="j12-action-top"><span class="j12-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="14" height="15" rx="3"/><path d="M7 3v4m6-4v4M3 10h14m1 4 3 3-3 3m3-3h-7"/></svg></span><h4>Reschedule event</h4><span class="j12-status j12-status-reuse">✓ Reuse · Journey 6 root</span></div>
+      <p>Opens the accepted Journey 6 public-reschedule workflow. No duplicate handler, component or state fork.</p>
+      <button type="button" class="btn-primary j12-card-action" id="j12-reschedule-event"><span><span aria-hidden="true">◷</span> Reschedule event</span><span aria-hidden="true" class="j12-action-arrow">→</span></button>
+    </article>
+    <article class="j12-action-card j12-action-primary j14-location-entry" id="j14-location-entry">
+      <div class="j12-action-top"><span class="j12-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></span><h4>Location &amp; handoffs</h4><span class="j12-status j12-status-reuse">✓ Reuse · Journey 14</span></div>
+      <p>Seating map, venue location and external application handoffs for this event. Local preview only — no external application opens.</p>
+      <button type="button" class="btn-secondary j12-card-action" id="j14-open-location-handoffs" aria-controls="j14-diary-panel" aria-expanded="false"><span><span aria-hidden="true">⌖</span> Open location &amp; handoffs</span><span aria-hidden="true" class="j12-action-arrow">→</span></button>
+    </article>
+    <div class="j12-section-boundaries"><h3 class="j12-section-title">Read-only boundaries</h3><p><span aria-hidden="true">ⓘ</span> These functions are not established for local review.</p></div>
+    <article class="j12-action-card j12-action-capacity">
+      <div class="j12-action-top"><span class="j12-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5m-18 4 9 5 9-5"/></svg></span><h4>Configuration &amp; capacity</h4><span class="j12-status j12-status-unconfirmed">! Unconfirmed</span></div>
+      <p>Rights, confirmation and mutation outcomes are not established. Save/Update remain unavailable.</p>
+      <button type="button" class="btn-secondary j12-card-action" id="j12-boundary-config" aria-haspopup="dialog"><span><span aria-hidden="true">▧</span> Review boundary</span><span aria-hidden="true" class="j12-action-arrow">→</span></button>
+    </article>
+    <article class="j12-action-card j12-action-maps">
+      <div class="j12-action-top"><span class="j12-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15m6-12v15"/></svg></span><h4>Venue/table and asset maps</h4><span class="j12-status j12-status-handoff">↗ External handoff</span></div>
+      <p>No URL, map, key, coordinate or network behavior is shown.</p>
+      <button type="button" class="btn-secondary j12-card-action" id="j12-boundary-maps" aria-haspopup="dialog"><span><span aria-hidden="true">▧</span> Review boundary</span><span aria-hidden="true" class="j12-action-arrow">→</span></button>
+    </article>
+    <article class="j12-action-card j12-action-external">
+      <div class="j12-action-top"><span class="j12-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 3h7v7m0-7-9 9"/><path d="M10 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/></svg></span><h4>External applications</h4><span class="j12-status j12-status-defect">! Defect-affected</span></div>
+      <p>Named handoff surfaces only. No navigation, redirect or destination success.</p>
+      <button type="button" class="btn-secondary j12-card-action" id="j12-boundary-external" aria-haspopup="dialog"><span><span aria-hidden="true">▧</span> Review boundary</span><span aria-hidden="true" class="j12-action-arrow">→</span></button>
+    </article>
+    <div class="j12-review-notice"><span aria-hidden="true">ⓘ</span><span><strong>Local review only.</strong> No API, persistence, production destination or external navigation. Public delete remains excluded.</span></div>
+    <p class="j12-panel-context" id="j12-panel-context" role="status" aria-live="polite"></p>
+    <p class="j12-panel-boundary">Review-only fixture. No API, persistence, production destination or external navigation.</p>
+    <h3 class="j12-section-title j12-evidence-heading">Available from accepted evidence</h3>
+    <p class="j12-panel-footnote">Existing accepted Journey 6 root <code>j6StartOperation('PublicReschedule')</code>. Public delete is intentionally excluded from this candidate.</p>
+  </aside>
+  <aside class="j14-diary-panel" id="j14-diary-panel" hidden inert aria-hidden="true" aria-labelledby="j14-diary-panel-title" role="complementary">
+    <header class="j14-diary-panel-head" id="j14-diary-panel-head">
+      <button type="button" class="j14-diary-back" id="j14-diary-back"><span aria-hidden="true">‹</span> Event actions</button>
+      <div class="j14-diary-titles"><h2 id="j14-diary-panel-title">Location &amp; handoffs</h2><p class="j14-diary-context" id="j14-diary-context"></p></div>
+      <button type="button" class="j14-diary-close" id="j14-diary-close" aria-label="Close Location and handoffs and return to the calendar">×</button>
+    </header>
+    <div class="j14-diary-body" id="j14-diary-body">
+  <div id="j14-standalone-surface" class="j14-standalone-surface" data-view="handoffs" data-map-state="available" data-failure-visible="false" hidden inert aria-hidden="true">
+<a class="skip-link" href="#handoff-workspace">Skip to Location &amp; handoffs</a>
+  <aside class="review-rail" aria-label="Review only">
+    <span class="review-rail-label">Review only</span>
+  </aside>
+  <div class="shell">
+    <div class="preview-banner" role="status">
+      <span class="preview-banner-icon" aria-hidden="true">⚠</span>
+      <p style="margin:0"><strong>Review preview — no external application opens.</strong> Local planning mockup for FN-RES-024–026. Proposed screens only.</p>
+    </div>
+    <header class="app-header">
+      <div>
+        <h1>Optimo Diary — public event context</h1>
+        <p style="margin:4px 0 0;font-size:13px;opacity:0.9">Fixture booking · review handoff surfaces only</p>
+      </div>
+      <span class="context-chip">Summer Sessions 2026</span>
+    </header>
+    <main class="j14-workspace" id="handoff-workspace">
+      <section class="panel-card" aria-labelledby="workspace-title">
+        <h2 class="panel-title" id="workspace-title">Location &amp; handoffs</h2>
+        <p class="panel-sub">Pre-navigation handoff preview · <span class="badge badge-decision">DEC-INT-001</span> <span class="badge badge-decision">DEC-INT-002</span> <span class="badge badge-evidence">EXTERNAL-ROUTES-01</span> open</p>
+
+        <div role="tablist" aria-label="Handoff sections" id="handoff-tabs">
+          <button type="button" role="tab" id="tab-seating" aria-selected="true" aria-controls="panel-seating" tabindex="0">Seating map</button>
+          <button type="button" role="tab" id="tab-venue" aria-selected="false" aria-controls="panel-venue" tabindex="-1">Venue location</button>
+          <button type="button" role="tab" id="tab-external" aria-selected="false" aria-controls="panel-external" tabindex="-1">External apps</button>
+        </div>
+
+        <p class="visually-hidden" aria-live="polite" id="live-region"></p>
+
+        <div id="panel-seating" role="tabpanel" aria-labelledby="tab-seating" tabindex="0">
+          <dl class="meta-grid">
+            <div class="meta-row"><dt>Event</dt><dd>Summer Sessions 2026</dd></div>
+            <div class="meta-row"><dt>Session</dt><dd>Evening session · 19:00–22:00</dd></div>
+            <div class="meta-row"><dt>Package</dt><dd>Standard seated · Riverside Pavilion</dd></div>
+            <div class="meta-row"><dt>Evidence</dt><dd><span class="badge badge-evidence">FN-RES-024</span> configured URL + new tab in Product (outcome unverified)</dd></div>
+          </dl>
+          <div class="seating-layout">
+            <div class="seating-svg-wrap" aria-label="Local seating preview — not a live map">
+              <svg viewBox="0 0 400 240" role="img" aria-labelledby="seating-svg-title">
+                <title id="seating-svg-title">Schematic seating blocks for review</title>
+                <rect width="400" height="240" fill="#f0f5ff"/>
+                <rect x="120" y="8" width="160" height="24" fill="#102a46" rx="0"/>
+                <text x="200" y="24" text-anchor="middle" fill="#fff" font-size="11">STAGE</text>
+                <g class="seat-group">
+                  <rect class="seat-block is-selected" tabindex="0" role="button" aria-label="Seat block A" aria-pressed="true" data-seat="A" x="40" y="48" width="48" height="36" fill="#2e73df"/>
+                  <rect class="seat-block" tabindex="0" role="button" aria-label="Seat block B" aria-pressed="false" data-seat="B" x="100" y="48" width="48" height="36" fill="#adc7f4"/>
+                  <rect class="seat-block" tabindex="0" role="button" aria-label="Seat block C" aria-pressed="false" data-seat="C" x="160" y="48" width="48" height="36" fill="#adc7f4"/>
+                  <rect class="seat-block" tabindex="0" role="button" aria-label="Seat block D" aria-pressed="false" data-seat="D" x="220" y="48" width="48" height="36" fill="#adc7f4"/>
+                  <rect class="seat-block" tabindex="0" role="button" aria-label="Seat block E" aria-pressed="false" data-seat="E" x="280" y="48" width="48" height="36" fill="#adc7f4"/>
+                  <rect class="seat-block" tabindex="0" role="button" aria-label="Seat block F" aria-pressed="false" data-seat="F" x="40" y="100" width="48" height="36" fill="#adc7f4"/>
+                  <rect class="seat-block" tabindex="0" role="button" aria-label="Seat block G" aria-pressed="false" data-seat="G" x="100" y="100" width="48" height="36" fill="#adc7f4"/>
+                  <rect class="seat-block" tabindex="0" role="button" aria-label="Seat block H" aria-pressed="false" data-seat="H" x="160" y="100" width="48" height="36" fill="#adc7f4"/>
+                </g>
+                <text x="200" y="200" text-anchor="middle" fill="#667085" font-size="11">Local preview · block A selected for review</text>
+              </svg>
+            </div>
+            <div>
+              <p style="margin:0 0 12px;font-size:13px">Public event + seating plan path only. Separate from rights-gated <strong>Maintain Table Plan</strong> (dining configuration).</p>
+              <button type="button" class="btn btn-primary" id="btn-review-seating">Review seating-map handoff</button>
+              <p class="screen-ids">Proposed: <code>SCR-INT-VENUE-MAP</code></p>
+            </div>
+          </div>
+        </div>
+
+        <div id="panel-venue" role="tabpanel" aria-labelledby="tab-venue" hidden tabindex="0">
+          <dl class="meta-grid">
+            <div class="meta-row"><dt>Venue</dt><dd>Riverside Pavilion</dd></div>
+            <div class="meta-row"><dt>Asset coordinates</dt><dd><span class="badge badge-fixture">Fixture</span> −33.8688, 151.2093 (review label)</dd></div>
+            <div class="meta-row"><dt>Venue fallback</dt><dd><span class="badge badge-evidence">EVIDENCE</span> used when asset has no location</dd></div>
+            <div class="meta-row"><dt>Evidence</dt><dd><span class="badge badge-evidence">FN-RES-025</span> · no live Google Maps in this preview</dd></div>
+          </dl>
+          <fieldset class="map-state-controls">
+            <legend>Demonstrate map presentation state (local)</legend>
+            <label><input type="radio" name="map-state" value="available" checked> <span>Available</span></label>
+            <label><input type="radio" name="map-state" value="loading"> <span>Loading</span></label>
+            <label><input type="radio" name="map-state" value="unavailable"> <span>No location</span></label>
+          </fieldset>
+          <p id="map-status-text"><span class="status-pill status-available" id="map-status-pill">Map placeholder · Available</span></p>
+          <div class="map-placeholder" id="map-placeholder" data-state="available" aria-describedby="map-status-text">
+            <div>
+              <div class="map-spinner" aria-hidden="true"></div>
+              <p style="margin:0;font-weight:600" id="map-placeholder-title">Neutral local map placeholder</p>
+              <p style="margin:8px 0 0;font-size:13px;color:#667085" id="map-placeholder-body">Riverside Pavilion · schematic grid only · no API key</p>
+            </div>
+          </div>
+          <p class="screen-ids">Proposed: <code>SCR-INT-VENUE-MAP</code> · <code>SCR-INT-MAP-DEGRADED</code></p>
+        </div>
+
+        <div id="panel-external" role="tabpanel" aria-labelledby="tab-external" hidden tabindex="0">
+          <p style="margin:0 0 12px;font-size:13px">Named destinations from evidence traces. Status reflects recorded defects — not availability claims.</p>
+          <div class="external-grid" id="external-list">
+            <article class="external-card" data-handoff-id="corporate">
+              <h3>Corporate Booking</h3>
+              <p>Placeholder tokens e.g. booking id · expand flag · new tab — destination unverified in evidence.</p>
+              <span class="badge badge-unverified">Destination unverified</span>
+              <div class="card-actions">
+                <button type="button" class="btn btn-primary btn-review-handoff" data-destination="Corporate Booking">Review handoff</button>
+              </div>
+            </article>
+            <article class="external-card" data-handoff-id="callcenter">
+              <h3>Call Center</h3>
+              <p>Booking reference handoff · observed <code>_black</code> target typo in legacy — not corrected here.</p>
+              <span class="badge badge-unverified">Destination unverified</span>
+              <div class="card-actions">
+                <button type="button" class="btn btn-primary btn-review-handoff" data-destination="Call Center">Review handoff</button>
+              </div>
+            </article>
+            <article class="external-card" data-handoff-id="tableplan">
+              <h3>Maintain Table Plan / Edit Layout</h3>
+              <p>Rights/settings-gated dining configuration — separate entitlement from public seating map.</p>
+              <span class="badge badge-unverified">Unavailable in evidence</span>
+              <div class="card-actions">
+                <button type="button" class="btn btn-primary btn-review-handoff" data-destination="Maintain Table Plan">Review handoff</button>
+              </div>
+            </article>
+            <article class="external-card" data-handoff-id="eventsetup">
+              <h3>Event Setup</h3>
+              <p>External route referenced in integration inventory — contract open.</p>
+              <span class="badge badge-unverified">Destination unverified</span>
+              <div class="card-actions">
+                <button type="button" class="btn btn-primary btn-review-handoff" data-destination="Event Setup">Review handoff</button>
+              </div>
+            </article>
+            <article class="external-card" data-handoff-id="bookingmgr">
+              <h3>Booking Manager</h3>
+              <p>Observed missing-directory failure in evidence — shown as unavailable for review.</p>
+              <span class="badge badge-unverified">Unavailable in evidence</span>
+              <div class="card-actions">
+                <button type="button" class="btn btn-primary btn-review-handoff" data-destination="Booking Manager">Review handoff</button>
+                <button type="button" class="btn btn-ghost" id="btn-demo-failure">Demonstrate failure state</button>
+              </div>
+            </article>
+          </div>
+          <div class="failure-panel" id="failure-panel" hidden role="alert">
+            <h2 id="failure-title" tabindex="-1">Destination unavailable</h2>
+            <p id="failure-body">Preview only — mirrors <code>SCR-INT-LINK-FAILURE</code>. No retry to a live endpoint.</p>
+            <button type="button" class="btn btn-primary" id="btn-return-handoffs">Return to handoffs</button>
+          </div>
+          <p class="screen-ids">Proposed: <code>SCR-INT-EXTERNAL-LINK</code> · <code>SCR-INT-LINK-FAILURE</code></p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="dialog-backdrop" id="handoff-dialog" hidden role="presentation">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="j14-dialog-title" id="handoff-dialog-panel">
+      <div class="dialog-header">
+        <h2 id="j14-dialog-title">Handoff review sheet</h2>
+        <button type="button" class="btn btn-ghost" id="j14-dialog-close" aria-label="Close dialog">✕</button>
+      </div>
+      <div class="dialog-body">
+        <p><span class="badge badge-fixture">REVIEW FIXTURE</span> Parameters are human-readable placeholders — no final URL.</p>
+        <dl class="meta-grid">
+          <div class="meta-row"><dt>Destination label</dt><dd id="j14-dialog-destination">—</dd></div>
+          <div class="meta-row"><dt>Source context</dt><dd id="j14-dialog-source">Summer Sessions 2026 · public event booking</dd></div>
+        </dl>
+        <h3 style="margin:0;font-size:14px">Identifiers to be passed (preview)</h3>
+        <ul class="param-list" id="j14-dialog-params"></ul>
+        <p style="margin:0"><strong>Evidence status:</strong> <span id="j14-dialog-evidence">Destination unverified · EXTERNAL-ROUTES-01 open</span></p>
+        <p class="boundary-note" id="j14-dialog-boundary">Unresolved boundary: target tab behaviour, rights confirmation, and destination ownership remain open under DEC-INT-001 / DEC-INT-002. This sheet does not navigate.</p>
+      </div>
+      <div class="dialog-footer">
+        <button type="button" class="btn" id="j14-dialog-back">Back</button>
+        <button type="button" class="btn btn-primary" id="j14-dialog-ack">Acknowledge preview</button>
+      </div>
+    </div>
+  </div>
+  </div>    </div>
+  </aside>
+  <dialog class="modal j12-boundary-dialog" id="j12-boundary-dialog" aria-labelledby="j12-boundary-title" aria-describedby="j12-boundary-copy j12-boundary-notice">
+    <h2 id="j12-boundary-title">Boundary review</h2>
+    <p id="j12-boundary-copy"></p>
+    <p class="j12-boundary-notice" id="j12-boundary-notice">Local informational dialog only. No API, persistence, production destination or external navigation.</p>
+    <div class="dialog-actions"><button type="button" class="btn-primary" id="j12-boundary-close">Close</button></div>
   </dialog>
   <div class="toast-region" id="toast-region" role="status" aria-live="polite" aria-atomic="true"></div>
   <div id="alert-region" role="alert" aria-live="assertive" class="visually-hidden"></div>
