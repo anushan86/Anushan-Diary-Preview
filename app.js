@@ -192,7 +192,7 @@
     document.body.dataset.journey = String(journey);
     if (requested === 14) document.body.dataset.j14Entry = 'open';
     else delete document.body.dataset.j14Entry;
-    if (journey === 1 || journey === 7) document.body.dataset.contextualWorkspace = 'true';
+    if (journey === 1 || journey === 7 || journey === 9) document.body.dataset.contextualWorkspace = 'true';
     else delete document.body.dataset.contextualWorkspace;
     return journey;
   }
@@ -302,7 +302,7 @@
         '#cart-bulk-actions', '#cart-column-head', '#cart-high-volume-summaries', '#cart-item-editor-dialog',
         '#mismatch-dialog', '#remove-dialog', '#clear-dialog', '#large-data-picker', '#large-data-picker-backdrop',
         '#current-selection-details-toggle', '#configure-form', '#cart-success', '#cart-unavailable',
-        '#contextual-cart-launcher', '#j4-details-dialog', '#j4-context-menu', '#j5-workflow-dialog'
+        '#j4-details-dialog', '#j4-context-menu', '#j5-workflow-dialog'
       ].forEach((sel) => document.querySelectorAll(sel).forEach((el) => j2SetSurfaceExcluded(el, true)));
       const cart = $('#booking-cart');
       if (cart) { cart.hidden = false; cart.inert = false; cart.removeAttribute('aria-hidden'); }
@@ -3742,7 +3742,7 @@
   let contextualCartDismissed = false;
 
   function isContextualWorkspace() {
-    return document.body.dataset.contextualWorkspace === 'true' && ['1', '7'].includes(document.body.dataset.journey);
+    return document.body.dataset.contextualWorkspace === 'true' && ['1', '7', '9'].includes(document.body.dataset.journey);
   }
 
   function contextualIsMobile() {
@@ -9103,7 +9103,7 @@
       setCurrentSelectionDetailsExpanded(false, { restoreFocus: true });
     }, true);
 
-    const j9ExcludedActionSelector = '#cart-primary-action, #confirm-booking-btn, #clear-cart-btn, #clear-confirm, #current-selection-details-toggle, #btn-play-journey, #btn-play-complete, #review-rail-toggle, #review-rail-panel, .stage-chip, .cart-item-editor-tab, [data-line-actions-toggle], #bulk-time-btn, #bulk-config-btn, #cart-view-compact, #cart-view-detailed, #contextual-cart-open, #j4-details-dialog, #j4-context-menu, #j5-workflow-dialog';
+    const j9ExcludedActionSelector = '#cart-primary-action, #confirm-booking-btn, #clear-cart-btn, #clear-confirm, #current-selection-details-toggle, #btn-play-journey, #btn-play-complete, #review-rail-toggle, #review-rail-panel, .stage-chip, .cart-item-editor-tab, [data-line-actions-toggle], #bulk-time-btn, #bulk-config-btn, #cart-view-compact, #cart-view-detailed, #j4-details-dialog, #j4-context-menu, #j5-workflow-dialog';
     document.addEventListener('click', (event) => {
       if (!isJourney9Route()) return;
       const target = event.target instanceof Element ? event.target.closest(j9ExcludedActionSelector) : null;
