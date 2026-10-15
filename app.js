@@ -272,6 +272,7 @@
     j4Only.forEach((sel) => {
       document.querySelectorAll(sel).forEach((el) => j2SetSurfaceExcluded(el, !(isJ4 || isJ5 || isJ6 || isJ8)));
     });
+    if (isJ8) j2SetSurfaceExcluded($('#j4-selection-summary'), true);   // OC-3-C: the unrelated Selected summary is not part of Journey 8
     j2SetSurfaceExcluded($('#mismatch-dialog'), !(isJ1 || isJ8));
     j2SetSurfaceExcluded($('#j4-review-controls'), !isJ4);
     j5Only.forEach((sel) => {
@@ -9483,10 +9484,14 @@
       if (control) { control.hidden = hidden; control.inert = hidden; control.setAttribute('aria-hidden', String(hidden)); }
     });
   }
+  function j8BookingBlock() {
+    const ref = J5_BASE_BOOKING.reference.replace('LOCAL-', '');
+    return Array.from(document.querySelectorAll('#calendar-grid .cal-event')).find((el) => el.querySelector('strong')?.textContent.trim() === ref) || null;
+  }
   function j8HubFocusables() {
     const details = $('#j4-details-dialog');
     if (!details || !isJ8Journey() || j8State !== 'hub') return [];
-    return Array.from(details.querySelectorAll('.j5-action-grid [data-j8-action]')).filter((el) => !el.hidden && !el.disabled && el.getClientRects().length > 0);
+    return Array.from(details.querySelectorAll('#j4-details-close, .j5-action-grid [data-j8-action], #j4-details-back')).filter((el) => !el.hidden && !el.disabled && el.getClientRects().length > 0);
   }
   function j8FocusTerminalCancel() {
     const cancel = $('#j5-workflow-dialog [data-j8-command="terminal-cancel"]');
@@ -9519,13 +9524,7 @@
     if (!details) return;
     if (!details.dataset.j8CloseGuarded) {
       const nativeClose = details.close.bind(details);
-      details.close = (...args) => {
-        if (isJ8Journey() && j8State === 'hub' && !j8Operation) {
-          j8OpenHub(j8Trigger || $('#j4-open-private'));
-          return;
-        }
-        return nativeClose(...args);
-      };
+      details.close = (...args) => nativeClose(...args);   // OC-3: the hub can be closed
       details.dataset.j8CloseGuarded = 'true';
     }
     details.hidden = false; details.inert = false; details.removeAttribute('aria-hidden');
@@ -9536,10 +9535,10 @@
     $('#j5-action-hub').removeAttribute('aria-hidden');
     $('#j4-details-kicker').textContent = 'Existing Booking · review-only entry';
     $('#j4-details-title').textContent = j8Subject.reference;
-    $('#j4-details-close').setAttribute('aria-label', 'Close existing Booking review');
-    j8HideHubDismissControls(true);
+    $('#j4-details-close').setAttribute('aria-label', 'Close booking details');
+    j8HideHubDismissControls(false);   // OC-3: × and "Close review" are shown
     details.setAttribute('aria-describedby', 'j5-details-intro j5-review-boundary');
-    $('#j4-details-back').textContent = 'Close review';
+    $('#j4-details-back').textContent = 'Close';   // OC-3-E: the second close button reads "Close" (was "Close review")
     $('#j5-total').textContent = 'Amount not asserted · change-flow calculation unverified';
     const totalLabel = $('#j5-total')?.parentElement?.querySelector('dt');
     if (totalLabel) totalLabel.textContent = 'Pricing evidence';
@@ -9563,17 +9562,13 @@
     window.setTimeout(() => $('.j5-action-grid [data-j8-action]')?.focus(), 0);
   }
   function j8CloseHub() {
-    if (isJ8Journey()) {
-      j8OpenHub(j8Trigger || $('#j4-open-private'));
-      return;
-    }
     const details = $('#j4-details-dialog');
     if (details?.open) details.close();
     if (details) { details.hidden = true; details.inert = true; details.setAttribute('aria-hidden', 'true'); }
     $('#j5-action-hub').hidden = true;
     $('#j5-action-hub').inert = true;
     $('#j5-action-hub').setAttribute('aria-hidden', 'true');
-    const target = j8Trigger;
+    const target = isJ8Journey() ? (j8BookingBlock() || j8Trigger) : j8Trigger;   // OC-3: back to the calendar
     j8Trigger = null;
     target?.focus?.();
   }
@@ -9867,6 +9862,18 @@
   }
   function j8BindEvents() {
     document.addEventListener('click', j8HandleClick);
+    // OC-3: with the change hub closed, the booking being changed (BK-10482 in the calendar) reopens it.
+    const j8Reenter = (event) => {
+      const block = event.target.closest?.('#calendar-grid .cal-event');
+      if (!block || block !== j8BookingBlock()) return;
+      if ($('#j4-details-dialog')?.open || $('#j5-workflow-dialog')?.open) return;
+      if (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      j8OpenHub(block);
+    };
+    document.addEventListener('click', j8Reenter, true);
+    document.addEventListener('keydown', j8Reenter, true);
     $('#j5-workflow-stage').addEventListener('change', j8HandleChange);
     $('#large-data-filter').addEventListener('input', j8RenderPicker);
     $('#large-data-picker').addEventListener('keydown', j8HandlePickerKeydown);
@@ -9880,17 +9887,17 @@
       if (!isJ8Journey() || j8State !== 'hub' || event.key !== 'Escape') return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      j8OpenHub(j8Trigger || $('#j4-open-private'));
+      j8CloseHub();   // OC-3: Escape closes the hub
     }, true);
     details.addEventListener('cancel', (event) => {
       if (!isJ8Journey()) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       if (j8Operation) j8CancelToHub();
-      else j8OpenHub(j8Trigger || $('#j4-open-private'));
+      else j8CloseHub();   // OC-3
     }, true);
     details.addEventListener('close', () => {
-      if (isJ8Journey() && j8State === 'hub' && !j8Operation) j8OpenHub(j8Trigger || $('#j4-open-private'));
+      if (isJ8Journey() && j8State === 'hub' && !j8Operation) j8CloseHub();   // OC-3: tidy up after a close
     });
     $('#j4-details-close').addEventListener('click', () => j8CloseHub());
     $('#j4-details-back').addEventListener('click', () => j8CloseHub());
@@ -9941,7 +9948,7 @@
     $('#amount-region').textContent = '';
     renderCalendar();
     $('#ldp-live').textContent = '';
-    window.setTimeout(() => j8OpenHub($('#j4-open-private')), 0);
+    window.setTimeout(() => j8OpenHub(j8BookingBlock()), 0);   // OC-3: focus returns to the calendar block
     window.__j8Review = {
       getState: () => j8State,
       getSubject: () => j8Clone(j8Subject),
