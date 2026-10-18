@@ -9208,3 +9208,30 @@ body[data-journey="10"] #diary-workspace > #calendar { grid-column: 1 / -1; }
   font-size: 12px;
 }
 .j4-calendar-message[hidden] { display: none !important; }
+/* A11Y-INH-03 (Option B): the step window's small label on the white header of Journeys 8 and 12 (1.71:1 -> 7.99:1) */
+body[data-journey="8"] #j5-workflow-kicker,
+body[data-journey="12"] #j5-workflow-kicker { color: var(--diary-blue-700); }
+/* C1 candidate v1 — readable small text (functionality & UX review U-03 and U-04; WCAG 2.2 SC 1.4.3). Existing Diary colours only; no size or layout change. */
+/* U-03: the "Selected summary" label on the white summary panel (1.71:1 -> 7.99:1), as Journey 4 already does */
+.j4-selection-summary .j4-kicker { color: var(--diary-blue-700); }
+/* U-04: blue text on the light-blue fills uses the next darker Diary blue (3.98-4.15:1 -> about 5.0-5.2:1) */
+.slot-layout-btn.is-active,
+.slot-layout-btn[aria-pressed="true"],
+.asset-count-chip,
+.selected-strip .chip.cobalt,
+.selected-strip .chip.teal,
+.selected-strip .chip.violet,
+.cal-day-header .today-tag { color: var(--diary-blue-600); }
+/* U-04: small grey labels use the Diary secondary-text colour (3.78-4.40:1 -> about 4.7:1) */
+body[data-journey="1"] .time-label,
+body[data-journey="1"] .j1-day-month,
+:is(body[data-journey="1"], body[data-journey="4"], body[data-journey="5"], body[data-journey="7"], body[data-journey="9"]) .booking-cart .current-selection-summary-row dt,
+:is(body[data-journey="1"], body[data-journey="4"], body[data-journey="5"], body[data-journey="7"], body[data-journey="9"]) .booking-cart .current-selection-resource span { color: var(--diary-text-secondary); }
+/* U-04: the meta text on the active (light-blue) asset row (4.37:1 -> about 13:1) */
+.tree-row.active .tree-meta { color: var(--diary-text); }
+/* U-04 (found by the Supervisor's walk): Journey 1's highlighted day header uses Journey 1's own darker sky blue (4.40:1 on the selected column -> about 7:1) */
+body[data-journey="1"] .cal-day-header.is-today,
+body[data-journey="1"] .cal-day-header.is-today .j1-day-month { color: var(--j1-sky-700); }
+/* U-04: Journey 13 - the capacity pill gets back its own designed colour (a broader rule overrode it); the selected layout's description uses it too (4.48-4.49:1 -> about 5.5:1) */
+body[data-journey="13"] #j13-standalone-surface .config .pill:not(.default),
+body[data-journey="13"] #j13-standalone-surface .config[aria-pressed="true"] span:not(.pill) { color: #536277; }

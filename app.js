@@ -1,3 +1,25 @@
+// K1: recovery is allowed only for the actual last keyboard activation, never load/pointer paths.
+const k1Focus = (() => {
+  let keyboard = false, origin = null;
+  document.addEventListener('keydown', (event) => {
+    if (['Shift', 'Control', 'Alt', 'Meta'].includes(event.key)) return;
+    keyboard = true; origin = event.target;
+  }, true);
+  document.addEventListener('pointerdown', () => { keyboard = false; origin = null; }, true);
+  const visible = (el) => !!el && el.isConnected && !el.matches(':disabled') && !el.closest('[hidden], [inert]') && !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
+  return Object.freeze({
+    move(target, source) {
+      if (!keyboard || !(origin instanceof Element) || !(typeof source === 'string' ? origin.closest(source) : source?.contains(origin)) || !visible(target)) return false;
+      if (!target.matches('button, input, select, textarea, a[href], [tabindex]')) target.setAttribute('tabindex', '-1');
+      target.focus({ preventScroll: true });
+      target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      const bounds = target.getBoundingClientRect();
+      if (bounds.top < 8 || bounds.left < 8 || bounds.bottom > innerHeight - 8 || bounds.right > innerWidth - 8) target.scrollIntoView({ block: 'center', inline: 'center' });
+      return document.activeElement === target;
+    }
+  });
+})();
+
 (function () {
   'use strict';
 
@@ -1490,10 +1512,38 @@
   function j5ItemOptions(selected, includeBlocked = false) { const items = includeBlocked ? J5_REMOVE_FIXTURES : J5_BOOKING_FIXTURE.items; return items.map((item) => `<option value="${item.id}"${item.id === selected ? ' selected' : ''}>${item.name}</option>`).join(''); }
   function j5SelectedRemoveFixture() { return J5_REMOVE_FIXTURES.find((item) => item.id === j5Operation?.selectedItem) || J5_REMOVE_FIXTURES[0]; }
 
+  // A11Y-INH-02 (PO decisions P-1 and P-2, 15 Oct 2026): the shared step window #j5-workflow-dialog redraws its step area and buttons,
+  // so the control that had keyboard focus is removed and focus falls to the page body. Rule R2: after a redraw within the same step
+  // (the same step heading), focus returns to the control that was used; after a step change it moves to the new step's heading (or the
+  // window title when the step has no heading), made focusable without joining the Tab order. It acts only while the window is open
+  // and focus has left it.
+  function workflowStepHeading(dialog) { return dialog.querySelector('#j5-workflow-stage h3') || dialog.querySelector('#j5-workflow-title'); }
+  function workflowFocusCapture() {
+    const dialog = $('#j5-workflow-dialog'), active = document.activeElement;
+    if (!dialog?.open || !active || !dialog.contains(active)) return null;
+    return { heading: (workflowStepHeading(dialog)?.textContent || '').trim(), id: active.id || '', command: active.dataset?.j5Command || active.dataset?.j8Command || '', name: active.getAttribute('name') || '', value: active.value ?? '', label: (active.textContent || '').trim() };
+  }
+  function workflowFocusMatch(dialog, before) {
+    const usable = (el) => !!el && !el.disabled && !el.hidden && el.getClientRects().length > 0;
+    if (before.id) { const el = dialog.querySelector(`#${CSS.escape(before.id)}`); return usable(el) ? el : null; }
+    if (before.command) return Array.from(dialog.querySelectorAll('[data-j5-command], [data-j8-command]')).find((el) => usable(el) && (el.dataset.j5Command || el.dataset.j8Command) === before.command && (el.textContent || '').trim() === before.label) || null;
+    if (before.name) return Array.from(dialog.querySelectorAll('[name]')).find((el) => usable(el) && el.getAttribute('name') === before.name && (el.value ?? '') === before.value) || null;
+    return null;
+  }
+  function workflowFocusRestore(before) {
+    const dialog = $('#j5-workflow-dialog'), active = document.activeElement;
+    if (!dialog?.open || (active && active !== document.body && dialog.contains(active))) return;
+    const heading = workflowStepHeading(dialog);
+    let target = before && before.heading === (heading?.textContent || '').trim() ? workflowFocusMatch(dialog, before) : null;
+    if (!target && heading) { if (!heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1'); target = heading; }
+    target?.focus();
+  }
+
   function j5RenderWorkflow() {
     if (j6PublicRescheduleWorkflowActive()) return j6RenderWorkflow();
     const op = j5Operation; const stage = $('#j5-workflow-stage'); const preview = $('#j5-workflow-preview'); const footer = $('#j5-workflow-footer'); const title = $('#j5-workflow-title'); const description = $('#j5-workflow-description'); const announcement = $('#j5-workflow-announcement');
     if (!op || !stage || !preview || !footer || !title || !description || !announcement) return;
+    const focusBefore = workflowFocusCapture();   // A11Y-INH-02 (rule R2)
     const names = { Copy: 'Copy private booking', Edit: 'Update existing booking', Remove: 'Remove one booking item', Move: 'Move one private item', Batch: 'Batch move private items' }; title.textContent = names[op.action] || 'Local operation'; description.textContent = 'Review fixture only. Previews are non-writing; no server request is sent; reload resets it.'; preview.hidden = true; preview.replaceChildren(); announcement.textContent = '';
     let html = ''; let buttons = '';
     if (op.permissionChanged) {
@@ -1535,6 +1585,7 @@
       $('#j5-remove-item')?.addEventListener('change', (event) => { op.selectedItem = event.target.value; j5RenderWorkflow(); });
       $('#j5-remove-reference')?.addEventListener('input', (event) => { op.typed = event.target.value.trim(); const confirm = $('[data-j5-command="remove-confirm"]'); if (confirm) confirm.disabled = event.target.value.trim() !== j5SelectedRemoveFixture().id; });
     }
+    workflowFocusRestore(focusBefore);   // A11Y-INH-02 (rule R2)
   }
 
   function j5ReadWorkflowValues() {
@@ -1683,6 +1734,7 @@
   function j6RenderWorkflow() {
     const op = j5Operation, stage = $('#j5-workflow-stage'), footer = $('#j5-workflow-footer'), title = $('#j5-workflow-title'), description = $('#j5-workflow-description'), announcement = $('#j5-workflow-announcement');
     if (!op || !stage || !footer || !title || !description || !announcement) return;
+    const focusBefore = workflowFocusCapture();   // A11Y-INH-02 (rule R2)
     $('#j5-workflow-kicker').textContent = 'Journey 6 · UJ-07 · local review'; title.textContent = j6ActionTitle(op.action); description.textContent = 'Review fixture only. Every preview is non-writing; no server request is sent; reload resets it.'; announcement.textContent = '';
     let html = '', buttons = '';
     if (op.permissionChanged) {
@@ -1717,6 +1769,7 @@
     $('#j6-time-mode')?.addEventListener('change', (event) => { op.timeMode = event.target.value; j6ReadValues(); return j6RenderWorkflow(); });
     ['#j6-date', '#j6-start', '#j6-end', '#j6-start-a', '#j6-end-a', '#j6-start-b', '#j6-end-b'].forEach((selector) => $(selector)?.addEventListener('input', () => { j6ReadValues(); if ($('#j6-duration')) $('#j6-duration').value = op.duration; if ($('#j6-duration-a')) $('#j6-duration-a').value = j6Duration(op.itemTimes[0].start, op.itemTimes[0].end); if ($('#j6-duration-b')) $('#j6-duration-b').value = j6Duration(op.itemTimes[1].start, op.itemTimes[1].end); }));
     $('#j6-resource-query')?.addEventListener('input', (event) => { op.resource.query = event.target.value; });
+    workflowFocusRestore(focusBefore);   // A11Y-INH-02 (rule R2)
   }
   function j6CommitResult(kind) {
     const op = j5Operation; if (!op || op.commandToken || op.localResultCount >= 2) return;
@@ -4727,9 +4780,13 @@
     $('#asset-selected-strip').addEventListener('click', (e) => {
       const btn = e.target.closest('[data-unpin]');
       if (!btn) return;
+      const chips = Array.from($('#asset-selected-strip').querySelectorAll('[data-unpin]'));
+      const successor = chips[chips.indexOf(btn) + 1]?.dataset.unpin || chips[chips.indexOf(btn) - 1]?.dataset.unpin;
       selectedAssets.delete(btn.dataset.unpin);
       renderAssetTree();
       renderCalendar();
+      const nextChip = successor ? Array.from($('#asset-selected-strip').querySelectorAll('[data-unpin]')).find((chip) => chip.dataset.unpin === successor) : null;
+      if (document.body.dataset.journey === '4') k1Focus.move(nextChip || $('#asset-search'), btn);
     });
     if (isJ3Journey()) setupJ3ExplorerEvents();
   }
@@ -6412,6 +6469,7 @@
     showToast(wasEdit ? 'Cart item updated — booking is not saved' : 'Added to cart — booking is not saved');
     updateCartUI();
     renderCalendar();
+    if (isJourney7Route()) k1Focus.move($(`[data-booking-line="${line.id}"]`), '#cart-primary-action');
   }
 
   function editLine(id, trigger) {
@@ -7387,6 +7445,7 @@
     announceLive('Booking is created. Production Diary continues to the external Booking App.');
     updateCartUI();
     renderCalendar();
+    if (document.body.dataset.journey === '1') k1Focus.move($('#cart-success .success-message'), '#confirm-booking-btn');
   }
 
 
@@ -7929,6 +7988,7 @@
       }
       if (isFreeSlot(assetId, dk, slot) && !oneCalendarSelectionBlocked()) {
         createSelection(assetId, dk, slot, slot + 1);
+        if (document.body.dataset.journey === '1') k1Focus.move($('.j1-selection-band.is-primary .j1-selection-handle.is-br'), e.target);
       }
       return;
     } else return;
@@ -8621,8 +8681,8 @@
           e.preventDefault();
           j4CloseDetails(true);
         } else {
-          dialog.close();
-          restoreFocus();
+          e.preventDefault();   // A11Y-INH-04 (Option 2): only the top window reacts to this Escape; the window's own cancel handler acts first
+          if (dialog.dispatchEvent(new Event('cancel', { cancelable: true }))) { dialog.close(); restoreFocus(); }
         }
         return;
       }
@@ -8931,6 +8991,7 @@
       const operation = ++state.operation;
       dialogResult.className = 'j9-dialog-result';
       dialogResult.textContent = 'Checking local availability…';
+      if (document.body.dataset.journey === '9') k1Focus.move(dialogResult, '#j9-check');
       state.timer = window.setTimeout(() => {
         if (operation !== state.operation || !dialog.open) {
           if (operation === state.operation) {
@@ -9788,6 +9849,12 @@
   }
   function j8Render() {
     if (!j8Operation) return;
+    const focusBefore = workflowFocusCapture();   // A11Y-INH-02 (rule R2): keep keyboard focus inside the step window across the redraw
+    j8RenderStep();
+    workflowFocusRestore(focusBefore);
+  }
+  function j8RenderStep() {
+    if (!j8Operation) return;
     if (j8State === 'pricing_setup' || j8State === 'mismatch') { j8RenderCommon('Change pricing', 'Existing Booking pricing'); j8RenderPricing(); return; }
     if (j8State === 'item_change') { j8RenderCommon('Change item', 'Existing Booking item'); j8RenderItem(); return; }
     if (j8State === 'pkg_step_one') { j8RenderCommon('Change private package', 'Existing Booking package'); j8RenderPackageOne(); return; }
@@ -10082,7 +10149,7 @@
     $('j10-add-block')?.addEventListener('click', (e) => openEditor('create', e.currentTarget)); $('j10-block-close')?.addEventListener('click', () => closeEditor()); $('j10-block-cancel')?.addEventListener('click', () => closeEditor());
     $('j10-block-form')?.addEventListener('submit', (event) => { event.preventDefault(); if (state.busy) return; if (state.editorMode === 'update') { if (!state.block) return; const category = $('j10-block-category').value; if (!category) { $('j10-block-error').textContent = 'Choose a Category before saving the Block.'; $('j10-block-category').focus(); return; } state.busy = true; state.block = { ...state.block, marker: $('j10-block-marker').value.trim(), category }; state.actions.update += 1; closeEditor(false); render(); announce('Block changes saved locally.'); state.busy = false; $('j10-committed-block')?.focus(); return; } if (state.block || !state.selection || !rangeEligible(state.selection.asset, state.selection.date, state.selection.startSlot, state.selection.endSlot)) { $('j10-block-error').textContent = 'Choose one eligible interval; only one local Block is allowed.'; return; } const category = $('j10-block-category').value; if (!category) { $('j10-block-error').textContent = 'Choose a Category before saving the Block.'; $('j10-block-category').focus(); return; } state.busy = true; state.block = { ...state.selection, category, marker: $('j10-block-marker').value.trim() }; state.selection = null; state.actions.create += 1; closeEditor(false); render(); announce('Block created locally.'); state.busy = false; $('j10-committed-block')?.focus(); });
     $('j10-block-delete')?.addEventListener('click', openDeleteConfirm); $('j10-delete-keep')?.addEventListener('click', closeDeleteConfirm);
-    $('j10-delete-confirm')?.addEventListener('click', () => { if (state.busy || !state.block) return; state.busy = true; state.actions.delete += 1; state.block = null; state.selection = null; closeDeleteConfirm(); render(); announce('Block deleted locally. Calendar returned to the baseline.'); state.busy = false; $('j10-add-block')?.focus(); });
+    $('j10-delete-confirm')?.addEventListener('click', () => { if (state.busy || !state.block) return; const freed = { ...state.block }; state.busy = true; state.actions.delete += 1; state.block = null; state.selection = null; closeDeleteConfirm(); render(); announce('Block deleted locally. Calendar returned to the baseline.'); state.busy = false; if (!k1Focus.move(document.querySelector(`.cal-day-col[data-asset="${freed.asset}"][data-date="${freed.date}"] .cal-slot[data-slot="${freed.startSlot}"]`), '#j10-delete-confirm')) $('j10-add-block')?.focus(); });
     $('j10-block-dialog')?.addEventListener('cancel', (event) => { event.preventDefault(); closeEditor(); }); $('j10-delete-dialog')?.addEventListener('cancel', (event) => { event.preventDefault(); closeDeleteConfirm(); });
     render();
   }
@@ -10274,8 +10341,10 @@
       state.notes.push({ id: `j11-note-${Date.now()}-${state.notes.length}`, ...draft });
       announce('Diary Note added locally.');
     }
+    const savedNoteId = state.editingId || state.notes[state.notes.length - 1]?.id;
     decorateHeaders();
     renderList();
+    k1Focus.move(Array.from($('j11-notes-list').querySelectorAll('[data-j11-edit]')).find((button) => button.dataset.j11Edit === savedNoteId) || $('j11-note-add'), '#j11-note-form');
   }
   function installRouteSurface() {
     if (!isJ11()) return;
@@ -10629,6 +10698,7 @@
       const t = $('#toast');
       t?.classList.add('show');
       window.setTimeout(() => t?.classList.remove('show'), 2600);
+      k1Focus.move($(`.config[data-config="${state.config}"]`), '#apply');
     });
     document.addEventListener('keydown', (e) => {
       if (!isJ13() || e.key !== 'Escape' || !modal?.classList.contains('open')) return;
