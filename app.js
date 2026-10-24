@@ -1555,11 +1555,11 @@ const k1Focus = (() => {
     } else if (op.action === 'Copy' && op.stage === 'guard') {
       html = `<div class="j5-guard-card"><span class="badge badge-decision">STAGED WORK GUARD</span><h3>Local staged work is present</h3><p>Choose whether to preserve this local staged selection or explicitly clear it before copying. This is a review fixture, not persisted work.</p></div>`; buttons = j5Button('copy-preserve', 'Preserve & continue', 'btn-primary') + j5Button('copy-clear', 'Clear & continue') + j5Button('workflow-cancel', 'Cancel');
     } else if (op.action === 'Copy' && op.stage === 'setup') {
-      html = `<div class="j5-form-grid"><label>New start date<input id="j5-copy-date" type="date" value="2026-09-04"></label><label class="j5-check-row"><input id="j5-copy-customer" type="checkbox" checked> Retain customer/contact</label><label class="j5-check-row"><input id="j5-copy-prices" type="checkbox"> Retain prices <span class="field-hint">off by default</span></label></div><div class="j5-inline-note">Source read-back: fresh local token v${J5_BASE_BOOKING.version}. Package/item graph has ${J5_BASE_BOOKING.items.length} fixture items.</div>`; buttons = j5Button('copy-stale', 'Show stale source') + j5Button('copy-preview', 'Preview copy', 'btn-primary') + j5Button('workflow-cancel', 'Cancel');
+      html = `<div class="j5-form-grid"><label>New start date<input id="j5-copy-date" type="date" value="${j5DraftValue('date', '2026-09-04')}"></label><label class="j5-check-row"><input id="j5-copy-customer" type="checkbox" ${op.retainCustomer === false ? '' : 'checked'}> Retain customer/contact</label><label class="j5-check-row"><input id="j5-copy-prices" type="checkbox" ${op.retainPrices ? 'checked' : ''}> Retain prices <span class="field-hint">off by default</span></label></div><div class="j5-inline-note">Source read-back: fresh local token v${J5_BASE_BOOKING.version}. Package/item graph has ${J5_BASE_BOOKING.items.length} fixture items.</div>`; buttons = j5Button('copy-stale', 'Show stale source') + j5Button('copy-preview', 'Preview copy', 'btn-primary') + j5Button('workflow-cancel', 'Cancel');
     } else if (op.action === 'Copy' && op.stage === 'preview') {
       html = `<div class="j5-preview-list"><div><strong>New start</strong><span>${op.date || '04 Sep 2026'}</span></div><div><strong>Customer/contact</strong><span>${op.retainCustomer === false ? 'Reset in local fixture' : 'Retained'}</span></div><div><strong>Prices</strong><span>${op.retainPrices ? 'Retained for comparison only' : 'Reset for comparison only'}</span></div><div><strong>Items</strong><span>${J5_BASE_BOOKING.items.length} copied fixture items</span></div></div><p class="j5-illustrative">Fixture comparison only — this is not a pricing rule.</p>`; buttons = j5Button('copy-confirm', 'Confirm local copy', 'btn-primary', op.stale) + j5Button('copy-refresh', 'Refresh source', 'btn-secondary', !op.stale) + j5Button('workflow-cancel', 'Cancel'); if (op.stale) announcement.textContent = 'Source is stale. Refresh before preview can be confirmed.';
     } else if (op.action === 'Edit' && op.stage === 'setup') {
-      html = `<div class="j5-form-grid"><label>Scheduled date<input id="j5-edit-date" type="date" value="${J5_BASE_BOOKING.date}"></label><label>Scheduled time<input id="j5-edit-time" type="time" value="09:00" step="1800"></label><label>Attendee/cover quantity<input id="j5-edit-covers" type="number" min="1" max="80" value="${J5_BASE_BOOKING.covers}"></label><label>Existing private item<select id="j5-edit-item">${j5ItemOptions('ITEM-LOCAL-001')}</select></label></div><div class="j5-inline-note">Edit-start version token: v${J5_BASE_BOOKING.version}. The original booking remains unchanged until one local confirmation.</div>`; buttons = j5Button('update-stale', 'Show stale version') + (op.stale ? j5Button('update-refresh', 'Refresh current version', 'btn-primary') : '') + j5Button('update-failure', 'Show preview failure') + j5Button('update-preview', 'Preview update', 'btn-primary', op.stale) + j5Button('workflow-cancel', 'Cancel without loss'); if (op.stale) announcement.textContent = 'Stale version detected. Refresh current version before preview can be confirmed, or cancel without loss.';
+      html = `<div class="j5-form-grid"><label>Scheduled date<input id="j5-edit-date" type="date" value="${j5DraftValue('date', J5_BASE_BOOKING.date)}"></label><label>Scheduled time<input id="j5-edit-time" type="time" value="${j5DraftValue('time', '09:00')}" step="1800"></label><label>Attendee/cover quantity<input id="j5-edit-covers" type="number" min="1" max="80" value="${j5DraftValue('covers', J5_BASE_BOOKING.covers)}"></label><label>Existing private item<select id="j5-edit-item">${j5ItemOptions(op.selectedItem)}</select></label></div><div class="j5-inline-note">Edit-start version token: v${J5_BASE_BOOKING.version}. The original booking remains unchanged until one local confirmation.</div>`; buttons = j5Button('update-stale', 'Show stale version') + (op.stale ? j5Button('update-refresh', 'Refresh current version', 'btn-primary') : '') + j5Button('update-failure', 'Show preview failure') + j5Button('update-preview', 'Preview update', 'btn-primary', op.stale) + j5Button('workflow-cancel', 'Cancel without loss'); if (op.stale) announcement.textContent = 'Stale version detected. Refresh current version before preview can be confirmed, or cancel without loss.';
     } else if (op.action === 'Edit' && op.stage === 'preview') {
       html = `<div class="j5-preview-list"><div><strong>Scheduled date</strong><span>${op.date || J5_BASE_BOOKING.date}</span></div><div><strong>Scheduled time</strong><span>${op.time || '09:00'}</span></div><div><strong>Covers</strong><span>${op.covers || J5_BASE_BOOKING.covers}</span></div><div><strong>Item</strong><span>${op.item || 'Existing private item'}</span></div><div><strong>Illustrative price drift</strong><span>AU$ 2,750.00 → AU$ 2,887.50 fixture comparison</span></div></div><p class="j5-illustrative">Illustrative drift evidence only — not authoritative production pricing.</p>`; buttons = j5Button('update-confirm', 'Confirm local update', 'btn-primary') + j5Button('workflow-cancel', 'Cancel without loss');
     } else if (op.action === 'Edit' && op.stage === 'error') {
@@ -1575,12 +1575,19 @@ const k1Focus = (() => {
     } else if (op.action === 'Move' && op.stage === 'preview') {
       const target = J5_TARGETS.find(t => t.value === op.selectedTarget) || J5_TARGETS[0]; const covers = Number(op.covers || J5_BASE_BOOKING.covers); const capacityOk = !target.capacity || covers <= target.capacity; const valid = target.state === 'eligible' && capacityOk; html = `<div class="j5-preview-list"><div><strong>Item</strong><span>${op.item || 'Private booking item'}</span></div><div><strong>Current → proposed</strong><span>Studio 2 → ${target.value}</span></div><div><strong>Cover distribution</strong><span>${covers} covers</span></div><div><strong>Eligibility</strong><span>${target.label}</span></div><div><strong>Capacity check</strong><span>${target.capacity ? `${covers} / ${target.capacity} covers` : 'No eligible capacity'}</span></div></div>${valid ? '<p class="j5-inline-note">Non-writing preview. Confirming changes only this in-memory candidate fixture.</p>' : `<div class="j5-block-card"><strong>Move blocked in local fixture</strong><span>${target.state === 'eligible' && !capacityOk ? `Entered covers exceed ${target.value} fixture capacity (${target.capacity}). Reduce covers or cancel.` : 'Select an eligible target or cancel. No allocation or availability claim is made.'}</span></div>`}`; buttons = j5Button('move-confirm', 'Confirm local move', 'btn-primary', !valid) + j5Button('move-refresh', 'Refresh targets') + j5Button('workflow-cancel', 'Cancel');
     } else if (op.action === 'Batch' && op.stage === 'setup') {
-      html = `<fieldset class="j5-batch-fieldset"><legend>Select private booking items</legend>${J5_BOOKING_FIXTURE.items.map((item, i) => `<label class="j5-check-row"><input type="checkbox" data-j5-batch-item value="${item.id}"${i === 0 ? ' checked' : ''}> ${item.name} <span class="field-hint">${item.target}</span></label>`).join('')}</fieldset><div class="j5-form-grid"><label>Shared date<input id="j5-batch-date" type="date" value="2026-09-04"></label><label>Shared time<input id="j5-batch-time" type="time" value="09:00" step="1800"></label><label>Shared target<select id="j5-batch-target"><option value="Studio 4">Studio 4 · complete fixture</option><option value="Studio 7">Studio 7 · partial/conflict fixture</option></select></label></div><div class="j5-inline-note">Shared proposed date/time/target and per-item accounting remain visible in the preview. One local confirmation is used for the selected set.</div>`; buttons = j5Button('batch-preview', 'Preview batch', 'btn-primary') + j5Button('batch-rollback', 'Reset fixture') + j5Button('workflow-cancel', 'Cancel');
+      html = `<fieldset class="j5-batch-fieldset"><legend>Select private booking items</legend>${J5_BOOKING_FIXTURE.items.map((item, i) => `<label class="j5-check-row"><input type="checkbox" data-j5-batch-item value="${item.id}"${(op.items ? op.items.includes(item.id) : i === 0) ? ' checked' : ''}> ${item.name} <span class="field-hint">${item.target}</span></label>`).join('')}</fieldset><div class="j5-form-grid"><label>Shared date<input id="j5-batch-date" type="date" value="${j5DraftValue('date', '2026-09-04')}"></label><label>Shared time<input id="j5-batch-time" type="time" value="${j5DraftValue('time', '09:00')}" step="1800"></label><label>Shared target<select id="j5-batch-target"><option value="Studio 4"${op.selectedTarget === 'Studio 4' ? ' selected' : ''}>Studio 4 · complete fixture</option><option value="Studio 7"${op.selectedTarget === 'Studio 7' ? ' selected' : ''}>Studio 7 · partial/conflict fixture</option></select></label></div><div class="j5-inline-note">Shared proposed date/time/target and per-item accounting remain visible in the preview. One local confirmation is used for the selected set.</div>`; buttons = j5Button('batch-preview', 'Preview batch', 'btn-primary') + j5Button('batch-rollback', 'Reset fixture') + j5Button('workflow-cancel', 'Cancel');
     } else if (op.action === 'Batch' && op.stage === 'preview') {
       const partial = op.selectedTarget === 'Studio 7'; html = `<div class="j5-preview-list"><div><strong>Shared proposed date</strong><span>${op.date || '2026-09-04'}</span></div><div><strong>Shared proposed time</strong><span>${op.time || '09:00'}</span></div><div><strong>Shared proposed target</strong><span>${op.selectedTarget}</span></div></div><div class="j5-batch-table" role="table" aria-label="Batch per-item accounting"><div role="row" class="j5-batch-row j5-batch-head"><span>Item</span><span>Eligibility</span><span>Proposed target</span></div>${(op.items || J5_BOOKING_FIXTURE.items.map(i => i.id)).map(id => { const item = J5_BOOKING_FIXTURE.items.find(i => i.id === id) || J5_BOOKING_FIXTURE.items[0]; return `<div role="row" class="j5-batch-row"><span>${item.name}</span><span>${partial && id === 'ITEM-LOCAL-002' ? 'Conflict' : 'Eligible'}</span><span>${op.selectedTarget}</span></div>`; }).join('')}</div><div class="j5-inline-note">Aggregate preview only. Complete/partial labels describe this deterministic fixture, not atomicity or production allocation.</div>`; buttons = j5Button('batch-confirm', partial ? 'Confirm partial local batch' : 'Confirm complete local batch', 'btn-primary') + j5Button('batch-retry', 'Retry targets') + j5Button('workflow-cancel', 'Cancel');
     }
     if (op.stage === 'preview' && !op.result && !op.permissionChanged) buttons += j5Button('permission-change', 'Simulate permission changed');
     stage.innerHTML = html; footer.innerHTML = buttons;
+    if (op.stage === 'setup' && ['Copy', 'Edit', 'Move', 'Batch'].includes(op.action)) {
+      j5ReadWorkflowValues();
+      stage.querySelectorAll('input, select').forEach((input) => {
+        ['input', 'change'].forEach((eventName) => input.addEventListener(eventName, () => { j5ReadWorkflowValues(); j5SyncValidation(); }));
+      });
+    }
+    j5SyncValidation();
     if (op.stage === 'setup' && op.action === 'Remove') {
       $('#j5-remove-item')?.addEventListener('change', (event) => { op.selectedItem = event.target.value; j5RenderWorkflow(); });
       $('#j5-remove-reference')?.addEventListener('input', (event) => { op.typed = event.target.value.trim(); const confirm = $('[data-j5-command="remove-confirm"]'); if (confirm) confirm.disabled = event.target.value.trim() !== j5SelectedRemoveFixture().id; });
@@ -1588,15 +1595,39 @@ const k1Focus = (() => {
     workflowFocusRestore(focusBefore);   // A11Y-INH-02 (rule R2)
   }
 
+  function j5DraftValue(key, fallback) { return escapeHtml(j5Operation[key] === undefined ? fallback : j5Operation[key]); }
+  function j5ValidationMessage() {
+    const op = j5Operation; if (!op) return '';
+    const dateOk = (value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value)) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
+    const timeOk = (value) => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(value));
+    if (['Copy', 'Edit', 'Batch'].includes(op.action) && !dateOk(op.date)) return 'Enter a valid scheduled date.';
+    if (['Edit', 'Batch'].includes(op.action) && !timeOk(op.time)) return 'Enter a valid scheduled time.';
+    if (['Edit', 'Move'].includes(op.action) && !(Number.isInteger(Number(op.covers)) && Number(op.covers) >= 1 && Number(op.covers) <= 80)) return 'Enter a whole number of covers between 1 and 80.';
+    if (op.action === 'Batch' && !(op.items || []).length) return 'Select at least one private booking item to preview or confirm the batch.';
+    return '';
+  }
+  function j5SyncValidation() {
+    const op = j5Operation; if (!op || !['setup', 'preview'].includes(op.stage) || op.result || op.permissionChanged) return;
+    const message = j5ValidationMessage();
+    let error = $('#f1-j5-validation');
+    if (message) {
+      if (!error) { $('#j5-workflow-stage').insertAdjacentHTML('beforeend', '<div id="f1-j5-validation" class="j5-error-card" role="alert"></div>'); error = $('#f1-j5-validation'); }
+      error.textContent = message;
+    } else error?.remove();
+    const commands = { Copy: ['copy-preview', 'copy-confirm'], Edit: ['update-preview', 'update-confirm'], Move: ['move-preview'], Batch: ['batch-preview', 'batch-confirm'] }[op.action] || [];
+    commands.forEach((command) => { const button = $(`[data-j5-command="${command}"]`); if (button) button.disabled = !!message || (['Copy', 'Edit'].includes(op.action) && op.stale); });
+  }
   function j5ReadWorkflowValues() {
     const op = j5Operation; if (!op) return;
-    if (op.action === 'Copy') { op.date = $('#j5-copy-date')?.value; op.retainCustomer = $('#j5-copy-customer')?.checked; op.retainPrices = $('#j5-copy-prices')?.checked; }
-    if (op.action === 'Edit') { op.date = $('#j5-edit-date')?.value; op.time = $('#j5-edit-time')?.value; op.covers = $('#j5-edit-covers')?.value; op.item = $('#j5-edit-item')?.selectedOptions?.[0]?.textContent; }
-    if (op.action === 'Move') { op.selectedItem = $('#j5-move-item')?.value || op.selectedItem; op.item = $('#j5-move-item')?.selectedOptions?.[0]?.textContent; op.selectedTarget = $('#j5-move-target')?.value || op.selectedTarget; op.covers = $('#j5-move-covers')?.value; }
-    if (op.action === 'Batch') { op.items = Array.from($$('[data-j5-batch-item]:checked')).map(input => input.value); op.selectedTarget = $('#j5-batch-target')?.value || 'Studio 4'; op.date = $('#j5-batch-date')?.value; op.time = $('#j5-batch-time')?.value; }
+    if (op.action === 'Copy' && $('#j5-copy-date')) { op.date = $('#j5-copy-date')?.value; op.retainCustomer = $('#j5-copy-customer')?.checked; op.retainPrices = $('#j5-copy-prices')?.checked; }
+    if (op.action === 'Edit' && $('#j5-edit-date')) { op.date = $('#j5-edit-date')?.value; op.time = $('#j5-edit-time')?.value; op.covers = $('#j5-edit-covers')?.value; op.selectedItem = $('#j5-edit-item')?.value || op.selectedItem; op.item = $('#j5-edit-item')?.selectedOptions?.[0]?.textContent; }
+    if (op.action === 'Move' && $('#j5-move-covers')) { op.selectedItem = $('#j5-move-item')?.value || op.selectedItem; op.item = $('#j5-move-item')?.selectedOptions?.[0]?.textContent; op.selectedTarget = $('#j5-move-target')?.value || op.selectedTarget; op.covers = $('#j5-move-covers')?.value; }
+    if (op.action === 'Batch' && $('#j5-batch-date')) { op.items = Array.from($$('[data-j5-batch-item]:checked')).map(input => input.value); op.selectedTarget = $('#j5-batch-target')?.value || 'Studio 4'; op.date = $('#j5-batch-date')?.value; op.time = $('#j5-batch-time')?.value; }
   }
   function j5CommitResult(action) {
-    const op = j5Operation; if (!op || op.commandToken) return; op.commandToken = `J5-LOCAL-${++j5CommandSerial}`;
+    const op = j5Operation; if (!op || op.commandToken) return;
+    if (['Copy', 'Edit', 'Move', 'Batch'].includes(action) && j5ValidationMessage()) { op.stage = 'setup'; j5RenderWorkflow(); return; }
+    op.commandToken = `J5-LOCAL-${++j5CommandSerial}`;
     if (action === 'Remove') { const item = j5SelectedRemoveFixture(); J5_BOOKING_FIXTURE.items = J5_BOOKING_FIXTURE.items.filter(i => i.id !== item.id); op.result = { title: 'Private booking item removed locally', copy: `${item.name} was removed from the in-memory candidate. The Booking shell remains.`, mutated: true }; }
     else if (action === 'Move') { const item = J5_BOOKING_FIXTURE.items.find(i => i.id === op.selectedItem); if (item) item.target = op.selectedTarget; op.result = { title: 'Private item moved locally', copy: `${op.item || 'Selected item'} now previews at ${op.selectedTarget}.`, mutated: true }; }
     else if (action === 'Batch') { const partial = op.selectedTarget === 'Studio 7'; op.result = { title: partial ? 'Partial batch result shown locally' : 'Complete batch result shown locally', copy: `${(op.items || []).length} selected private item(s) are accounted for at ${op.selectedTarget} on ${op.date || '2026-09-04'} at ${op.time || '09:00'}; ${partial ? 'one conflict remains retryable.' : 'all selected items are eligible in this fixture.'}`, mutated: true, partial }; }
@@ -1607,6 +1638,10 @@ const k1Focus = (() => {
   function j5HandleWorkflowCommand(event) {
     if (j6PublicRescheduleWorkflowActive()) return j6HandleWorkflowCommand(event);
     const command = event.target.closest('[data-j5-command]')?.dataset.j5Command; if (!command || !j5Operation) return; const op = j5Operation; if (op.stage === 'setup') j5ReadWorkflowValues();
+    if (['copy-preview', 'copy-confirm', 'update-preview', 'update-confirm', 'move-preview', 'move-confirm', 'batch-preview', 'batch-confirm'].includes(command) && j5ValidationMessage()) {
+      if (op.stage === 'setup') { j5SyncValidation(); return; }
+      op.stage = 'setup'; j5RenderWorkflow(); return;
+    }
     if (command === 'permission-change' && op.stage === 'preview' && !op.result) { op.permissionChanged = true; return j5RenderWorkflow(); }
     if (command === 'permission-refresh' && op.permissionChanged) { op.permissionChanged = false; return j5RenderWorkflow(); }
     if (command === 'workflow-cancel' || command === 'workflow-done') return j5ReturnFromWorkflow();
@@ -1631,7 +1666,7 @@ const k1Focus = (() => {
     if (command === 'move-confirm') { const target = J5_TARGETS.find(t => t.value === op.selectedTarget); const covers = Number(op.covers || J5_BASE_BOOKING.covers); if (target?.state === 'eligible' && covers <= target.capacity) return j5CommitResult('Move'); }
     if (command === 'batch-preview') { j5ReadWorkflowValues(); op.stage = 'preview'; return j5RenderWorkflow(); }
     if (command === 'batch-retry') { op.result = null; op.commandToken = null; op.stage = 'setup'; return j5RenderWorkflow(); }
-    if (command === 'batch-rollback') { op.result = null; op.commandToken = null; op.stage = 'setup'; op.selectedTarget = 'Studio 4'; return j5RenderWorkflow(); }
+    if (command === 'batch-rollback') { op.result = null; op.commandToken = null; op.stage = 'setup'; op.date = undefined; op.time = undefined; op.items = undefined; op.selectedTarget = 'Studio 4'; return j5RenderWorkflow(); }
     if (command === 'batch-confirm') { if ((op.items || []).length) return j5CommitResult('Batch'); }
   }
   function j5SetupEvents() {
@@ -1640,7 +1675,7 @@ const k1Focus = (() => {
     if (isJ5Journey()) $$('.j5-action[data-j5-action]').forEach((button) => button.addEventListener('click', (event) => j5OpenWorkflow(event.currentTarget.dataset.j5Action, event.currentTarget)));
     if (isJ6Journey()) $$('[data-j6-action]').forEach((button) => button.addEventListener('click', (event) => j5OpenWorkflow(event.currentTarget.dataset.j6Action, event.currentTarget)));
     if (isJ6Journey()) $$('[data-j6-permission]').forEach((button) => button.addEventListener('click', (event) => { j5ReviewState = event.currentTarget.dataset.j6Permission === 'denied' ? 'denied' : 'loaded'; announceLive(j5ReviewState === 'denied' ? 'Permission denied before action entry.' : 'Permission fixture restored to ready.'); }));
-    document.addEventListener('click', (event) => { if (event.target.closest('#j5-workflow-footer [data-j5-command]')) j5HandleWorkflowCommand(event); }); $('#j5-workflow-close')?.addEventListener('click', j5ReturnFromWorkflow); $('#j5-workflow-dialog')?.addEventListener('cancel', (event) => { event.preventDefault(); j5ReturnFromWorkflow(); }); $('#j5-workflow-dialog')?.addEventListener('close', () => { if (j5WorkflowTrigger && !j5WorkflowReturning) j5ReturnFromWorkflow(); }); $('#j4-details-dialog').addEventListener('close', (event) => { if (event?.returnValue !== 'workflow') j5RestorePlaybackControls(); });
+    document.addEventListener('click', (event) => { if (event.target.closest('#j5-workflow-footer [data-j5-command]') || (document.body.dataset.journey === '12' && event.target.closest('#j12tc-evidence [data-j5-command]'))) j5HandleWorkflowCommand(event); }); $('#j5-workflow-close')?.addEventListener('click', j5ReturnFromWorkflow); $('#j5-workflow-dialog')?.addEventListener('cancel', (event) => { event.preventDefault(); j5ReturnFromWorkflow(); }); $('#j5-workflow-dialog')?.addEventListener('close', () => { if (j5WorkflowTrigger && !j5WorkflowReturning) j5ReturnFromWorkflow(); }); $('#j4-details-dialog').addEventListener('close', (event) => { if (event?.returnValue !== 'workflow') j5RestorePlaybackControls(); });
   }
   function j5ResetBootState() {
     j4ResetBootState(); j4ActiveFixtureId = 'private'; J5_BOOKING_FIXTURE = j5CloneBooking(); const overviewTitle = $('#j4-overview-title'); const overviewCopy = $('#j4-overview p'); const caption = $('.calendar-caption');
@@ -1674,12 +1709,29 @@ const k1Focus = (() => {
     return `${(Math.max(0, mins(end) - mins(start)) / 60).toFixed(2)} HRS`;
   }
   function j6Button(command, text, cls = 'btn-secondary', disabled = false) { return j5Button(command, text, cls, disabled); }
+  function j6ValidationMessage() {
+    const op = j5Operation; if (!op) return '';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(op.date) || Number.isNaN(Date.parse(op.date))) return 'Enter a valid scheduled date.';
+    const rows = op.timeMode === 'different' ? op.itemTimes : [op];
+    const validTime = (v) => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(v));
+    if (rows.some((row) => !validTime(row.start) || !validTime(row.end))) return 'Enter a valid start and end time.';
+    if (rows.some((row) => row.end <= row.start)) return 'End time must be after the start time on this date.';
+    return '';
+  }
+  function j6SyncValidation() {
+    const message = j6ValidationMessage(); let error = $('#f1-j6-validation');
+    if (message) {
+      if (!error) { $('#j5-workflow-stage').insertAdjacentHTML('beforeend', '<div id="f1-j6-validation" class="j5-error-card" role="alert"></div>'); error = $('#f1-j6-validation'); }
+      error.textContent = message;
+    } else error?.remove();
+    ['j6-check', 'j6-confirm', 'j6-proposed-preview'].forEach((command) => { const button = $(`[data-j5-command="${command}"]`); if (button) button.disabled = !!message || j5Operation.selection === 'heterogeneous' || (command === 'j6-confirm' && (j5Operation.stale || !j5Operation.changed)); });
+  }
   function j6ReadValues() {
     const op = j5Operation; if (!op) return;
     const date = $('#j6-date')?.value;
-    if (date) op.date = date;
+    if (date !== undefined) op.date = date;
     if (op.timeMode === 'different') {
-      const rows = ['a', 'b'].map((id) => ({ id, start: $(`#j6-start-${id}`)?.value || op.itemTimes?.find((x) => x.id === id)?.start || op.start, end: $(`#j6-end-${id}`)?.value || op.itemTimes?.find((x) => x.id === id)?.end || op.end }));
+      const rows = ['a', 'b'].map((id) => ({ id, start: $(`#j6-start-${id}`)?.value ?? op.itemTimes?.find((x) => x.id === id)?.start ?? op.start, end: $(`#j6-end-${id}`)?.value ?? op.itemTimes?.find((x) => x.id === id)?.end ?? op.end }));
       op.itemTimes = rows;
       op.start = rows[0].start; op.end = rows[0].end;
       op.duration = rows.map((row) => `${row.id.toUpperCase()}: ${j6Duration(row.start, row.end)}`).join(' · ');
@@ -1687,7 +1739,7 @@ const k1Focus = (() => {
       return;
     }
     const start = $('#j6-start')?.value, end = $('#j6-end')?.value;
-    if (start) op.start = start; if (end) op.end = end;
+    if (start !== undefined) op.start = start; if (end !== undefined) op.end = end;
     op.duration = op.selection === 'heterogeneous' ? '0.00 HRS' : j6Duration(op.start, op.end);
     op.changed = op.date !== op.baseline.date || op.start !== op.baseline.start || op.end !== op.baseline.end;
   }
@@ -1731,6 +1783,18 @@ const k1Focus = (() => {
       : `<div class="j5-form-grid"><label>Start<input id="j6-start" type="time" value="${op.start}"></label><label>End<input id="j6-end" type="time" value="${op.end}"></label><label class="j6-field-readonly">Duration (derived)<input id="j6-duration" type="text" value="${op.duration}" readonly aria-readonly="true"></label></div>`;
     return `<div class="j6-stage-card ${stageModifier}"><span class="j6-workflow-label">${op.evidenceClass}</span><h3>${heading}</h3><div class="j5-form-grid"><label>Date<input id="j6-date" type="date" value="${op.date}"></label><label>Time mode<select id="j6-time-mode"><option value="common"${op.timeMode === 'common' ? ' selected' : ''}>Common time</option><option value="different"${op.timeMode === 'different' ? ' selected' : ''}>Different times</option></select></label></div>${timeFields}<p class="j5-inline-note">Before / after preview only. Duration is derived and not independently editable. No pricing, persistence, transaction or concurrency outcome is claimed.</p>${extra}${op.changed ? '' : '<p class="j6-resource-state">Unchanged interval: submit is an exact no-op. The dialog remains open and no result or token is created.</p>'}</div>`;
   }
+  // J12 I-2 B: preserve the original five notes and command buttons, not proxies.
+  function j12CompactRescheduleSetup(html) {
+    const template = document.createElement('template'); template.innerHTML = html;
+    const notes = ['.j6-public-banner', '.j5-inline-note', '.j6-entry-note', '.j6-defect-note', '.j6-resource-state'].map((selector) => template.content.querySelector(selector)).filter(Boolean);
+    const details = document.createElement('details'); details.id = 'j12tc-evidence'; details.className = 'j12tc-evidence'; details.setAttribute('data-d0-hide', '');
+    const summary = document.createElement('summary'); summary.textContent = `Review evidence, boundaries and known defect (${notes.length} notes)`; summary.setAttribute('aria-label', summary.textContent);
+    const content = document.createElement('div'); content.className = 'j12tc-evidence-content'; notes.forEach((note) => content.append(note));
+    const label = document.createElement('p'); label.className = 'j12tc-review-label'; label.textContent = 'Review-only controls'; content.append(label);
+    const controls = document.createElement('div'); controls.className = 'j12tc-review-controls'; controls.innerHTML = j6Button('j6-loading', 'Show availability loading') + j6Button('j6-noop-submit', 'Submit unchanged time'); content.append(controls);
+    const boundary = document.createElement('p'); boundary.className = 'j5-workflow-description j12tc-boundary'; boundary.setAttribute('data-d0-hide', ''); boundary.textContent = 'Local review only — nothing is saved; reload resets it.';
+    template.content.prepend(boundary); details.append(summary, content); template.content.append(details); return template.innerHTML;
+  }
   function j6RenderWorkflow() {
     const op = j5Operation, stage = $('#j5-workflow-stage'), footer = $('#j5-workflow-footer'), title = $('#j5-workflow-title'), description = $('#j5-workflow-description'), announcement = $('#j5-workflow-announcement');
     if (!op || !stage || !footer || !title || !description || !announcement) return;
@@ -1760,20 +1824,23 @@ const k1Focus = (() => {
       else if (op.stage === 'availability') { html = j6ResultCard('Availability available for review', 'Availability completed in the local fixture. The next Booking preview is deliberately blocked at the observed HTTP 400 defect boundary.', 'j6-safety') + `<p class="j6-defect-note">${J6_DEFECT_COPY}</p>`; buttons = j6Button('j6-check', 'Continue to preview blocker', 'btn-primary') + j6Button('j6-conflict', 'Show conflict') + j6Button('j6-error', 'Show error') + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
       else { html = j6ResultCard('Preview blocked — HTTP 400 evidence', 'Availability completed in the local fixture, but Booking preview is BLOCKED/DEFECT-AFFECTED. Commit is never enabled and no Booking PATCH success is simulated.', 'j6-blocked') + `<p class="j6-defect-note">${J6_DEFECT_COPY}</p>`; buttons = j6Button('workflow-cancel', 'Cancel without loss'); }
     } else if (op.action === 'PublicReschedule') {
-      if (op.stage === 'setup') { html = `<div class="j6-public-banner">${J6_PUBLIC_BANNER}</div>` + j6RenderTimeForm(op, 'Public timeslot change', `<p class="j6-entry-note">${J6_ENTRY_COPY}</p><p class="j6-defect-note">${J6_DEFECT_COPY}</p>`); buttons = j6Button('j6-loading', 'Show availability loading') + j6Button('j6-check', 'Check availability', 'btn-primary') + j6Button('j6-noop-submit', 'Submit unchanged time') + j6Button('workflow-cancel', 'Cancel'); }
+      if (op.stage === 'setup') { html = `<div class="j6-public-banner">${J6_PUBLIC_BANNER}</div>` + j6RenderTimeForm(op, 'Public timeslot change', `<p class="j6-entry-note">${J6_ENTRY_COPY}</p><p class="j6-defect-note">${J6_DEFECT_COPY}</p>`); buttons = j6Button('j6-loading', 'Show availability loading') + j6Button('j6-check', 'Check availability', 'btn-primary') + j6Button('j6-noop-submit', 'Submit unchanged time') + j6Button('workflow-cancel', 'Cancel'); if (document.body.dataset.journey === '12') { html = j12CompactRescheduleSetup(html); buttons = j6Button('j6-check', 'Check availability', 'btn-primary') + j6Button('workflow-cancel', 'Cancel'); } }
       else if (op.stage === 'availability') { html = `<div class="j6-public-banner">${J6_PUBLIC_BANNER}</div><div class="j6-stage-card ${op.availability === 'error' ? 'j6-blocked' : 'j6-safety'}"><span class="j6-workflow-label">${op.availability.toUpperCase()}</span><h3>Availability review</h3><p>${op.availability === 'loading' ? 'Availability is loading. No duplicate request is reproduced.' : op.availability === 'error' ? 'The local availability fixture returned an error. Retry without reproducing duplicate work.' : op.availability === 'conflict' ? 'Conflict / unavailable fixture. No override or capacity claim is made.' : 'Availability is ready for a non-writing before/after preview.'}</p><p class="j6-defect-note">${J6_DEFECT_COPY}</p></div>`; buttons = j6Button('j6-check', 'Retry availability', 'btn-primary') + j6Button('j6-conflict', 'Show conflict') + j6Button('j6-error', 'Show error') + j6Button('j6-stale', 'Show stale target') + j6Button('j6-permission-change', 'Permission changed') + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
       else { html = `<div class="j6-public-banner">${J6_PUBLIC_BANNER}</div><div class="j6-stage-card j6-safety"><span class="j6-workflow-label">RUNTIME-CONFIRMED · LOCAL ONLY</span><h3>Before / after preview</h3><div class="j6-indivisible"><strong>${op.baseline.date} · ${op.baseline.start}–${op.baseline.end}</strong><span>before</span></div><div class="j6-indivisible"><strong>${op.date} · ${op.start}–${op.end}</strong><span>proposed · ${op.duration}</span></div><p>No server request is sent. Confirmation is guarded by stale and permission checks.</p></div>`; buttons = j6Button('j6-confirm', 'Confirm one local change', 'btn-primary', op.stale || !op.changed) + j6Button('j6-stale', 'Show stale target') + j6Button('j6-permission-change', 'Permission changed') + j6Button('j6-refresh', 'Refresh target', 'btn-secondary', !op.stale) + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
     }
+    if (document.body.dataset.journey === '12' && op.action === 'PublicReschedule') html = '<div class="j12tc-reschedule' + (op.stage === 'setup' ? ' j12tc-setup' : '') + '">' + html + '</div>';
     stage.innerHTML = html; footer.innerHTML = buttons;
+    j6SyncValidation();
     if ($('#j6-duration')) $('#j6-duration').value = op.duration;
     $('#j6-time-mode')?.addEventListener('change', (event) => { op.timeMode = event.target.value; j6ReadValues(); return j6RenderWorkflow(); });
-    ['#j6-date', '#j6-start', '#j6-end', '#j6-start-a', '#j6-end-a', '#j6-start-b', '#j6-end-b'].forEach((selector) => $(selector)?.addEventListener('input', () => { j6ReadValues(); if ($('#j6-duration')) $('#j6-duration').value = op.duration; if ($('#j6-duration-a')) $('#j6-duration-a').value = j6Duration(op.itemTimes[0].start, op.itemTimes[0].end); if ($('#j6-duration-b')) $('#j6-duration-b').value = j6Duration(op.itemTimes[1].start, op.itemTimes[1].end); }));
+    ['#j6-date', '#j6-start', '#j6-end', '#j6-start-a', '#j6-end-a', '#j6-start-b', '#j6-end-b'].forEach((selector) => $(selector)?.addEventListener('input', () => { j6ReadValues(); j6SyncValidation(); if ($('#j6-duration')) $('#j6-duration').value = op.duration; if ($('#j6-duration-a')) $('#j6-duration-a').value = j6Duration(op.itemTimes[0].start, op.itemTimes[0].end); if ($('#j6-duration-b')) $('#j6-duration-b').value = j6Duration(op.itemTimes[1].start, op.itemTimes[1].end); }));
     $('#j6-resource-query')?.addEventListener('input', (event) => { op.resource.query = event.target.value; });
     workflowFocusRestore(focusBefore);   // A11Y-INH-02 (rule R2)
   }
   function j6CommitResult(kind) {
     const op = j5Operation; if (!op || op.commandToken || op.localResultCount >= 2) return;
     if (!j6PermissionAllowed()) { op.permissionChanged = true; return j6RenderWorkflow(); }
+    if (kind === 'change' && j6ValidationMessage()) { op.stage = 'setup'; return j6RenderWorkflow(); }
     op.commandToken = `J6-LOCAL-${++j5CommandSerial}`; op.localResultCount += 1;
     if (kind === 'change') { j6PublicInterval = { start: op.start, end: op.end }; op.result = { kind: 'change', title: 'Public timeslot changed locally', copy: `One local review update changed ${op.baseline.start}–${op.baseline.end} to ${op.start}–${op.end}. ${J6_RESULT_SUFFIX}` }; renderCalendar(); }
     else { j6PublicInterval = { start: op.baseline.start, end: op.baseline.end }; op.restored = true; op.result = { kind: 'restore', title: 'Public timeslot restored locally', copy: `The local review fixture returned to ${op.baseline.start}–${op.baseline.end}. ${J6_RESULT_SUFFIX}` }; renderCalendar(); }
@@ -1785,6 +1852,10 @@ const k1Focus = (() => {
     if (command === 'workflow-cancel' || command === 'workflow-done') return j5ReturnFromWorkflow();
     if (command === 'permission-change' || command === 'j6-permission-change') { op.permissionChanged = true; return j6RenderWorkflow(); }
     if (command === 'permission-refresh') { op.permissionChanged = false; return j6RenderWorkflow(); }
+    if (['j6-noop-submit', 'j6-loading', 'j6-check', 'j6-confirm', 'j6-proposed-preview'].includes(command)) {
+      j6ReadValues();
+      if (j6ValidationMessage()) { op.stage = 'setup'; j6RenderWorkflow(); return; }
+    }
     if (command === 'j6-noop-submit') { j6ReadValues(); if (!op.changed) { const a = $('#j5-workflow-announcement'); if (a) a.textContent = `Unchanged time submitted — no transition or result. ${J6_RESULT_SUFFIX}`; announceLive('Unchanged time submitted; no local result was created and the dialog remains open.'); } return; }
     if (command === 'j6-loading') { op.availability = 'loading'; op.stage = 'availability'; return j6RenderWorkflow(); }
     if (command === 'j6-check') { j6ReadValues(); if (!op.changed && op.availability !== 'loading') { const a = $('#j5-workflow-announcement'); if (a) a.textContent = `Unchanged time submitted — no transition or result. ${J6_RESULT_SUFFIX}`; announceLive('Unchanged time submitted; no local result was created.'); return; } if (op.availability === 'loading') { op.availability = 'available'; op.stage = 'availability'; return j6RenderWorkflow(); } if (op.action === 'BookingReschedule' && op.stage === 'availability') { op.availability = 'available'; op.stage = 'blocked'; return j6RenderWorkflow(); } op.availability = 'available'; op.stage = op.action === 'BookingReschedule' ? 'availability' : 'preview'; return j6RenderWorkflow(); }
@@ -3731,7 +3802,12 @@ const k1Focus = (() => {
 
   let pickerType = null;
   let pickerOpen = false;
+  let morePickerReturn = null;   // KA1 (22 Oct 2026, L-08): a list opened from the Cart item editor's More panel — the editor comes back afterwards
   let pickerSuppressFocusOpen = false;
+  // A11Y-INH-05 (17 Oct 2026): was the latest interaction a pointer (mouse/touch) or the keyboard? Only a pointer focus opens the item list.
+  let pickerPointerFocus = false;
+  document.addEventListener('pointerdown', () => { pickerPointerFocus = true; }, true);
+  document.addEventListener('keydown', () => { pickerPointerFocus = false; }, true);
   let pickerQuery = '';
   let pickerActive = 0;
   let pickerPrev = '';
@@ -4454,6 +4530,15 @@ const k1Focus = (() => {
     else picker.setAttribute('style', pickerStyleBeforeOpen);
     pickerParentBeforeOpen = null;
     pickerStyleBeforeOpen = null;
+    if (morePickerReturn) {   // KA1 (L-08): back to the Cart item editor's More panel (the line as it is now), focus on the field's button
+      const back = morePickerReturn; morePickerReturn = null;
+      if (opts?.reopenParent !== false && refocus && cartItemEditor && getCartItemEditorDialog()) {
+        renderMoreEditorPanel(back.lineId);
+        reopenCartItemEditor('more');
+        $(`#cie-panel-more-content [data-inline-picker][data-field="${back.field}"]`)?.focus();
+        return;
+      }
+    }
     if (context === 'package-editor' && restore && packageEditor) {
       renderPackageEditor();
       if (opts?.reopenParent !== false) {
@@ -4565,7 +4650,14 @@ const k1Focus = (() => {
     else if (e.key === 'End') { e.preventDefault(); pickerActive = Math.max(0, n - 1); renderPicker(); scrollPickerActive(); }
     else if (e.key === 'Enter') { e.preventDefault(); if (n) commitPicker(pickerActive); }
     else if (e.key === 'Escape') { e.preventDefault(); closePicker({ restore: true, refocus: true }); }
-    else if (e.key === 'Tab') { closePicker({ restore: false, refocus: false }); }
+    else if (e.key === 'Tab') {
+      // A11Y-INH-05: a list opened from the staged selection's own field returns focus to that field first, so Tab / Shift+Tab continue
+      // from it instead of leaving the page; lists opened elsewhere (package editor, Cart lines) behave as before.
+      // KA1 (22 Oct 2026, L-08): a list opened from a Cart line's editor (the editor closed for it) closes like Escape — the editor comes back with
+      // focus on its button; before, Tab dropped focus out of the page and the editor did not come back. Every other list's Tab is unchanged.
+      if (morePickerReturn || (pickerContext === 'package-editor' && !cartItemEditorTargetsStagedSelection())) { e.preventDefault(); closePicker({ restore: true, refocus: true }); return; }
+      closePicker({ restore: false, refocus: !pickerContext && !pickerHost });
+    }
     else if (!fromFilter && (e.key.length === 1 || e.key === 'Backspace')) {
       const inp = getPickerInputEl(type);
       if (!inp) return;
@@ -4722,10 +4814,20 @@ const k1Focus = (() => {
       if (!inp) return;
       inp.addEventListener('focus', () => {
         if (pickerSuppressFocusOpen) return;
+        // A11Y-INH-05: a keyboard focus (Tab) no longer opens the list, so Tab moves on to the next field; mouse and touch open it as before.
+        if (!pickerPointerFocus) return;
         if (!pickerOpen || pickerType !== type) openPicker(type);
       });
       inp.addEventListener('click', () => openPickerFromFocusedSource(type));
-      inp.addEventListener('keydown', (e) => handlePickerKeys(e, false));
+      inp.addEventListener('keydown', (e) => {
+        // A11Y-INH-05: with the list closed, Arrow Down, Enter or typing opens it (the combobox keys); everything else is unchanged.
+        if (!pickerOpen && !e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'ArrowDown' || e.key === 'Enter' || e.key.length === 1)) {
+          if (e.key === 'ArrowDown' || e.key === 'Enter') e.preventDefault();
+          openPicker(type);
+          return;
+        }
+        handlePickerKeys(e, false);
+      });
       const chev = inp.closest('.combobox')?.querySelector('.combo-chev');
       if (chev) chev.addEventListener('click', () => openPicker(type));
     });
@@ -5311,6 +5413,8 @@ const k1Focus = (() => {
     return ev && (ev.type === 'confirmed' || ev.type === 'quotation' || ev.type === 'block');
   }
 
+  // F1: one booking outcome owns all allocated Cart items; legacy readers retain its first-item projection.
+  function createdBookingItems() { return draft.created ? (draft.created.items || [draft.created]) : []; }
   function isSlotOccupied(assetId, dk, slot) {
     const ev = getEventAtSlot(assetId, dk, slot);
     if (ev) return true;
@@ -5327,8 +5431,7 @@ const k1Focus = (() => {
         if (slot >= range.startSlot && slot < range.endSlot) return true;
       }
     }
-    if (draft.created) {
-      const c = draft.created;
+    for (const c of createdBookingItems()) {
       if (c.asset === assetId && j1SelectionIncludesDate(c, dk)) {
         const range = slotRangeForSelection(c);
         if (slot >= range.startSlot && slot < range.endSlot) return true;
@@ -5350,7 +5453,7 @@ const k1Focus = (() => {
         if (!FREE_SLOTS.some((entry) => entry.asset === assetId && entry.date === dk && hour >= entry.start && hour < entry.end)) return false;
         if (getEventAtSlot(assetId, dk, slot)) return false;
         if (cartLines.some((line) => line.id !== editingLineId && line.asset === assetId && j1SelectionIncludesDate(line, dk) && slot >= slotRangeForSelection(line).startSlot && slot < slotRangeForSelection(line).endSlot)) return false;
-        if (draft.created && draft.created.asset === assetId && j1SelectionIncludesDate(draft.created, dk) && slot >= slotRangeForSelection(draft.created).startSlot && slot < slotRangeForSelection(draft.created).endSlot) return false;
+        if (createdBookingItems().some((c) => c.asset === assetId && j1SelectionIncludesDate(c, dk) && slot >= slotRangeForSelection(c).startSlot && slot < slotRangeForSelection(c).endSlot)) return false;
       }
     }
     return true;
@@ -5390,11 +5493,11 @@ const k1Focus = (() => {
   }
 
   function isCreatedSlot(assetId, dk, slot) {
-    if (!draft.created) return false;
-    const c = draft.created;
-    if (c.asset !== assetId || !j1SelectionIncludesDate(c, dk)) return false;
-    const range = slotRangeForSelection(c);
-    return slot >= range.startSlot && slot < range.endSlot;
+    return createdBookingItems().some((c) => {
+      if (c.asset !== assetId || !j1SelectionIncludesDate(c, dk)) return false;
+      const range = slotRangeForSelection(c);
+      return slot >= range.startSlot && slot < range.endSlot;
+    });
   }
 
   function showToast(msg, duration) {
@@ -5766,6 +5869,26 @@ const k1Focus = (() => {
     }
     $('#cart-success').hidden = phase !== 'success';
     $('#cart-unavailable').hidden = phase !== 'unavailable';
+    const createdItems = createdBookingItems();
+    const successMessage = $('#cart-success .success-message');
+    const successQuiet = $('#cart-success .success-quiet');
+    if (successMessage) {
+      const copy = createdItems.length > 1
+        ? ` Booking is created with ${createdItems.length} items: ${createdItems.map((item) => `${ASSETS.find((asset) => asset.id === item.asset)?.name || item.asset} · ${formatShortDate(new Date(item.date + 'T00:00:00'))} · ${formatSelectionTime(item.startH, item.startM)}–${formatSelectionTime(item.endH, item.endM)}`).join('; ')}.`
+        : ' Booking is created.';
+      const icon = successMessage.querySelector('.status-icon');
+      if (icon) { while (icon.nextSibling) icon.nextSibling.remove(); icon.after(document.createTextNode(copy)); }
+    }
+    if (successQuiet) {
+      successQuiet.textContent = 'Local prototype fixture — nothing was saved to a server.';
+      let accounting = $('#f1-success-accounting');
+      if (createdItems.length > 1) {
+        if (!accounting) { accounting = document.createElement('p'); accounting.id = 'f1-success-accounting'; accounting.className = 'success-quiet'; successQuiet.after(accounting); }
+        accounting.textContent = draft.created.pendingCount
+          ? `Priced subtotal AU$ ${draft.created.pricedSubtotal.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · ${draft.created.pendingCount} price(s) pending; no combined total is claimed.`
+          : `Priced total AU$ ${draft.created.total.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`;
+      } else accounting?.remove();
+    }
 
     const confirmBtn = $('#confirm-booking-btn');
     const helper = $('#confirm-helper');
@@ -6711,6 +6834,11 @@ const k1Focus = (() => {
     });
     host.querySelectorAll('[data-inline-picker]').forEach((btn) => {
       btn.addEventListener('click', () => {
+        // KA1 (22 Oct 2026, L-08): the Cart item editor is a modal dialog, so a list opened outside it was inert and behind it — the item could not
+        // be changed by mouse, touch or keyboard. As the Package picker already does (#package-picker-btn), close the editor first, open the list,
+        // and reopen the editor on More afterwards, with focus back on this button (closePicker).
+        const editor = getCartItemEditorDialog();
+        if (editor && editor.open && !cartItemEditorTargetsStagedSelection()) { morePickerReturn = { lineId, field: btn.dataset.field }; editor.close(); }
         openPicker(btn.dataset.field, { host: cartLines.find((l) => l.id === lineId), field: btn.dataset.field });
       });
     });
@@ -7426,11 +7554,13 @@ const k1Focus = (() => {
       return;
     }
     if (!cartLines.length || stagedSelection || editingLineId) return;
-    const line = cartLines[0];
-    draft.created = {
-      id: 'BK-LOCAL-001',
-      ...line
-    };
+    // Build the complete outcome before publishing it or clearing any staged line. No new pricing formula.
+    const items = cartLines.map((line, index) => ({ ...JSON.parse(JSON.stringify(line)), bookingItemId: `BK-LOCAL-001-ITEM-${index + 1}` }));
+    const accounting = projectCartRuntime(items);
+    const outcome = { ...items[0], reference: 'BK-LOCAL-001', items,
+      total: accounting.pendingCount ? null : accounting.total, pricedSubtotal: accounting.total, pendingCount: accounting.pendingCount };
+    if (outcome.items.length !== cartLines.length) return;
+    draft.created = outcome;
     cartLines = [];
     selectedLineIds.clear();
     stagedSelection = null;
@@ -7630,10 +7760,11 @@ const k1Focus = (() => {
       items.push({ id: 'staged-selection', kind: 'staged', source: stagedSelection, startSlot: range.startSlot, endSlot: Math.min(slots, range.endSlot) });
     }
 
-    if (draft.created && draft.created.asset === assetId && j1SelectionIncludesDate(draft.created, dk)) {
-      const range = slotRangeForSelection(draft.created);
-      items.push({ id: 'created-booking', kind: 'created', source: draft.created, startSlot: range.startSlot, endSlot: Math.min(slots, range.endSlot) });
-    }
+    createdBookingItems().forEach((created, index) => {
+      if (created.asset !== assetId || !j1SelectionIncludesDate(created, dk)) return;
+      const range = slotRangeForSelection(created);
+      items.push({ id: createdBookingItems().length === 1 ? 'created-booking' : `created-booking-${index + 1}`, kind: 'created', source: created, startSlot: range.startSlot, endSlot: Math.min(slots, range.endSlot) });
+    });
 
     let freeStart = null;
     for (let slot = 0; slot <= slots; slot++) {
@@ -7748,7 +7879,7 @@ const k1Focus = (() => {
       const state = item.kind === 'created' ? 'Created · Confirmed' : (item.kind === 'staged' ? 'Staged selection' : 'In Cart');
       const title = item.kind === 'created' ? 'BK-LOCAL-001' : getItemRecord(line.item || 'community-hall').label;
       card.className = `stack-card stack-booking ${item.kind === 'created' ? 'created-event' : item.kind === 'staged' ? 'staged' : 'in-cart'}`;
-      if (item.kind === 'created') card.id = 'created-event';
+      if (item.kind === 'created') card.id = createdBookingItems().length === 1 ? 'created-event' : `created-event-${line.bookingItemId}`;
       card.dataset.stackIndex = String(itemIndex);
       card.dataset.stackStart = String(item.startSlot);
       card.dataset.stackEnd = String(item.endSlot);
@@ -7935,11 +8066,11 @@ const k1Focus = (() => {
 
         if (isJ4Journey()) j4RenderCalendarBlocks(col, lane.id, dk, slotH);
 
-        if (draft.created && draft.created.asset === lane.id && draft.created.date === dk) {
-          const c = draft.created;
+        createdBookingItems().forEach((c) => {
+          if (c.asset !== lane.id || c.date !== dk) return;
           const evEl = document.createElement('div');
           evEl.className = 'cal-event created-event';
-          evEl.id = 'created-event';
+          evEl.id = createdBookingItems().length === 1 ? 'created-event' : `created-event-${c.bookingItemId}`;
           const top = timeToSlot(c.startH, c.startM || 0) * slotH;
           const height = (timeToSlot(c.endH, c.endM || 0) - timeToSlot(c.startH, c.startM || 0)) * slotH;
           evEl.style.top = `${top}px`;
@@ -7947,7 +8078,7 @@ const k1Focus = (() => {
           evEl.innerHTML = '<strong>BK-LOCAL-001</strong> <span class="event-status">Created — local fixture · Confirmed ✓</span>';
           evEl.setAttribute('aria-label', 'Created booking BK-LOCAL-001 — local fixture.');
           col.appendChild(evEl);
-        }
+        });
 
         renderColumnRangeLabel(col, lane.id, dk, slotH);
         body.appendChild(col);
@@ -8991,7 +9122,12 @@ const k1Focus = (() => {
       const operation = ++state.operation;
       dialogResult.className = 'j9-dialog-result';
       dialogResult.textContent = 'Checking local availability…';
-      if (document.body.dataset.journey === '9') k1Focus.move(dialogResult, '#j9-check');
+      if (document.body.dataset.journey === '9' && !k1Focus.move(dialogResult, '#j9-check') && (document.activeElement === checkButton || document.activeElement === document.body)) {
+        // A11Y-INH-01 mouse path (17 Oct 2026): the button is disabled during the check, so focus would fall to the page body. Keep it in the window,
+        // on the result, as the keyboard path does; focus moved by script after a pointer click shows no focus ring.
+        if (!dialogResult.hasAttribute('tabindex')) dialogResult.setAttribute('tabindex', '-1');
+        dialogResult.focus({ preventScroll: true });
+      }
       state.timer = window.setTimeout(() => {
         if (operation !== state.operation || !dialog.open) {
           if (operation === state.operation) {
@@ -9510,6 +9646,8 @@ const k1Focus = (() => {
   let j8Trigger = null;
   let j8PickerKind = null;
   let j8PickerTrigger = null;
+  let j8PickerReturnSelector = null;   // J8 "Choose a matching item" (Director, 16 Oct 2026): where focus returns when the item list closes
+  let j8PickerOpenAnnounced = false;   // KA2 (23 Oct 2026, L-02): the message says the item list is open — replaced when the list closes
   let j8PickerSuspendedWorkflow = false;
   let j8PickerBackgroundSnapshot = [];
   let j8PickerSemanticsSnapshot = null;
@@ -9741,19 +9879,25 @@ const k1Focus = (() => {
     dialog.showModal();
     window.setTimeout(() => $(focusSelector)?.focus(), 0);
   }
-  function j8ClosePicker(refocus) {
+  function j8ClosePicker(refocus, chosen) {   // KA2 (23 Oct 2026, L-02): chosen = the label of the item picked, if any
     const picker = $('#large-data-picker');
     const backdrop = $('#large-data-picker-backdrop');
     if (picker) { picker.hidden = true; picker.inert = true; picker.setAttribute('aria-hidden', 'true'); j8RestorePickerSemantics(picker); }
-    if (backdrop) { backdrop.hidden = true; backdrop.inert = true; backdrop.setAttribute('aria-hidden', 'true'); }
+    if (backdrop) { backdrop.hidden = true; backdrop.inert = true; backdrop.setAttribute('aria-hidden', 'true'); backdrop.classList.remove('open'); }
     j8RestorePickerBackground();
     const kind = j8PickerKind;
     const target = refocus || j8PickerTrigger;
-    const focusSelector = `[data-j8-open-picker="${kind}"]`;
+    const focusSelector = j8PickerReturnSelector || `[data-j8-open-picker="${kind}"]`;
+    j8PickerReturnSelector = null;
     const resumeWorkflow = j8PickerSuspendedWorkflow;
     j8PickerKind = null; j8PickerTrigger = null;
     if (resumeWorkflow) j8ResumeWorkflowAfterPicker(focusSelector);
     else target?.focus?.();
+    if (j8PickerOpenAnnounced) {   // KA2 (23 Oct 2026, L-02): "is open" is no longer true — say what happened
+      j8PickerOpenAnnounced = false;
+      const message = chosen ? `Item chosen: ${chosen}. Prior Journey 8 pricing values remain unchanged.` : 'Item list closed — no item chosen. Prior Journey 8 pricing values remain unchanged.';
+      window.setTimeout(() => j8Announce(message), 0);
+    }
   }
   function j8RenderPicker() {
     const list = $('#large-data-listbox');
@@ -9779,7 +9923,7 @@ const k1Focus = (() => {
     picker.setAttribute('aria-modal', 'true');
     picker.setAttribute('aria-label', `${kind === 'item' ? 'Item' : 'Private package'} picker · Journey 8 review fixture`);
     picker.hidden = false; picker.inert = false; picker.removeAttribute('aria-hidden');
-    backdrop.hidden = false; backdrop.inert = false; backdrop.removeAttribute('aria-hidden');
+    backdrop.hidden = false; backdrop.inert = false; backdrop.removeAttribute('aria-hidden'); backdrop.classList.add('open');
     $('#large-data-picker-meta').textContent = `${kind === 'item' ? 'Item' : 'Private package'} · REVIEW FIXTURE · local list only`;
     $('#large-data-filter').value = '';
     j8RenderPicker();
@@ -9791,6 +9935,15 @@ const k1Focus = (() => {
     j8State = 'pricing_setup';
     j8Announce('Mismatch dismissed. Prior Journey 8 pricing values remain unchanged; no package swap occurred.');
     $('#j8-configuration')?.focus();
+  }
+  function j8ChooseMatchingItem() {   // J8 "Choose a matching item" (Director, 16 Oct 2026): open the item list over the pricing step
+    const dialog = $('#mismatch-dialog');
+    if (dialog?.open) dialog.close();
+    j8State = 'pricing_setup';
+    j8Announce('Choose a matching item: the item list is open. Prior Journey 8 pricing values remain unchanged.');
+    j8PickerOpenAnnounced = true;
+    j8PickerReturnSelector = '#j8-configuration';
+    j8OpenPicker('item', $('#j8-configuration'));
   }
   function j8RenderCommon(title, eyebrow) {
     const workflowTitle = $('#j5-workflow-title');
@@ -9812,7 +9965,7 @@ const k1Focus = (() => {
       <h3 id="j8-pricing-heading">Change pricing</h3>
       <p class="j8-evidence">UNVERIFIED · pricing result unverified for this change flow.</p>
       <fieldset class="j8-fieldset"><legend>Price mode</legend><label><input type="radio" name="j8-price-mode" value="default" ${!custom ? 'checked' : ''}> Default</label><label><input type="radio" name="j8-price-mode" value="custom" ${custom ? 'checked' : ''}> Custom</label></fieldset>
-      <div class="j8-grid"><label>Configuration<select id="j8-configuration"><option value="theatre" ${op.configuration === 'theatre' ? 'selected' : ''}>Theatre</option><option value="mismatch">Incompatible configuration · test mismatch</option></select></label><label>Concession<select id="j8-concession"><option value="none" ${op.concession === 'none' ? 'selected' : ''}>None</option><option value="review" ${op.concession === 'review' ? 'selected' : ''}>Review fixture concession</option></select></label><label class="j8-custom-only" ${custom ? '' : 'hidden'}>Price type<select id="j8-price-type" ${custom ? '' : 'disabled'}><option value="daily" ${op.priceType === 'daily' ? 'selected' : ''}>Daily</option><option value="session">Session</option><option value="hourly">Hourly</option></select></label><label class="j8-custom-only" ${custom ? '' : 'hidden'}>Pricing unit<select id="j8-unit" ${custom ? '' : 'disabled'}><option value="day" ${op.unit === 'day' ? 'selected' : ''}>Day</option><option value="session">Session</option><option value="hour">Hour</option></select></label></div>
+      <div class="j8-grid"><label>Configuration<select id="j8-configuration"><option value="theatre" ${op.configuration === 'theatre' ? 'selected' : ''}>Theatre</option><option value="mismatch">Incompatible configuration · test mismatch</option></select></label><label>Concession<select id="j8-concession"><option value="none" ${op.concession === 'none' ? 'selected' : ''}>None</option><option value="review" ${op.concession === 'review' ? 'selected' : ''}>Review fixture concession</option></select></label><label class="j8-custom-only" ${custom ? '' : 'hidden'}>Price type<select id="j8-price-type" ${custom ? '' : 'disabled'}><option value="daily" ${op.priceType === 'daily' ? 'selected' : ''}>Daily</option><option value="session" ${op.priceType === 'session' ? 'selected' : ''}>Session</option><option value="hourly" ${op.priceType === 'hourly' ? 'selected' : ''}>Hourly</option></select></label><label class="j8-custom-only" ${custom ? '' : 'hidden'}>Pricing unit<select id="j8-unit" ${custom ? '' : 'disabled'}><option value="day" ${op.unit === 'day' ? 'selected' : ''}>Day</option><option value="session" ${op.unit === 'session' ? 'selected' : ''}>Session</option><option value="hour" ${op.unit === 'hour' ? 'selected' : ''}>Hour</option></select></label></div>
       <p class="j8-total-unavailable">${J8_TOTAL_UNAVAILABLE}</p><p id="j8-apply-reason" class="j8-reason" ${op.validationError ? '' : 'hidden'}>Apply disabled: an item or validation state is not available.</p>
     </section>`);
     j8Footer(`${j8Button('cancel', 'Cancel without loss')} ${j8Button('apply-pricing', 'Review proposed change', 'btn-primary', op.validationError)}`);
@@ -9923,7 +10076,7 @@ const k1Focus = (() => {
     if (picked && j8PickerKind) {
       if (j8PickerKind === 'item') j8Operation.itemChoice = picked.dataset.j8Pick;
       else j8Operation.packageChoice = picked.dataset.j8Pick;
-      j8ClosePicker();
+      j8ClosePicker(null, picked.textContent.trim());   // KA2 (23 Oct 2026, L-02): the chosen item for the message
       j8Render();
     }
   }
@@ -9947,7 +10100,7 @@ const k1Focus = (() => {
     $('#large-data-picker-cancel').addEventListener('click', (event) => { event.preventDefault(); event.stopImmediatePropagation(); j8ClosePicker(); }, true);
     $('#large-data-picker-backdrop').addEventListener('click', (event) => { event.preventDefault(); event.stopImmediatePropagation(); j8ClosePicker(); }, true);
     $('#mismatch-close').addEventListener('click', (event) => { event.preventDefault(); event.stopImmediatePropagation(); j8DismissMismatch(); }, true);
-    $('#mismatch-fix').addEventListener('click', (event) => { event.preventDefault(); event.stopImmediatePropagation(); j8DismissMismatch(); }, true);
+    $('#mismatch-fix').addEventListener('click', (event) => { event.preventDefault(); event.stopImmediatePropagation(); j8ChooseMatchingItem(); }, true);
     $('#mismatch-dialog').addEventListener('cancel', (event) => { event.preventDefault(); j8DismissMismatch(); }, true);
     const details = $('#j4-details-dialog');
     details.addEventListener('keydown', (event) => {
@@ -10090,7 +10243,10 @@ const k1Focus = (() => {
   const shared = () => window.__journey10Shared || {};
   const slotToLabel = (slot) => { const h = 8 + Math.floor(slot / 2); const m = slot % 2 ? '30' : '00'; return `${String(h).padStart(2, '0')}:${m}`; };
   const durationLabel = (startSlot, endSlot) => { const minutes = Math.max(0, (endSlot - startSlot) * 30); const hours = Math.floor(minutes / 60); const remainder = minutes % 60; if (hours && remainder) return `${hours} ${hours === 1 ? 'hr' : 'hrs'} ${remainder} min`; if (hours) return `${hours} ${hours === 1 ? 'hr' : 'hrs'}`; return `${minutes} min`; };
-  const announce = (text) => { shared().announceLive?.(text); const toast = $('toast-region'); if (toast) toast.textContent = text; };
+  // Screen-reader live region only (L-06, 21 Oct 2026 — the Journey 14 status-line behaviour of 17 Oct). The message is no longer written as
+  // bare text into #toast-region (itself a live region), where it stayed drawn over the page and was announced twice; bare text left there is
+  // removed; real toast cards (.toast elements) are left alone.
+  const announce = (text) => { shared().announceLive?.(text); const toast = $('toast-region'); if (toast) [...toast.childNodes].forEach((n) => { if (n.nodeType === Node.TEXT_NODE) n.remove(); }); };
   const setHidden = (el, hidden) => { if (!el) return; el.hidden = hidden; el.inert = hidden; if (hidden) el.setAttribute('aria-hidden', 'true'); else el.removeAttribute('aria-hidden'); };
   const selectedText = (x) => x ? `${x.assetName} · ${slotToLabel(x.startSlot)}–${slotToLabel(x.endSlot)} · ${x.date}` : 'No interval selected';
   function clearSlotSelection() { document.querySelectorAll('body[data-journey="10"] .cal-slot.j10-selected, body[data-journey="10"] .cal-slot.selected-range, body[data-journey="10"] .cal-slot.range-start, body[data-journey="10"] .cal-slot.range-end').forEach((el) => el.classList.remove('j10-selected', 'selected-range', 'range-start', 'range-end')); }
@@ -10180,10 +10336,13 @@ const k1Focus = (() => {
     if (hidden) el.setAttribute('aria-hidden', 'true'); else el.removeAttribute('aria-hidden');
   };
   const announce = (text) => {
+    // Screen-reader live region only (L-06, 21 Oct 2026 — the Journey 14 status-line behaviour of 17 Oct). The message is no longer written as
+    // bare text into #toast-region (itself a live region), where it stayed drawn over the page and was announced twice; bare text left there is
+    // removed; real toast cards (.toast elements) are left alone.
     const live = $('ldp-live');
     if (live) live.textContent = text;
     const toast = $('toast-region');
-    if (toast) toast.textContent = text;
+    if (toast) [...toast.childNodes].forEach((n) => { if (n.nodeType === Node.TEXT_NODE) n.remove(); });
   };
   function headerForDate(date) { return document.querySelector(`body[data-journey="11"] .cal-day-header[data-date="${date}"]`); }
   function decorateHeaders() {
@@ -10415,10 +10574,13 @@ const k1Focus = (() => {
     if (hidden) el.setAttribute('aria-hidden', 'true'); else el.removeAttribute('aria-hidden');
   };
   const announce = (text) => {
+    // Screen-reader live region only (L-06, 21 Oct 2026 — the Journey 14 status-line behaviour of 17 Oct). The message is no longer written as
+    // bare text into #toast-region (itself a live region), where it stayed drawn over the page and was announced twice; bare text left there is
+    // removed; real toast cards (.toast elements) are left alone.
     const live = $('ldp-live');
     if (live) live.textContent = text;
     const toast = $('toast-region');
-    if (toast) toast.textContent = text;
+    if (toast) [...toast.childNodes].forEach((n) => { if (n.nodeType === Node.TEXT_NODE) n.remove(); });
   };
   const slotHeight = (col) => parseFloat(getComputedStyle(col).getPropertyValue('--slot-h') || '10');
   let paintingFixture = false;
@@ -10460,9 +10622,16 @@ const k1Focus = (() => {
     openPanel();
     announce(`${FIXTURE.title} selected. Event actions are available for local review only.`);
   }
+  function placePanel() {   // L-26 (23 Oct 2026): the panel's top 8 px below the view bar, so its buttons and "Settings" stay reachable (today's top if the bar is not near the top)
+    const bar = document.getElementById('view-bar'), root = document.documentElement;
+    const r = bar && bar.getClientRects().length ? bar.getBoundingClientRect() : null;
+    if (r && r.bottom > 0 && r.bottom < window.innerHeight / 2) root.style.setProperty('--j12-panel-top', `${Math.round(r.bottom + 8)}px`);
+    else root.style.removeProperty('--j12-panel-top');
+  }
   function openPanel() {
     if (!state.selected) return;
     const panel = $('j12-event-actions-panel');
+    placePanel();
     setHidden(panel, false);
     state.panelOpen = true;
     $('j12-panel-context').textContent = `${FIXTURE.title} · ${FIXTURE.assetName} · Wed 26 Aug 2026 · ${FIXTURE.time}`;
@@ -10527,6 +10696,8 @@ const k1Focus = (() => {
     setHidden($('j12-event-actions-panel'), true);
     setHidden($('j12-boundary-dialog'), false);
     hookCalendar();
+    window.addEventListener('resize', () => window.requestAnimationFrame(placePanel));   // L-26: the panel follows the view bar
+    if (window.ResizeObserver && document.getElementById('view-bar')) new ResizeObserver(() => placePanel()).observe(document.getElementById('view-bar'));
     document.addEventListener('click', (event) => {
       if (!isJ12()) return;
       const eventBtn = event.target.closest('#j12-public-event, .j12-public-event');
@@ -10553,6 +10724,7 @@ const k1Focus = (() => {
     $('j12-boundary-dialog')?.addEventListener('cancel', (event) => { event.preventDefault(); closeBoundary(); });
     const reopenPanelAfterWorkflow = () => {
       if (!state.selected) return;
+      placePanel();   // L-26
       setHidden($('j12-event-actions-panel'), false);
       state.panelOpen = true;
     };
@@ -10587,6 +10759,62 @@ const k1Focus = (() => {
   function compatible(name) { return !(name === 'Studio 2' && state.config !== 'Cabaret'); }
   function ensureCaps() { state.facilities.forEach((name) => { if (state.caps[name] == null) state.caps[name] = defaults[name]; }); }
   function changed() { return JSON.stringify(state) !== JSON.stringify(applied); }
+  // Compare the effective layout with the same applied state used by changed().
+  function navigationSignature(value = state) {
+    const facilities = [...value.facilities].sort(); // selection identity, not incidental checkbox order
+    return JSON.stringify({ config: value.config, facilities, caps: facilities.map((name) => [name, value.caps[name] ?? defaults[name]]) });
+  }
+  function diaryTarget() { const target = new URL(window.location.href); target.searchParams.delete('journey'); target.hash = ''; return target.href; }
+  function installDiaryNavigation() {
+    const oldCalendar = $('.side .nav');
+    if (!oldCalendar) return;
+    const calendar = document.createElement('a'); calendar.className = oldCalendar.className; calendar.textContent = oldCalendar.textContent; calendar.href = diaryTarget(); calendar.dataset.j13Back = 'calendar'; oldCalendar.replaceWith(calendar);
+    let question = null, opener = null, previousInert = null;
+    const shell = $('.shell'), top = $('.top');
+    function stay() {
+      question?.remove(); question = null;
+      if (previousInert) { shell.inert = previousInert.shell; top.inert = previousInert.top; }
+      previousInert = null;
+      (opener?.isConnected ? opener : calendar)?.focus();
+    }
+    function back(event) {
+      if ($('#modal')?.classList.contains('open')) { event.preventDefault(); return; } // F3: never stack the leave question over Review
+      if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      if (navigationSignature() === navigationSignature(applied)) return; // native one-activation link navigation
+      event.preventDefault();
+      if (question) return;
+      opener = event.currentTarget;
+      question = document.createElement('div'); question.id = 'j13-leave-modal'; question.className = 'modal open'; question.setAttribute('role', 'dialog'); question.setAttribute('aria-modal', 'true'); question.setAttribute('aria-labelledby', 'j13-leave-title');
+      question.innerHTML = '<div class="dialog"><h2 id="j13-leave-title">Leave without applying your layout change?</h2><div class="dialog-actions"><button type="button" class="btn" data-j13-leave="stay">Stay</button><button type="button" class="btn primary" data-j13-leave="leave">Leave</button></div></div>';
+      previousInert = { shell: shell.inert, top: top.inert }; shell.inert = true; top.inert = true;
+      root().append(question);
+      const stayButton = question.querySelector('[data-j13-leave="stay"]'), leaveButton = question.querySelector('[data-j13-leave="leave"]');
+      stayButton.addEventListener('click', stay);
+      leaveButton.addEventListener('click', () => window.location.assign(diaryTarget()));
+      question.addEventListener('click', (e) => { if (e.target === question) stay(); });
+      question.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); stay(); }
+        if (e.key === 'Tab' && ((!e.shiftKey && document.activeElement === leaveButton) || (e.shiftKey && document.activeElement === stayButton))) { e.preventDefault(); (e.shiftKey ? leaveButton : stayButton).focus(); }
+      });
+      stayButton.focus();
+    }
+    calendar.addEventListener('click', back);
+    const phone = window.matchMedia('(max-width:680px)');
+    function syncPhone() {
+      let link = $('.j13-diary-back');
+      if (phone.matches && !link) {
+        link = document.createElement('a'); link.className = 'j13-diary-back'; link.href = diaryTarget(); link.textContent = '‹ Diary'; link.setAttribute('aria-label', 'Back to Diary calendar'); link.addEventListener('click', back); top.prepend(link);
+      } else if (!phone.matches && link) {
+        const focused = document.activeElement === link; link.remove(); if (focused) calendar.focus();
+      }
+      const surface = root(), actions = $('.actions');
+      if (phone.matches && actions) { const height = Math.ceil(actions.getBoundingClientRect().height) + 'px'; if (surface.style.getPropertyValue('--j13-actions-height') !== height) surface.style.setProperty('--j13-actions-height', height); }
+      else surface.style.removeProperty('--j13-actions-height');
+    }
+    phone.addEventListener('change', syncPhone);
+    if (window.ResizeObserver) new ResizeObserver(syncPhone).observe($('.actions'));
+    syncPhone();
+  }
   function rebuildCaps() {
     ensureCaps();
     const host = $('#capacities');
@@ -10631,6 +10859,7 @@ const k1Focus = (() => {
     document.title = 'Journey 13 — Configuration & capacity preview';
     const surface = root();
     if (surface) { surface.hidden = false; surface.inert = false; surface.removeAttribute('aria-hidden'); }
+    installDiaryNavigation();
     $('#configs')?.addEventListener('click', (e) => {
       const b = targetElement(e)?.closest('.config');
       if (!b) return;
@@ -10662,6 +10891,7 @@ const k1Focus = (() => {
     const modal = $('#modal');
     const cancel = $('#cancel');
     const shell = $('.shell');
+    const j13Top = $('.top');   // J13R (22 Oct 2026, L-09): the top bar holds the phone-only "‹ Diary" link — inert with the rest while Review is open
     $('#review')?.addEventListener('click', () => {
       const list = $('#change-list');
       if (!list) return;
@@ -10681,16 +10911,24 @@ const k1Focus = (() => {
         list.append(d);
       });
       if (shell) shell.inert = true;
+      if (j13Top) j13Top.inert = true;
       modal?.classList.add('open');
       cancel?.focus();
     });
     function close() {
       modal?.classList.remove('open');
       if (shell) shell.inert = false;
+      if (j13Top) j13Top.inert = false;
       $('#review')?.focus();
     }
     if (cancel) cancel.onclick = close;
     modal?.addEventListener('click', (e) => { if (e.target === modal) close(); });
+    modal?.addEventListener('keydown', (e) => {   // KA2 (23 Oct 2026, J13R review F1): Tab and Shift+Tab wrap inside Review, as in its leave question — not through the browser's own bar
+      if (e.key !== 'Tab' || !modal.classList.contains('open')) return;
+      const last = $('#apply');
+      if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); cancel?.focus(); }
+      else if (e.shiftKey && document.activeElement === cancel) { e.preventDefault(); last?.focus(); }
+    });
     $('#apply')?.addEventListener('click', () => {
       Object.assign(applied, clone(state));
       close();
@@ -10950,11 +11188,13 @@ const k1Focus = (() => {
     if (hidden) el.setAttribute('aria-hidden', 'true'); else el.removeAttribute('aria-hidden');
   }
   function announce(text) {
-    // Same pattern as the Journey 12 panel: screen-reader live region plus the visible Diary toast.
+    // Screen-reader live region only (Journey 14 phone status-line fix, 17 Oct 2026). The open panel shows the state; the message is no longer
+    // written as bare text into #toast-region, where it stayed drawn over the bottom of the panel and was read twice. Bare text left there by
+    // an earlier step is removed; real toast cards (.toast elements) are left alone.
     const live = $('ldp-live');
     if (live) live.textContent = text;
     const toast = $('toast-region');
-    if (toast) toast.textContent = text;
+    if (toast) [...toast.childNodes].forEach((n) => { if (n.nodeType === Node.TEXT_NODE) n.remove(); });
   }
 
 
@@ -11105,10 +11345,13 @@ const k1Focus = (() => {
   }
 
   function announce(text) {
+    // Screen-reader live region only (L-06, 21 Oct 2026 — the Journey 14 status-line behaviour of 17 Oct). The message is no longer written as
+    // bare text into #toast-region (itself a live region), where it stayed drawn over the page and was announced twice; bare text left there is
+    // removed; real toast cards (.toast elements) are left alone.
     const live = $('#ldp-live');
     if (live) live.textContent = text;
     const toast = $('#toast-region');
-    if (toast) toast.textContent = text;
+    if (toast) [...toast.childNodes].forEach((n) => { if (n.nodeType === Node.TEXT_NODE) n.remove(); });
   }
   function rangeLabel() { return ($('#date-range-label') && $('#date-range-label').textContent.trim()) || WEEK_LABEL; }
   function visibleRows() {
@@ -11204,9 +11447,11 @@ const k1Focus = (() => {
   }
   function openExport() {
     const btn = $('#j15-export');
-    if (!btn || btn.disabled) return;
+    if (!btn || btn.disabled || btn.getAttribute('aria-disabled') === 'true') return;
     state.trigger = btn;
-    btn.disabled = true;
+    // KA1 (22 Oct 2026, L-23): keep keyboard focus on Export while the preview is prepared — a disabled button drops focus to the page. It still
+    // cannot run twice (the guard above) and looks the same (styles.css: .j15-btn[aria-disabled="true"]).
+    btn.setAttribute('aria-disabled', 'true');
     btn.textContent = 'Preparing…';
     announce('Preparing export preview.');
     window.setTimeout(() => {
@@ -11225,7 +11470,7 @@ const k1Focus = (() => {
         '<li>If the export fails, show an error message (the current system only writes to the browser console).</li></ul></div>' +
         '<p class="j15-fixture-note">Values marked “—” are not in the review fixture. The current system defines this file name, sheet and columns in code, but the downloaded file has not been verified (AGENDA-EXPORT-01 is open). No file is created in this review.</p>';
       openDialog('#j15-export-dialog');
-      btn.disabled = false;
+      btn.removeAttribute('aria-disabled');
       btn.innerHTML = '<span aria-hidden="true">⤓</span> Export';
       announce(`Export preview opened: ${rows.length} rows. No file is created in this review.`);
     }, 450);
@@ -11476,13 +11721,16 @@ const k1Focus = (() => {
   'use strict';
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
-  const state = { tries: 0, ready: false, trigger: null };
+  const state = { tries: 0, ready: false, trigger: null, saved: { date: 'today', colours: true } };   // KA2 (23 Oct 2026, L-29): saved = the last saved choices
 
   function announce(text) {
+    // Screen-reader live region only (L-06, 21 Oct 2026 — the Journey 14 status-line behaviour of 17 Oct). The message is no longer written as
+    // bare text into #toast-region (itself a live region), where it stayed drawn over the page and was announced twice; bare text left there is
+    // removed; real toast cards (.toast elements) are left alone.
     const live = $('#ldp-live');
     if (live) live.textContent = text;
     const toast = $('#toast-region');
-    if (toast) toast.textContent = text;
+    if (toast) [...toast.childNodes].forEach((n) => { if (n.nodeType === Node.TEXT_NODE) n.remove(); });
   }
 
   function build() {
@@ -11492,7 +11740,7 @@ const k1Focus = (() => {
       '<header><div style="flex:1"><h2 id="j16-settings-title">Diary settings</h2><p>Proposed Journey 16 surface — review only, nothing is saved.</p></div><button type="button" class="j16-x" data-j16-close aria-label="Close settings">×</button></header>' +
       '<div class="j16-body"><form onsubmit="return false">' +
       '<div class="j16-block"><span class="j16-label">Default date behaviour</span><div class="j16-row">' +
-      '<label><input type="radio" name="j16-datebehaviour" value="today" checked> Today (current system default)</label>' +
+      '<label><input type="radio" name="j16-datebehaviour" value="today" checked data-autofocus> Today (current system default)</label>' +
       '<label><input type="radio" name="j16-datebehaviour" value="remember"> Remember last view</label></div>' +
       '<p class="j16-hint">From the current system\'s DiarySettings defaultDateBehavior offers these two values (today is the default). Every combination is unverified (SETTINGS-01).</p></div>' +
       '<div class="j16-block"><span class="j16-label">Timeslot colours</span><div class="j16-row">' +
@@ -11504,7 +11752,7 @@ const k1Focus = (() => {
       '<p class="j16-hint">Outlook: no verifiable runtime outcome exists — excluded. SignalR: connection and one send are confirmed in the evidence, but collaboration, reconnect and topology are unverified, so no prototype behaviour is proposed. (DEC-J16-05)</p></div>' +
       '<p class="j16-hint"><b>Not persisted:</b> the prototype stores nothing. Whether settings persist (session-only vs storage) is DEC-J16-02 — open.</p>' +
       '</form></div>' +
-      '<footer><button type="button" class="j16-btn" data-j16-close>Cancel</button><button type="button" class="j16-btn j16-btn-primary" id="j16-save" data-autofocus>Save</button></footer></div></div>' +
+      '<footer><button type="button" class="j16-btn" data-j16-close>Cancel</button><button type="button" class="j16-btn j16-btn-primary" id="j16-save">Save</button></footer></div></div>' +
       '<aside class="j16-guide" id="j16-guide" aria-label="Journey 16 review guide (review aid, not Product)"><div class="j16-guide-head"><strong>Journey 16 review · not product</strong>' +
       '<button type="button" id="j16-guide-toggle" aria-expanded="true">Hide</button></div>' +
       '<div class="j16-guide-body"><ol>' +
@@ -11539,10 +11787,18 @@ const k1Focus = (() => {
     document.title = 'Optimo Diary — Journey 16 settings candidate';
     if (!$('#j16-settings-dialog')) build();
     const d = $('#j16-settings-dialog');
+    if (!open) {   // KA2 (23 Oct 2026, L-29): Cancel, × and Escape discard an unsaved change — the dialog opens on the last saved choices
+      const saved = d.querySelector(`input[name="j16-datebehaviour"][value="${state.saved.date}"]`); if (saved) saved.checked = true;
+      const colours = d.querySelector('#j16-colours'); if (colours) colours.checked = state.saved.colours;
+    }
     d.hidden = false;
     const app = $('#app-shell'); if (app) app.inert = true;
     const g = $('#j16-guide'); if (g) g.inert = true;
-    const first = d.querySelector('[data-autofocus]');
+    // KA1 (22 Oct 2026, L-25): the dialog starts on its selected option ("Today" unless another was saved), not on "Save" — the first key press
+    // or a held Enter no longer saves before any choice; "Save" is three Tabs away. A marked radio stands for its group, as Tab does: v2 — after
+    // a saved choice the dialog reopens on that choice, not on an unselected "Today".
+    const auto = d.querySelector('[data-autofocus]');
+    const first = auto?.type === 'radio' ? (d.querySelector(`input[name="${auto.name}"]:checked`) || auto) : auto;
     if (first) first.focus();
   }
   function closeSettings(restore) {
@@ -11563,6 +11819,7 @@ const k1Focus = (() => {
     if (t.closest('[data-j16-close]')) { event.preventDefault(); closeSettings(true); return; }
     if (t.closest('#j16-save')) {
       event.preventDefault();
+      state.saved = { date: $('input[name="j16-datebehaviour"]:checked')?.value || 'today', colours: !!$('#j16-colours')?.checked };   // KA2 (23 Oct 2026, L-29): kept for the next opening (nothing persists beyond this page)
       announce('Settings review saved — nothing persists in this review (DEC-J16-02 open).');
       closeSettings(true);
       return;

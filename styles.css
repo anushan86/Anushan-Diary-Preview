@@ -7307,6 +7307,37 @@ body[data-journey="6"] .j6-workflow-label { display: inline-flex; align-items: c
   body[data-journey="6"] .j6-different-time-row { grid-template-columns: 1fr; }
 }
 
+/* J12 I-2 B / I-3 only. Existing Journey 6 renderer, commands and styles are not forked. */
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule):has(.j12tc-setup) #j5-workflow-description { display:none; } /* Keep the original spoken description; D0 blanks its exact B06 sentence. */
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence { margin:12px 0; border:1px solid var(--diary-border-strong); background:#fff; }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence > summary { display:flex; align-items:center; gap:8px; min-height:var(--diary-control-touch,44px); padding:0 12px; color:var(--diary-blue-700); font-size:13px; font-weight:700; cursor:pointer; list-style:none; }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence > summary::-webkit-details-marker { display:none; }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence > summary::before { content:'▸'; color:var(--diary-blue-500); }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence[open] > summary::before { content:'▾'; }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence > summary:focus-visible { outline:2px solid var(--diary-blue-500); outline-offset:-2px; }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence-content { display:grid; gap:10px; padding:0 12px 12px; font-size:12px; line-height:1.45; color:var(--diary-text); }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence-content > p, body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence-content > div { margin:0; padding:9px 11px; }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence .j6-public-banner { color:#0d3155; background:#eaf4ff; border-left:4px solid var(--diary-blue-500); }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence .j6-defect-note { color:#6f4b00; background:var(--diary-warning-bg); border-left:4px solid #c18d13; }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence .j6-entry-note, body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence .j6-resource-state { color:var(--diary-text-secondary); border:1px dashed var(--diary-border-strong); }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence .j5-inline-note { color:var(--diary-text-secondary); background:#f7f9fc; border-left:3px solid var(--diary-blue-500); }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence .j12tc-review-controls { display:flex; flex-wrap:wrap; gap:8px; padding:0; }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence .j12tc-review-label { margin:0; padding:0; color:var(--diary-text-secondary); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .dialog-close { width:var(--diary-control-touch,44px); height:var(--diary-control-touch,44px); }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) input:not([type="checkbox"]):not([type="radio"]), body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) select, body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) button { min-height:var(--diary-control-touch,44px); box-sizing:border-box; }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j5-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:10px; }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j5-form-grid label, body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-different-time-row label { display:grid; gap:5px; color:var(--diary-navy); font-size:11px; font-weight:800; }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j5-form-grid input:not([type="checkbox"]), body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j5-form-grid select, body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-different-time-row input { width:100%; padding:8px 10px; color:var(--diary-text); background:#fff; border:1px solid var(--diary-border-strong); font:inherit; font-weight:500; }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j5-form-grid input:focus-visible, body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j5-form-grid select:focus-visible { outline:2px solid var(--diary-blue-500); outline-offset:1px; }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-different-time-rows { display:grid; gap:10px; margin-top:12px; }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-different-time-row { display:grid; grid-template-columns:minmax(100px,1fr) repeat(3,minmax(0,1fr)); align-items:end; gap:8px; padding:10px; border:1px solid var(--diary-border); background:#fff; }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) #j5-workflow-footer { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }
+@media(max-width:640px) {
+  body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j5-form-grid, body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-different-time-row { grid-template-columns:1fr; }
+  body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) #j5-workflow-footer { justify-content:stretch; }
+  body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) #j5-workflow-footer button { flex:1 1 45%; }
+}
+
 /* Journey 7 route-scoped evidence status; all Product controls remain Master-owned. */
 body[data-journey="7"] .j7-route-status { display:grid; gap:12px; margin:12px 0 14px; padding:14px 16px; background:#f7f9fc; border:1px solid #adc7f4; border-left:4px solid #2e73df; position:relative; z-index:6; }
 body[data-journey="7"] .j7-status-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; }
@@ -7517,7 +7548,8 @@ body[data-journey="8"] .j8-proposal-facts div { display: grid; grid-template-col
 body[data-journey="8"] .j8-proposal-facts dt { color: var(--diary-text-secondary); font-size: 11px; font-weight: 800; text-transform: uppercase; }
 body[data-journey="8"] .j8-proposal-facts dd { margin: 0; color: var(--diary-text); }
 body[data-journey="8"] #j5-workflow-footer { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
-body[data-journey="8"] #large-data-picker-backdrop { position: fixed; inset: 0; z-index: 90; background: var(--diary-surface-muted); }
+/* KA2 (23 Oct 2026, L-03): the item list dims the page like every other dialog (.modal::backdrop) — --diary-surface-muted is not defined, so the backdrop was transparent */
+body[data-journey="8"] #large-data-picker-backdrop { position: fixed; inset: 0; z-index: 90; background: rgba(17, 35, 60, 0.5); }
 body[data-journey="8"] #large-data-picker { position: fixed; z-index: 91; inset: 10vh 50% auto auto; transform: translateX(50%); display: grid; gap: 12px; width: min(520px, calc(100vw - 32px)); max-height: min(620px, calc(100vh - 48px)); padding: 16px; overflow: auto; border: 1px solid var(--diary-border-strong); border-radius: 14px; background: var(--diary-surface); box-shadow: 0 20px 60px var(--diary-border); }
 body[data-journey="8"] #large-data-picker[hidden],
 body[data-journey="8"] #large-data-picker-backdrop[hidden] { display: none !important; }
@@ -8187,7 +8219,8 @@ body[data-journey="12"] .j12-public-event strong { display: block; font-size: 12
 body[data-journey="12"] .j12-event-meta { display: block; margin-top: 4px; font-size: 11px; color: #594c78; }
 body[data-journey="12"] .j12-event-tag { display: inline-flex; margin-top: 6px; padding: 2px 6px; border-radius: 999px; background: #6c3bd1; color: #fff; font-size: 10px; font-weight: 800; }
 /* Journey 12 Event actions: human-approved local preview presentation; route-scoped. */
-body[data-journey="12"] .j12-event-actions-panel { box-sizing: border-box; position: fixed; top: calc(var(--header-h, 56px) + 14px); right: 14px; bottom: 14px; width: min(410px, calc(100vw - 28px)); z-index: 70; overflow-x: hidden; overflow-y: auto; padding: 20px; border: 1px solid #e0e5ee; border-radius: 20px; background: #fff; color: #17243c; font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; box-shadow: 0 24px 70px #25314d2b, 0 3px 12px #25314d12; scrollbar-width: thin; }
+/* L-26 (23 Oct 2026): the Journey 12 Event actions panel opens 8 px below the view bar (--j12-panel-top, set by app.js; the old values are the fallbacks) — the view buttons and "Settings" stay reachable */
+body[data-journey="12"] .j12-event-actions-panel { box-sizing: border-box; position: fixed; top: var(--j12-panel-top, calc(var(--header-h, 56px) + 14px)); right: 14px; bottom: 14px; width: min(410px, calc(100vw - 28px)); z-index: 70; overflow-x: hidden; overflow-y: auto; padding: 20px; border: 1px solid #e0e5ee; border-radius: 20px; background: #fff; color: #17243c; font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; box-shadow: 0 24px 70px #25314d2b, 0 3px 12px #25314d12; scrollbar-width: thin; }
 body[data-journey="12"] .j12-event-actions-panel svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 body[data-journey="12"] .j12-panel-head { display: flex; align-items: center; gap: 11px; }
 body[data-journey="12"] .j12-head-icon, body[data-journey="12"] .j12-card-icon { display: grid; place-items: center; flex: none; }
@@ -8239,10 +8272,10 @@ body[data-journey="12"] .j12-panel-footnote { margin: 8px 0 0; color: #667085; f
 body[data-journey="12"] .j12-boundary-dialog { width: min(520px, calc(100vw - 32px)); }
 body[data-journey="12"] .j12-boundary-notice { margin: 12px 0 0; padding: 10px; border: 1px solid #efd48b; border-radius: 8px; background: #fff5dc; color: #724500; font-size: 12px; }
 @media (max-width: 1024px) {
-  body[data-journey="12"] .j12-event-actions-panel { top: 96px; right: 12px; height: calc(100vh - 108px); height: calc(100dvh - 108px); }
+  body[data-journey="12"] .j12-event-actions-panel { top: var(--j12-panel-top, 96px); right: 12px; bottom: 12px; height: auto; }
 }
 @media (max-width: 650px) {
-  body[data-journey="12"] .j12-event-actions-panel { top: 96px; left: var(--review-rail-w, 56px); right: 0; bottom: 0; width: auto; height: auto; padding: 18px; border-radius: 18px 0 0 0; }
+  body[data-journey="12"] .j12-event-actions-panel { top: var(--j12-panel-top, 96px); left: var(--review-rail-w, 56px); right: 0; bottom: 0; width: auto; height: auto; padding: 18px; border-radius: 18px 0 0 0; }
   body[data-journey="12"] .j12-panel-sub { margin-left: 44px; }
   body[data-journey="12"] .j12-status-heading { flex-direction: column; }
 }
@@ -8322,7 +8355,8 @@ body[data-journey="13"] #j13-standalone-surface .evidence { margin-top:16px; }
 body[data-journey="13"] #j13-standalone-surface .fact { margin:8px 0; padding:10px; border-left:3px solid #7ea3d8; background:#f5f8fc; font-size:12px; }
 body[data-journey="13"] #j13-standalone-surface .fact.warn { border-color:#d39b31; background:var(--j13-amber-bg); }
 body[data-journey="13"] #j13-standalone-surface .boundary { margin-top:17px; padding-top:14px; border-top:1px solid var(--j13-line); color:var(--j13-muted); font-size:11px; }
-body[data-journey="13"] #j13-standalone-surface .modal { display:none; position:fixed; inset:0; z-index:200; align-items:center; justify-content:center; padding:20px; background:rgba(12,28,45,.52); }
+/* J13R (22 Oct 2026, L-07): the Review overlay covers the whole viewport — the shared .modal box size (max-width 420px, width, border) no longer applies to it */
+body[data-journey="13"] #j13-standalone-surface .modal { display:none; position:fixed; inset:0; width:auto; max-width:none; border:0; z-index:200; align-items:center; justify-content:center; padding:20px; background:rgba(12,28,45,.52); }
 body[data-journey="13"] #j13-standalone-surface .modal.open { display:flex; }
 body[data-journey="13"] #j13-standalone-surface .dialog { width:min(590px,100%); max-height:90vh; overflow:auto; padding:20px; border-radius:13px; background:#fff; box-shadow:0 30px 80px rgba(0,0,0,.28); }
 body[data-journey="13"] #j13-standalone-surface .dialog h2 { margin:0 0 4px; }
@@ -8340,6 +8374,17 @@ body[data-journey="13"] .skip-link, body[data-journey="13"] #review-rail, body[d
 body[data-journey="13"] #j13-standalone-surface[hidden] { display:none!important; }
 @media(max-width:1080px){ body[data-journey="13"] #j13-standalone-surface .shell{grid-template-columns:190px minmax(500px,1fr)} body[data-journey="13"] #j13-standalone-surface .review{grid-column:1/-1;border-left:0;border-top:1px solid var(--j13-line)} body[data-journey="13"] #j13-standalone-surface .capacity-grid{grid-template-columns:1fr 1fr} body[data-journey="13"] #j13-standalone-surface .user{display:none} }
 @media(max-width:680px){ body[data-journey="13"] #j13-standalone-surface .top{padding:0 13px} body[data-journey="13"] #j13-standalone-surface .crumb{display:none} body[data-journey="13"] #j13-standalone-surface .shell{display:block} body[data-journey="13"] #j13-standalone-surface .side{border-right:0;border-bottom:1px solid var(--j13-line)} body[data-journey="13"] #j13-standalone-surface .side .nav{display:none} body[data-journey="13"] #j13-standalone-surface .context{margin-top:0;padding-top:0;border:0} body[data-journey="13"] #j13-standalone-surface .main{padding:14px} body[data-journey="13"] #j13-standalone-surface .heading{display:block} body[data-journey="13"] #j13-standalone-surface .step{display:inline-flex;margin-top:10px} body[data-journey="13"] #j13-standalone-surface .config-grid, body[data-journey="13"] #j13-standalone-surface .capacity-grid{grid-template-columns:1fr} body[data-journey="13"] #j13-standalone-surface .facility{grid-template-columns:38px 1fr} body[data-journey="13"] #j13-standalone-surface .reason{grid-column:2} body[data-journey="13"] #j13-standalone-surface .actions{bottom:-14px;margin:18px -14px -14px;padding:12px 14px;flex-wrap:wrap} body[data-journey="13"] #j13-standalone-surface .link{width:100%;margin:0} body[data-journey="13"] #j13-standalone-surface .review{padding:16px} body[data-journey="13"] #j13-standalone-surface .banner{font-size:11px} body[data-journey="13"] #j13-standalone-surface .toast{left:12px;right:12px;bottom:12px} }
+/* J13 Back to Diary R1/R2/R4: existing navigation/dialog/action styles are retained. */
+body[data-journey="13"] #j13-standalone-surface .side a.nav { font:inherit; text-decoration:none; }
+@media(min-width:681px) { body[data-journey="13"] #j13-standalone-surface .side a.nav { display:flex; align-items:center; } }
+@media(max-width:680px) {
+  body[data-journey="13"] #j13-standalone-surface { padding-bottom:var(--j13-actions-height,112px); }
+  body[data-journey="13"] #j13-standalone-surface .j13-diary-back { display:inline-flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; flex:0 0 auto; color:inherit; font:inherit; font-weight:800; text-decoration:none; }
+  body[data-journey="13"] #j13-standalone-surface .actions { position:fixed; left:0; right:0; bottom:0; margin:0; z-index:100; padding-bottom:calc(12px + env(safe-area-inset-bottom)); }
+  body[data-journey="13"] #j13-standalone-surface .toast.show { bottom:calc(var(--j13-actions-height,112px) + 12px); }
+}
+/* J13 v2 F2: only the new leave question; inherited Review dialog remains unchanged. */
+body[data-journey="13"] #j13-standalone-surface #j13-leave-modal { max-width:none; width:auto; border:0; z-index:300; }
 /* ===== Journey 14 CSS re-scoped for the in-Diary panel ===== */
 #j14-diary-panel #j14-standalone-surface[hidden] { display: none !important; }
 
@@ -8641,6 +8686,8 @@ body[data-j15-view="custom"] #slot-layout-control { visibility: hidden; }
 }
 .j15-btn:hover:not(:disabled) { background: #e9eef6; }
 .j15-btn:disabled { background: var(--diary-disabled-bg); color: var(--diary-disabled-text); border-color: var(--line); cursor: not-allowed; }
+/* KA1 (22 Oct 2026, L-23): Export keeps keyboard focus while preparing (aria-disabled instead of disabled) and looks exactly as when disabled */
+.j15-btn[aria-disabled="true"], .j15-btn[aria-disabled="true"]:hover { background: var(--diary-disabled-bg); color: var(--diary-disabled-text); border-color: var(--line); cursor: not-allowed; }
 .j15-btn-primary { background: var(--cobalt); border-color: var(--cobalt); color: var(--surface); }
 .j15-btn-primary:hover:not(:disabled) { background: var(--diary-blue-600); }
 .j15-btn:focus-visible, .j15-x:focus-visible, .j15-details-btn:focus-visible, .j15-toggle input:focus-visible {
@@ -9235,3 +9282,8 @@ body[data-journey="1"] .cal-day-header.is-today .j1-day-month { color: var(--j1-
 /* U-04: Journey 13 - the capacity pill gets back its own designed colour (a broader rule overrode it); the selected layout's description uses it too (4.48-4.49:1 -> about 5.5:1) */
 body[data-journey="13"] #j13-standalone-surface .config .pill:not(.default),
 body[data-journey="13"] #j13-standalone-surface .config[aria-pressed="true"] span:not(.pill) { color: #536277; }
+
+/* J15 "Confirmed" text contrast v2 (Director, 17 Oct 2026): Journey 15 only. A darker shade of the same success green, so the status
+   text meets WCAG 2.2 SC 1.4.3 at rest (4.864:1 on white) and on a hovered row (4.577:1 on #f7f8fa; the row hover changes only the
+   background, so this one rule covers both states). The shared --diary-success token is unchanged everywhere else. */
+.j15-c-status .st-confirmed { color: #128069; }
