@@ -3131,6 +3131,11 @@ body[data-journey="1"] .journey-actions .btn-primary.btn-confirm:not([hidden]) {
 @media (max-width: 600px) {
   :root { --assets-w: 100%; --view-bar-h: 88px; }
   body[data-journey="2"] { --view-bar-h: auto; }
+  /* L-35 (24 Oct 2026): the view-bar row grows with its wrapped controls (88 px stays its minimum), so no control slips under the top bar or over the page */
+  .app-shell { grid-template-rows: var(--top-bar-h) minmax(var(--view-bar-h), auto) minmax(0, 1fr); }
+  /* L-35 (Option B, 24 Oct 2026): Journey 7 opens with its cart sheet expanded — it stays 8 px below the view bar (--cart-sheet-room, set by app.js; on very short screens at least 240 px, never over the top bar); today's height wherever there is room */
+  body[data-journey="7"] .sheet-panel { max-height: min(85vh, 720px, var(--cart-sheet-room, 100vh)); }
+  body[data-journey="7"] #cart-sheet-panel .booking-cart { height: min(85vh, 720px, var(--cart-sheet-room, 100vh)); max-height: min(85vh, 720px, var(--cart-sheet-room, 100vh)); }
   .view-bar { width: 100%; min-width: 0; max-width: 100%; gap: 5px; padding: 4px 8px; align-content: center; }
   .date-nav { flex: 1 1 100%; width: 100%; min-width: 0; max-width: 100%; gap: 2px; }
   .date-range { width: auto; min-width: 0; flex: 1 1 0; padding-inline: 3px; font-size: 12px; }

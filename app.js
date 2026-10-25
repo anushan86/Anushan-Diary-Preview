@@ -8378,11 +8378,19 @@ const k1Focus = (() => {
     restoreFocusToOrigin(origin);
   }
 
+  function syncCartSheetRoom() {   // L-35 (24 Oct 2026): the room for Journey 7's expanded cart sheet (it opens expanded): 8 px below the view bar, so it does not cover the bar; on very short screens (zoom 200 %, a phone on its side) at least 240 px, never over the top bar, so the cart is not squeezed
+    const bar = document.getElementById('view-bar'), topBar = document.getElementById('top-bar'), sheet = document.getElementById('cart-sheet'), handle = document.getElementById('sheet-handle'), root = document.documentElement;
+    const r = document.body.dataset.journey === '7' && bar && bar.getClientRects().length ? bar.getBoundingClientRect() : null;
+    if (!r || !sheet || r.bottom <= 0) { root.style.removeProperty('--cart-sheet-room'); return; }
+    const over = (parseFloat(getComputedStyle(sheet).borderTopWidth) || 0) + (handle ? handle.getBoundingClientRect().height : 0);
+    const below = window.innerHeight - r.bottom - over - 8, least = Math.min(240, window.innerHeight - (topBar ? topBar.getBoundingClientRect().bottom : 0) - over - 8);
+    root.style.setProperty('--cart-sheet-room', `${Math.max(0, Math.floor(Math.max(below, least)))}px`);
+  }
   function setSheetExpanded(expanded) {
     document.body.classList.toggle('sheet-expanded', expanded);
     $('#sheet-handle').setAttribute('aria-expanded', expanded ? 'true' : 'false');
     $('#cart-sheet-panel').hidden = !expanded;
-    if (expanded) positionCartForViewport();
+    if (expanded) { syncCartSheetRoom(); positionCartForViewport(); }   // L-35
   }
 
   function positionCartForViewport() {
@@ -9529,6 +9537,9 @@ const k1Focus = (() => {
     $('#sheet-handle').addEventListener('click', () => {
       setSheetExpanded(!document.body.classList.contains('sheet-expanded'));
     });
+    window.addEventListener('resize', () => window.requestAnimationFrame(syncCartSheetRoom));   // L-35: the expanded cart sheet follows the view bar
+    if (window.ResizeObserver && document.getElementById('view-bar')) new ResizeObserver(() => syncCartSheetRoom()).observe(document.getElementById('view-bar'));
+    syncCartSheetRoom();
 
     $$('.stage-chip').forEach((btn) => {
       btn.addEventListener('click', () => applyStageTarget(btn.dataset.stageTarget));
