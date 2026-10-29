@@ -123,7 +123,9 @@ const k1Focus = (() => {
     return `${ev.title} — ${ev.status} — ${colourCue}`;
   }
 
-  async function loadTimeslotVisualOptions() {
+  let unifiedBootLoad = null;   // unified build, slice 6: the journey boot's options load — the carried context is settled right after the boot it starts
+  function loadTimeslotVisualOptions() { unifiedBootLoad = unifiedLoadTimeslotVisualOptions(); return unifiedBootLoad; }
+  async function unifiedLoadTimeslotVisualOptions() {
     const provider = window.DiaryTimeslotOptionsProvider;
     if (!provider || typeof provider.getTimeslotVisualOptions !== 'function') {
       timeslotVisualOptions = normalizeTimeslotVisualOptions(null);
@@ -1265,6 +1267,7 @@ const k1Focus = (() => {
     if (caption) caption.textContent = 'REVIEW FIXTURE — six labelled Journey 4 states on the shared calendar; not exhaustive tenant data.';
     j4SyncReviewControls();
     selectedAssets = new Set(['hall1', 'hall2', 'studio2']); // One Calendar: every timeslot fixture lane is visible by default
+    unifiedReapplyPending();   // unified build, slice 6 (Journey 4's own boot reset of the assets)
     setCartViewMode('detailed'); // the shared Cart opens in Detailed view here: Date, Time, Duration, Facility, Description, Price, Actions
     renderAssetTree();
     renderCalendar();
@@ -1338,12 +1341,12 @@ const k1Focus = (() => {
       await guidedReviewStep('#j4-details-back', 'Back returns focus to the invoking context action.', ++step, total);
       await guidedReviewStep('#j4-context-close', 'Close context and return to the exact More actions trigger.', ++step, total);
       await guidedReviewStep('[data-j4-filter="conflict"]', 'Hide Conflict with one local visual update and no storage.', ++step, total);
-      await guidedReviewStep('#j4-selection-summary', 'Review the selected summary; no second Cart exists.', ++step, total, () => {}, REVIEW_PLAY_STEP_MS);
+      await guidedReviewStep(() => { j4ClearCartHandoff(); return $('#j4-selection-summary'); }, 'Review the selected summary; no second Cart exists.', ++step, total, () => {}, REVIEW_PLAY_STEP_MS);   // unified build, slice 9: the summary is shown before it is reviewed
       await guidedReviewStep('#j4-selection-summary', 'Show Varies and block all timeslot action or mutation execution.', ++step, total, () => j4SetViewState('varies'), REVIEW_PLAY_STEP_MS);
       showToast('Journey 4 guided review finished — candidate only; Gate A remains pending.');
     } catch (error) {
-      console.error(error);
-      showToast('Guided Journey 4 review stopped at the last safe state — inspect console evidence.');
+      if (error && error.guidedStop) showToast('Playback stopped.');   // unified build, slice 2
+      else { console.error(error); showToast('Guided Journey 4 review stopped at the last safe state — inspect console evidence.'); }
     } finally {
       playJourneyActive = false;
       playBtn.disabled = false;
@@ -1371,8 +1374,8 @@ const k1Focus = (() => {
       await guidedReviewStep('[data-j4-filter="blocked"]', 'Session-only visual filter; no persistence or request.', ++step, total, null, REVIEW_COMPLETE_STEP_MS);
       showToast('Journey 4 Play complete finished — FUNCTIONAL CANDIDATE only; not Gate A.');
     } catch (error) {
-      console.error(error);
-      showToast('Journey 4 Play complete stopped at the last safe state.');
+      if (error && error.guidedStop) showToast('Playback stopped.');   // unified build, slice 2
+      else { console.error(error); showToast('Journey 4 Play complete stopped at the last safe state.'); }
     } finally {
       playJourneyActive = false;
       playBtn.disabled = false;
@@ -1544,6 +1547,7 @@ const k1Focus = (() => {
     const op = j5Operation; const stage = $('#j5-workflow-stage'); const preview = $('#j5-workflow-preview'); const footer = $('#j5-workflow-footer'); const title = $('#j5-workflow-title'); const description = $('#j5-workflow-description'); const announcement = $('#j5-workflow-announcement');
     if (!op || !stage || !preview || !footer || !title || !description || !announcement) return;
     const focusBefore = workflowFocusCapture();   // A11Y-INH-02 (rule R2)
+    $('#j5-workflow-dialog')?.setAttribute('aria-describedby', 'j5-workflow-description');   // L-18: back to the default description outside the J12 setup stage
     const names = { Copy: 'Copy private booking', Edit: 'Update existing booking', Remove: 'Remove one booking item', Move: 'Move one private item', Batch: 'Batch move private items' }; title.textContent = names[op.action] || 'Local operation'; description.textContent = 'Review fixture only. Previews are non-writing; no server request is sent; reload resets it.'; preview.hidden = true; preview.replaceChildren(); announcement.textContent = '';
     let html = ''; let buttons = '';
     if (op.permissionChanged) {
@@ -1788,17 +1792,18 @@ const k1Focus = (() => {
     const template = document.createElement('template'); template.innerHTML = html;
     const notes = ['.j6-public-banner', '.j5-inline-note', '.j6-entry-note', '.j6-defect-note', '.j6-resource-state'].map((selector) => template.content.querySelector(selector)).filter(Boolean);
     const details = document.createElement('details'); details.id = 'j12tc-evidence'; details.className = 'j12tc-evidence'; details.setAttribute('data-d0-hide', '');
-    const summary = document.createElement('summary'); summary.textContent = `Review evidence, boundaries and known defect (${notes.length} notes)`; summary.setAttribute('aria-label', summary.textContent);
+    const summary = document.createElement('summary'); summary.textContent = `Review evidence, boundaries and known defect (${notes.length} notes)`;   // L-18: the visible text is the whole name — no duplicate aria-label
     const content = document.createElement('div'); content.className = 'j12tc-evidence-content'; notes.forEach((note) => content.append(note));
     const label = document.createElement('p'); label.className = 'j12tc-review-label'; label.textContent = 'Review-only controls'; content.append(label);
     const controls = document.createElement('div'); controls.className = 'j12tc-review-controls'; controls.innerHTML = j6Button('j6-loading', 'Show availability loading') + j6Button('j6-noop-submit', 'Submit unchanged time'); content.append(controls);
-    const boundary = document.createElement('p'); boundary.className = 'j5-workflow-description j12tc-boundary'; boundary.setAttribute('data-d0-hide', ''); boundary.textContent = 'Local review only — nothing is saved; reload resets it.';
+    const boundary = document.createElement('p'); boundary.className = 'j5-workflow-description j12tc-boundary'; boundary.id = 'j12tc-boundary'; boundary.setAttribute('data-d0-hide', ''); boundary.textContent = 'Local review only — nothing is saved; reload resets it.';   // L-18: the dialog's description while this line is the one on screen
     template.content.prepend(boundary); details.append(summary, content); template.content.append(details); return template.innerHTML;
   }
   function j6RenderWorkflow() {
     const op = j5Operation, stage = $('#j5-workflow-stage'), footer = $('#j5-workflow-footer'), title = $('#j5-workflow-title'), description = $('#j5-workflow-description'), announcement = $('#j5-workflow-announcement');
     if (!op || !stage || !footer || !title || !description || !announcement) return;
     const focusBefore = workflowFocusCapture();   // A11Y-INH-02 (rule R2)
+    $('#j5-workflow-dialog')?.setAttribute('aria-describedby', 'j5-workflow-description');   // L-18: back to the default description outside the J12 setup stage
     $('#j5-workflow-kicker').textContent = 'Journey 6 · UJ-07 · local review'; title.textContent = j6ActionTitle(op.action); description.textContent = 'Review fixture only. Every preview is non-writing; no server request is sent; reload resets it.'; announcement.textContent = '';
     let html = '', buttons = '';
     if (op.permissionChanged) {
@@ -1830,6 +1835,14 @@ const k1Focus = (() => {
     }
     if (document.body.dataset.journey === '12' && op.action === 'PublicReschedule') html = '<div class="j12tc-reschedule' + (op.stage === 'setup' ? ' j12tc-setup' : '') + '">' + html + '</div>';
     stage.innerHTML = html; footer.innerHTML = buttons;
+    // L-18 (27 Oct 2026): in the setup stage the short boundary line is the sentence on screen, so the dialog is
+    // described by that line, word for word — not by the long line this stage hides. Where the line is not shown (the
+    // product-only customer view hides review commentary) the Master's own description stays in place.
+    if (document.body.dataset.journey === '12' && op.action === 'PublicReschedule' && op.stage === 'setup') {
+      const boundaryLine = $('#j12tc-boundary'), workflowDialog = $('#j5-workflow-dialog');
+      const lineShown = boundaryLine && getComputedStyle(boundaryLine).display !== 'none';
+      if (workflowDialog) workflowDialog.setAttribute('aria-describedby', lineShown ? 'j12tc-boundary' : 'j5-workflow-description');
+    }
     j6SyncValidation();
     if ($('#j6-duration')) $('#j6-duration').value = op.duration;
     $('#j6-time-mode')?.addEventListener('change', (event) => { op.timeMode = event.target.value; j6ReadValues(); return j6RenderWorkflow(); });
@@ -1884,8 +1897,10 @@ const k1Focus = (() => {
     if (j6Controls) { j6Controls.hidden = false; j6Controls.inert = false; j6Controls.removeAttribute('aria-hidden'); }
     const j6RailPanel = $('#review-rail-panel');
     const j6RailToggle = $('#review-rail-toggle');
-    if (j6RailPanel) { j6RailPanel.hidden = false; j6RailPanel.inert = false; j6RailPanel.removeAttribute('aria-hidden'); }
-    if (j6RailToggle) j6RailToggle.setAttribute('aria-expanded', 'true');
+    // Batch B2 / L-53, L-45 (27 Oct 2026, candidate): the review controls panel starts collapsed — ☰ opens it, as in Journeys 4, 5 and 8. Open at
+    // load it covered the header, the view bar and the asset search: the largest review-only group of hidden Tab stops. It stays usable once opened.
+    if (j6RailPanel) { j6RailPanel.hidden = true; j6RailPanel.inert = false; j6RailPanel.removeAttribute('aria-hidden'); }
+    if (j6RailToggle) j6RailToggle.setAttribute('aria-expanded', 'false');
     j4ActiveFixtureId = 'public-review'; j4EnabledFilters = new Set(J6_FILTER_ORDER); j6PublicInterval = { start: '08:00', end: '19:00' }; j5ReviewState = 'loaded'; j5LifecycleState = 'ready'; j5Operation = null;
     const overview = $('#j4-overview');
     if (overview) { overview.hidden = false; overview.inert = false; overview.removeAttribute('aria-hidden'); overview.innerHTML = `<div><span class="j4-kicker">Journey 6 · UJ-07 · Maintenance / Public Events</span><h1 id="j4-overview-title">Reschedule timeslots and reallocate resources</h1></div><div><p class="j6-public-banner">${J6_PUBLIC_BANNER}</p><p class="j6-defect-note">${J6_DEFECT_COPY}</p><p class="j6-entry-note">${J6_ENTRY_COPY}</p><p class="j6-entry-note"><strong>Evidence labels:</strong> RUNTIME-CONFIRMED · PARTIAL · BLOCKED/DEFECT-AFFECTED · UNVERIFIED · REVIEW FIXTURE.</p></div>`; }
@@ -2326,6 +2341,7 @@ const k1Focus = (() => {
   function j3ResetBootState() {
     weekStart = new Date(CHECKPOINT_WEEK_START);
     selectedAssets = new Set();
+    unifiedReapplyPending();   // unified build, slice 6 (Journey 3's own boot reset)
     assetQuery = '';
     assetActive = 0;
     assetScroll = 0;
@@ -2493,8 +2509,8 @@ const k1Focus = (() => {
       });
       showToast('Journey 3 guided review finished — Booking/Cart/Book and J2 Demo settings were not exposed.');
     } catch (error) {
-      console.error(error);
-      showToast('Guided Journey 3 review recovered — inspect console evidence');
+      if (error && error.guidedStop) showToast('Playback stopped.');   // unified build, slice 2
+      else { console.error(error); showToast('Guided Journey 3 review recovered — inspect console evidence'); }
     } finally {
       playJourneyActive = false;
       playBtn.disabled = false;
@@ -2532,8 +2548,8 @@ const k1Focus = (() => {
       }, REVIEW_COMPLETE_STEP_MS);
       showToast('Journey 3 Play complete finished — REVIEW FIXTURE only; not Gate A approval.');
     } catch (error) {
-      console.error(error);
-      showToast('Guided Journey 3 complete recovered — inspect console evidence');
+      if (error && error.guidedStop) showToast('Playback stopped.');   // unified build, slice 2
+      else { console.error(error); showToast('Guided Journey 3 complete recovered — inspect console evidence'); }
     } finally {
       playJourneyActive = false;
       playBtn.disabled = false;
@@ -2646,9 +2662,9 @@ const k1Focus = (() => {
   }
 
   function j2WaitWhilePlaying(ms) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       if (!j2PlayActive) { resolve(); return; }
-      setTimeout(resolve, ms);
+      setTimeout(() => { guidedGate().then(resolve, reject); }, ms);   // unified build, slice 2: the same pause / stop for Journey 2's player
     });
   }
 
@@ -3623,8 +3639,8 @@ const k1Focus = (() => {
         'Play journey finished — Booking, Week, Column, Friday 4 Sep 2026. REVIEW FIXTURE only; FN-SHELL-004/005/006 remain PARTIAL.',
         timing.completionHold
       );
-    } catch {
-      await j2ShowCompletionHold('Guided review stopped — target unavailable', timing.completionHold);
+    } catch (error) {
+      await j2ShowCompletionHold(error && error.guidedStop ? 'Playback stopped.' : 'Guided review stopped — target unavailable', timing.completionHold);   // unified build, slice 2
     } finally {
       j2PlayActive = false;
       if (playBtn) playBtn.disabled = false;
@@ -3655,8 +3671,8 @@ const k1Focus = (() => {
         'Play complete finished — Maintenance, Work Week, Stack, 7–11 Sep 2026. Four UJ-02 dimensions set. REVIEW FIXTURE only; not UI/UX approval.',
         timing.completionHold
       );
-    } catch {
-      await j2ShowCompletionHold('Guided review stopped — target unavailable', timing.completionHold);
+    } catch (error) {
+      await j2ShowCompletionHold(error && error.guidedStop ? 'Playback stopped.' : 'Guided review stopped — target unavailable', timing.completionHold);   // unified build, slice 2
     } finally {
       j2PlayActive = false;
       if (playBtn) playBtn.disabled = false;
@@ -3799,6 +3815,8 @@ const k1Focus = (() => {
   let assetScroll = 0;
   let assetActive = 0;
   let flatAssetRows = [];
+  let assetTreeDrawn = null;   // L-61 (28 Oct 2026): the rows renderAssetTree() last drew — the list and its window — for the tree's scroll listener
+  let treeRefocus = false;   // L-63 (28 Oct 2026): true while a redraw puts the keyboard focus back on the same venue box (not a move of the active row)
 
   let pickerType = null;
   let pickerOpen = false;
@@ -4763,6 +4781,31 @@ const k1Focus = (() => {
     }
   }
 
+  // L-63 (28 Oct 2026): one cursor in the venue tree. The tree names its active row (the highlight, aria-activedescendant) while Tab focuses the
+  // venue boxes themselves, so the two drifted apart and the tree's own Space, Enter and arrows worked on the active row, not on the box that
+  // had the focus. The row of a venue box that takes the focus now becomes the active row — no redraw, so the box keeps its focus.
+  function treeActivateBox(box) {
+    const row = box.closest('.tree-row');
+    const idx = row ? Number(row.dataset.idx) : -1;
+    if (idx < 0 || idx === assetActive) return;
+    assetActive = idx;
+    $$('#asset-tree-viewport .tree-row.active').forEach((x) => x.classList.remove('active'));
+    row.classList.add('active');
+    syncTreeAria(flatAssetRows);
+  }
+
+  // L-63: the arrows, Home and End pressed on a venue box take the keyboard focus with the active row — to that row's venue box, or to the tree
+  // itself on a venue or category row (it has no box; aria-activedescendant names it). The rows scrolled into view are drawn first; L-64: a
+  // row kept drawn for the box the focus has just left is then dropped.
+  function treeFocusActive() {
+    const scrollEl = $('#asset-tree');
+    if (assetScroll !== scrollEl.scrollTop) { assetScroll = scrollEl.scrollTop; renderAssetTree(); }
+    const r = flatAssetRows[assetActive];
+    const nb = r && r.kind === 'resource' ? $('#asset-tree-viewport .tree-check[data-res="' + CSS.escape(r.asset.id) + '"]') : null;
+    (nb || scrollEl).focus({ preventScroll: true });
+    if (assetTreeDrawn && assetTreeDrawn.kept) renderAssetTree();
+  }
+
   function renderSelectedStrip() {
     const strip = $('#asset-selected-strip');
     if (!strip) return;
@@ -4792,6 +4835,10 @@ const k1Focus = (() => {
 
   function toggleResourcePin(id, checked) {
     if (isJ3Journey() && !findJ3Asset(id)) return;
+    // L-62 (28 Oct 2026): the redraw below replaces the venue box that Space has just ticked or unticked, so the keyboard focus fell to the
+    // page and the next Tab started again at the first box. The focus now moves to the box's replacement — through k1Focus, only for the
+    // actual last keyboard activation on that box; pointer and load paths are unchanged.
+    const box = document.activeElement && document.activeElement.closest ? document.activeElement.closest('#asset-tree-viewport .tree-check') : null;
     if (checked) selectedAssets.add(id);
     else selectedAssets.delete(id);
     const a = findJ3Asset(id) || reviewAssets.find((x) => x.id === id) || ASSETS.find((x) => x.id === id);
@@ -4799,6 +4846,7 @@ const k1Focus = (() => {
     renderAssetTree();
     renderCalendar();
     if (!isJ3Journey() && !stagedSelection && cartLines.length === 0) updateCartUI();
+    if (box) k1Focus.move($('#asset-tree-viewport .tree-check[data-res="' + CSS.escape(box.dataset.res) + '"]'), box);
   }
 
   function openPickerFromFocusedSource(type) {
@@ -4875,9 +4923,20 @@ const k1Focus = (() => {
     $('#asset-search').addEventListener('keydown', handleAssetSearchKeys);
     $('#asset-tree').addEventListener('scroll', (e) => {
       assetScroll = e.target.scrollTop;
+      // L-61 (28 Oct 2026): every row is placed for the whole list (its top = its index × the row height), so a scroll that keeps the same
+      // rows drawn needs no redraw. The redraw replaced the checkbox Tab had just focused (the browser scrolls the tree to show it): the focus
+      // fell to the page and the next Tab started again at the first row, so on short screens (640 × 400) Tab could not pass the venue tree.
+      // A scroll that changes the drawn rows (a long list) redraws as before.
+      const drawn = assetTreeDrawn;
+      if (drawn && drawn.rows === flatAssetRows) {
+        const win = computeWindow(assetScroll, e.target.clientHeight || 300, j3GetTreeRowHeight(), drawn.rows.length);
+        if (win.start === drawn.start && win.end === drawn.end) return;
+      }
       renderAssetTree();
     });
     $('#asset-tree-viewport').addEventListener('click', handleAssetTreeClick);
+    // L-63: a venue box that takes the KEYBOARD focus becomes the active row (a pointer focus is left as before; a key pressed on it does it).
+    $('#asset-tree-viewport').addEventListener('focusin', (e) => { if (!treeRefocus && e.target.matches('.tree-check:focus-visible')) treeActivateBox(e.target); });
     $('#asset-tree').addEventListener('keydown', handleAssetTreeKeys);
     $('#asset-selected-strip').addEventListener('click', (e) => {
       const btn = e.target.closest('[data-unpin]');
@@ -4939,6 +4998,10 @@ const k1Focus = (() => {
     const rows = flatAssetRows;
     const n = rows.length;
     if (!n) return;
+    // L-63: a key pressed on a venue box works on that box's row; the arrows, Home and End then take the focus with the active row.
+    const box = e.target !== e.currentTarget && e.target.matches('#asset-tree-viewport .tree-check') ? e.target : null;
+    const moves = ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key);
+    if (box && (moves || ['ArrowRight', 'ArrowLeft', ' ', 'Spacebar', 'Enter'].includes(e.key))) treeActivateBox(box);
     if (e.key === 'ArrowDown') { e.preventDefault(); assetActive = Math.min(n - 1, assetActive + 1); renderAssetTree(); scrollTreeActive(); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); assetActive = Math.max(0, assetActive - 1); renderAssetTree(); scrollTreeActive(); }
     else if (e.key === 'Home') { e.preventDefault(); assetActive = 0; renderAssetTree(); scrollTreeActive(); }
@@ -4982,6 +5045,7 @@ const k1Focus = (() => {
       $('#asset-search').value = '';
       renderAssetTree();
     }
+    if (box && moves) treeFocusActive();
   }
 
   function expandAssetNode(key) {
@@ -5118,8 +5182,103 @@ const k1Focus = (() => {
     return dateKey(weekStart) === dateKey(CHECKPOINT_WEEK_START);
   }
 
+  // Unified build, slice 1 (the Director, 29 Oct 2026, 1:33 PM — conditions 2 and 4): the shared calendar shows the view chosen in the view bar IN
+  // PLACE — Day (one day), Work Week (Monday–Friday) or Week (seven days) — in the same journey, keeping its selection, its Cart and its flow.
+  // Journey 2 keeps its own view system.
+  let sharedView = 'week';
+  let sharedDay = null;
+  let sharedMonth = null;   // unified build, slice 4: the first day of the month shown in Month view (null = the month of the shown week)
   function getWeekDays() {
-    return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+    if (sharedView === 'day') return [sharedDay || weekStart];
+    return Array.from({ length: sharedView === 'workweek' ? 5 : 7 }, (_, i) => addDays(weekStart, i));
+  }
+  function renderSharedMonth(grid) {   // unified build, slice 4: the journey's own month overview (Journey 2's accepted month design); a day opens its Day view here
+    const ref = sharedMonth || addDays(weekStart, 3); const first = new Date(ref.getFullYear(), ref.getMonth(), 1); const last = new Date(ref.getFullYear(), ref.getMonth() + 1, 0);
+    const start = addDays(first, -((first.getDay() + 6) % 7)); const end = addDays(last, 6 - ((last.getDay() + 6) % 7));
+    grid.dataset.sharedView = 'month'; grid.style.setProperty('--cal-cols', '7');
+    const assets = new Set(ASSETS.filter((a) => selectedAssets.has(a.id)).map((a) => a.id));
+    const showEvents = !isJ4Journey();   // Journeys 4–6 draw their own timeslot fixtures, not the shared events (as in their week view)
+    const wrap = document.createElement('div'); wrap.className = 'month-grid shared-month'; wrap.setAttribute('role', 'group'); wrap.setAttribute('aria-label', 'Month — choose a day to open it');
+    ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach((wd) => { const el = document.createElement('div'); el.className = 'month-weekday'; el.setAttribute('aria-hidden', 'true'); el.textContent = wd; wrap.appendChild(el); });
+    for (let cur = new Date(start); cur <= end; cur = addDays(cur, 1)) {
+      const d = new Date(cur), dk = dateKey(d);
+      const evs = showEvents ? EVENTS.filter((ev) => ev.date === dk && assets.has(ev.asset)) : [];
+      const cell = document.createElement('button'); cell.type = 'button'; cell.className = 'month-cell'; cell.dataset.date = dk;
+      if (d.getMonth() !== first.getMonth()) cell.classList.add('is-other-month');
+      if (dk === dateKey(TODAY)) { cell.classList.add('is-today'); cell.setAttribute('aria-current', 'date'); }
+      cell.setAttribute('aria-label', `${d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, ${evs.length ? evs.length + (evs.length === 1 ? ' event' : ' events') : 'no events'} — opens this day`);
+      const num = document.createElement('div'); num.className = 'month-cell-date'; num.textContent = String(d.getDate()); cell.appendChild(num);
+      const box = document.createElement('div'); box.className = 'month-cell-events';
+      evs.forEach((ev) => { const chip = document.createElement('div'); chip.className = `month-chip cal-event ${ev.type}`; applyTimeslotVisual(chip, ev.type); chip.textContent = `${ev.allDay ? '' : String(ev.start).padStart(2, '0') + ':00 '}${ev.title}`; chip.setAttribute('aria-hidden', 'true'); box.appendChild(chip); });
+      cell.appendChild(box);
+      cell.addEventListener('click', () => {   // the day opens in Day view, here: move the week by whole weeks (keeps the fixture week's own time base)
+        const k = Math.round((addDays(d, -((d.getDay() + 6) % 7)) - addDays(weekStart, 0)) / (7 * 86400000));
+        weekStart = addDays(weekStart, 7 * k); sharedDay = addDays(weekStart, (d.getDay() + 6) % 7);
+        const dayBtn = document.querySelector('.view-switch .view-btn[data-view="day"]'); if (dayBtn) dayBtn.click();
+      });
+      wrap.appendChild(cell);
+    }
+    grid.appendChild(wrap);
+    $('#date-range-label').textContent = first.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  }
+  // unified build, slice 5 (run 2's D4): Journey 15's module takes the Agenda/Custom press first (and stops it), so it calls this to return the shared
+  // calendar to its week before listing it — the Agenda lists the shown week, never an empty day.
+  window.__unifiedToWeek = () => { if (sharedView !== 'week') { sharedView = 'week'; sharedMonth = null; document.body.dataset.sharedView = 'week'; renderCalendar(); } };
+  // Unified build, slice 6: Booking / Maintenance switch WORKSPACE and keep the context (week, view, assets, layout, Cart) — sessionStorage, one key.
+  const UNIFIED_CTX = 'optimoUnified.context.v1';
+  const UNIFIED_BOOKING_JOURNEYS = [1, 3, 4, 5, 6, 7, 8, 9];
+  function unifiedReadCtx() { try { return JSON.parse(sessionStorage.getItem(UNIFIED_CTX) || 'null'); } catch (e) { return null; } }
+  function unifiedSwitchWorkspace(target) {
+    const prev = unifiedReadCtx(); const fromBooking = UNIFIED_BOOKING_JOURNEYS.includes(UNIFIED_KEY);
+    const home = fromBooking ? UNIFIED_KEY : ((prev && prev.bookingHome) || 1);
+    const kept = fromBooking ? { assets: [...selectedAssets], cart: cartLines, layout: slotLayout } : ((prev && prev.home) || null);
+    const ctx = { at: Date.now(), from: UNIFIED_KEY, target, bookingHome: home, home: kept, week: weekStart.getTime(), view: sharedView,
+      day: sharedDay ? sharedDay.getTime() : null, month: sharedMonth ? sharedMonth.getTime() : null, assets: [...selectedAssets] };
+    try { sessionStorage.setItem(UNIFIED_CTX, JSON.stringify(ctx)); } catch (e) { /* no storage: the switch still happens */ }
+    location.assign(location.pathname + '?journey=' + (target === 'maintenance' ? 10 : home));
+  }
+  window.__unifiedSwitch = unifiedSwitchWorkspace;
+  let unifiedPending = null;   // the carried context until the journey's own boot has run (a boot reset gets it once more; then it is settled)
+  function unifiedApplyState(ctx) {   // returns what was carried, so the message says only that
+    weekStart = new Date(ctx.week);
+    const view = ['day', 'workweek', 'month'].includes(ctx.view);
+    if (view) { sharedView = ctx.view; sharedDay = ctx.day ? new Date(ctx.day) : null; sharedMonth = ctx.month ? new Date(ctx.month) : null; }
+    const universe = UNIFIED_KEY === 3 ? J3_FIXTURE_CATALOG.map((a) => a.id) : ASSETS.map((a) => a.id);
+    const wanted = (ctx.target === 'booking' && ctx.home ? ctx.home.assets : ctx.assets) || [];
+    const assets = wanted.length > 0 && wanted.every((a) => universe.includes(a));
+    if (assets) selectedAssets = new Set(wanted);
+    let cart = false;
+    if (ctx.target === 'booking' && ctx.home) {
+      if (ctx.home.layout === 'stack' || ctx.home.layout === 'column') slotLayout = ctx.home.layout;
+      if (Array.isArray(ctx.home.cart) && ctx.home.cart.length) { cartLines = ctx.home.cart.map((l) => ({ ...l })); cart = true; }
+    }
+    return { view: view || ctx.view === 'week', assets, cart };
+  }
+  function unifiedReapplyPending() { if (unifiedPending) unifiedApplyState(unifiedPending); }
+  function unifiedKeptText(ok) {
+    const parts = ['week']; if (ok.view) parts.push('view'); if (ok.assets) parts.push('assets'); if (ok.cart) parts.push('Cart');
+    return 'your ' + (parts.length > 1 ? parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1] + ' are' : parts[0] + ' is') + ' kept.';
+  }
+  function unifiedRestoreState() {   // at the very start of the destination's startup: the page then renders with the carried context
+    const ctx = unifiedReadCtx(); if (!ctx || ctx.applied || Date.now() - ctx.at > 30 * 60000) return null;
+    const want = ctx.target === 'maintenance' ? 10 : ctx.bookingHome; if (UNIFIED_KEY !== want) return null;
+    ctx.applied = true; try { sessionStorage.setItem(UNIFIED_CTX, JSON.stringify(ctx)); } catch (e) {}
+    const ok = unifiedApplyState(ctx); unifiedPending = ctx;
+    return (ctx.target === 'maintenance' ? 'Maintenance — ' : ctx.home ? `Back to Journey ${UNIFIED_KEY} — ` : 'Booking — ') + unifiedKeptText(ok);   // "Back to" only where the person came from
+  }
+  function unifiedShowRestored(msg) {   // after the journey's boot: the carried view's button pressed, the Cart drawn, the message shown and announced
+    if (sharedView !== 'week') $$('.view-switch .view-btn').forEach((b) => { const on = b.dataset.view === sharedView; b.classList.toggle('is-active', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    if (cartLines.length) { renderCartLines(); updateCartUI(); }
+    showToast(msg);   // the toast region is the page's polite status region: one announcement (Supervisor review, 3:59 PM: the extra live-region copy announced it twice)
+  }
+  function sharedRangeLabel() {
+    if (sharedView === 'day' && sharedDay) return sharedDay.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    if (sharedView === 'workweek') {
+      const end = addDays(weekStart, 4); const sm = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return weekStart.getMonth() === end.getMonth() ? `${weekStart.getDate()}–${end.getDate()} ${sm[weekStart.getMonth()]} ${weekStart.getFullYear()}`
+        : `${weekStart.getDate()} ${sm[weekStart.getMonth()]} – ${end.getDate()} ${sm[end.getMonth()]} ${weekStart.getFullYear()}`;
+    }
+    return formatRangeLabel(weekStart);
   }
 
   function timeToSlot(hour, minute) {
@@ -5500,14 +5659,57 @@ const k1Focus = (() => {
     });
   }
 
+  let toastTimer = null;
+  // Gate A-approved correction (27 Oct 2026) — L-05 (b), option A: a notice caused in the Cart (the person's focus is in the Cart)
+  // is shown IN the Cart — one line just above its buttons — while that part of the Cart is on screen, so it never floats over the calendar or over
+  // the Cart's own list. The off-week notice is not repeated as a floating notice while the calendar's own notice line (L-56) shows the same words;
+  // it is still announced. Every other notice keeps the floating notice exactly as before.
+  // Gate B revision ga2: the Cart's line is a plain line and every notice it takes is announced once through #ldp-live (a live region present
+  // since page load — a region created or re-shown together with its words is not announced by some screen readers); the off-week notice is
+  // held back only while the calendar's own line is on screen — wholly inside its boxes and not covered — not merely rendered.
+  let cartNoticeTimer = null;
+  function cartNotice(msg, duration) {
+    const actions = document.getElementById('cart-sticky-actions'), from = document.activeElement;
+    if (!actions || !from || !from.closest || !from.closest('#booking-cart, #cart-sheet') || actions.closest('[hidden]')) return false;
+    const box = actions.getBoundingClientRect();
+    if (!box.width || !box.height || box.bottom <= 0 || box.top >= window.innerHeight) return false;
+    let line = document.getElementById('cart-inline-notice');
+    if (!line) {
+      line = document.createElement('p'); line.id = 'cart-inline-notice'; line.className = 'cart-inline-notice';
+      actions.insertBefore(line, actions.firstChild);
+    }
+    clearTimeout(cartNoticeTimer); line.textContent = msg; line.hidden = false;
+    cartNoticeTimer = setTimeout(() => { line.hidden = true; line.textContent = ''; }, duration || 3500);
+    return true;
+  }
+  function offWeekNoticeShown() {   // the calendar's own notice line wholly on screen: inside the window and every box that clips it, and not covered
+    const b = document.querySelector('.off-week-banner'); if (!b || b.hidden || !b.getClientRects().length) return false;
+    const r = b.getBoundingClientRect(); let top = Math.max(r.top, 0), bottom = Math.min(r.bottom, window.innerHeight), left = Math.max(r.left, 0), right = Math.min(r.right, window.innerWidth);
+    for (let a = b.parentElement; a && a !== document.body; a = a.parentElement) {
+      const cs = getComputedStyle(a); if (cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
+      const k = a.getBoundingClientRect(); top = Math.max(top, k.top); bottom = Math.min(bottom, k.bottom); left = Math.max(left, k.left); right = Math.min(right, k.right);
+    }
+    if (!(r.height > 0 && bottom - top >= r.height - 1 && right - left > 0)) return false;
+    const e = document.elementFromPoint((left + right) / 2, (top + bottom) / 2); return !!e && (e === b || b.contains(e));   // nothing over it (a panel, a dialog)
+  }
+
   function showToast(msg, duration) {
     const region = $('#toast-region');
+    if (cartNotice(msg, duration) || (msg === 'Checkpoint fixtures are in 24–30 Aug 2026. Today returns to that week.' && offWeekNoticeShown())) {   // L-05 (b) option A
+      clearTimeout(toastTimer); [...region.querySelectorAll('.toast')].forEach((el) => el.remove()); placeToastRegion(region, true);
+      announceLive(msg);   // once, through the live region present since page load
+      return;
+    }
+    // L-05 (b), 27 Oct 2026: one notice at a time. A new message replaces the one on screen (and restarts its own
+    // timer), so two actions in quick succession can never stack notices over the calendar or the phone Cart sheet.
+    clearTimeout(toastTimer);
+    [...region.querySelectorAll('.toast')].forEach((el) => el.remove());
     placeToastRegion(region);
     const el = document.createElement('div');
     el.className = 'toast';
     el.textContent = msg;
     region.appendChild(el);
-    setTimeout(() => {
+    toastTimer = setTimeout(() => {
       el.remove();
       if (!region.querySelector('.toast')) placeToastRegion(region, true);
     }, duration || 3500);
@@ -7584,12 +7786,23 @@ const k1Focus = (() => {
     flatAssetRows = rows;
     const scrollEl = $('#asset-tree');
     const vp = $('#asset-tree-viewport');
+    // L-62 (28 Oct 2026, the long list's window change): a redraw replaces the venue box that has the keyboard focus — Tab scrolls the tree and a
+    // scroll that changes the drawn rows redraws them — so the focus fell to the page and Tab cycled inside a long list. Keep the KEYBOARD focus
+    // (:focus-visible; a pointer focus is left as before) on the box's replacement when it is still drawn, without scrolling.
+    const kbBox = document.activeElement && document.activeElement.matches && document.activeElement.matches('#asset-tree-viewport .tree-check:focus-visible') ? document.activeElement.dataset.res : null;
     const total = rows.length;
     const rowH = j3GetTreeRowHeight();
     const win = computeWindow(assetScroll, scrollEl.clientHeight || 300, rowH, total);
+    // L-64 (28 Oct 2026): a mouse wheel or the scrollbar can move the box with the keyboard focus out of the drawn rows; its row is then drawn
+    // as well, in its place in the list, so the focus stays on it (out of view, as in any long list).
+    const kbIdx = kbBox ? rows.findIndex((r) => r.kind === 'resource' && r.asset.id === kbBox) : -1;
+    const kept = kbIdx >= 0 && (kbIdx < win.start || kbIdx >= win.end) ? kbIdx : -1;
+    const drawIdx = [];
+    for (let i = win.start; i < win.end; i++) drawIdx.push(i);
+    if (kept >= 0) { if (kept < win.start) drawIdx.unshift(kept); else drawIdx.push(kept); }
     vp.style.height = win.totalHeight + 'px';
     let html = '';
-    for (let i = win.start; i < win.end; i++) {
+    for (const i of drawIdx) {
       const r = rows[i];
       const top = i * rowH;
       const ind = (r.level - 1) * 14;
@@ -7627,6 +7840,8 @@ const k1Focus = (() => {
       }
     }
     vp.innerHTML = html;
+    assetTreeDrawn = { rows, start: win.start, end: win.end, kept: kept >= 0 };   // L-61: what is drawn now (L-64: and whether a row is kept)
+    if (kbBox) { const nb = vp.querySelector('.tree-check[data-res="' + CSS.escape(kbBox) + '"]'); if (nb) { treeRefocus = true; nb.focus({ preventScroll: true }); treeRefocus = false; } }   // L-62: the keyboard focus kept (L-63: the active row not moved)
     syncTreeAria(rows);
     const selCount = selectedAssets.size;
     if (isJ3Journey()) {
@@ -7898,8 +8113,10 @@ const k1Focus = (() => {
     grid.innerHTML = '';
     grid.classList.remove('j4-calendar-grid');
     syncSlotLayoutControl();
+    if (sharedView === 'month') { renderSharedMonth(grid); return; }   // unified build, slice 4: Month in place
 
     const days = getWeekDays();
+    grid.style.setProperty('--cal-cols', String(days.length)); grid.dataset.sharedView = sharedView;   // unified build, slice 1: 1, 5 or 7 columns
     let lanes;
     if (document.body.dataset.journey === '3') {
       lanes = J3_FIXTURE_CATALOG.filter((a) => selectedAssets.has(a.id))
@@ -7917,7 +8134,10 @@ const k1Focus = (() => {
         offWeekBanner = document.createElement('p');
         offWeekBanner.className = 'off-week-banner';
         offWeekBanner.textContent = 'Checkpoint fixtures are in 24–30 Aug 2026. Today returns to that week.';
-        $('#calendar').insertBefore(offWeekBanner, $('#calendar-scroll'));
+        // Batch B2 / L-56 (27 Oct 2026, candidate): the notice sits inside the calendar's own scroll box, above the grid, so it scrolls with the
+        // calendar instead of taking its height. It used to sit in the calendar column, whose height is fixed: "Next week" squeezed the calendar
+        // by 32–88 px — to 0 px on a portrait tablet's review view (Journeys 12, 14, 16). The same words; the toast on navigation is unchanged.
+        $('#calendar-scroll').insertBefore(offWeekBanner, $('#calendar-grid'));
       }
       offWeekBanner.hidden = false;
     } else if (offWeekBanner) {
@@ -7938,16 +8158,16 @@ const k1Focus = (() => {
       if (document.body.dataset.journey === '1') {
         const main = document.createElement('span');
         main.className = 'j1-day-main';
-        main.textContent = `${dayNames[di]} ${day.getDate()}`;
+        main.textContent = `${dayNames[(day.getDay() + 6) % 7]} ${day.getDate()}`;
         const month = document.createElement('span');
         month.className = 'j1-day-month';
         month.textContent = day.toLocaleString('en', { month: 'short' });
         hdr.append(main, month);
-        if (today) hdr.setAttribute('aria-label', `Today, ${dayNames[di]} ${day.getDate()} ${month.textContent} ${day.getFullYear()}`);
+        if (today) hdr.setAttribute('aria-label', `Today, ${dayNames[(day.getDay() + 6) % 7]} ${day.getDate()} ${month.textContent} ${day.getFullYear()}`);
       } else if (today) {
-        hdr.innerHTML = `${dayNames[di]} ${day.getDate()}<span class="today-tag">Today</span>`;
+        hdr.innerHTML = `${dayNames[(day.getDay() + 6) % 7]} ${day.getDate()}<span class="today-tag">Today</span>`;
       } else {
-        hdr.textContent = `${dayNames[di]} ${day.getDate()}`;
+        hdr.textContent = `${dayNames[(day.getDay() + 6) % 7]} ${day.getDate()}`;
       }
       header.appendChild(hdr);
     });
@@ -8089,7 +8309,7 @@ const k1Focus = (() => {
     });
 
     updateNowLine();
-    $('#date-range-label').textContent = formatRangeLabel(weekStart);
+    $('#date-range-label').textContent = sharedRangeLabel();   // unified build, slice 1: the label follows the view (the retired j4RenderCalendar copy is left as is)
     document.body.dataset.week = isCheckpointWeek() ? 'checkpoint' : 'other';
     if (isJ4Journey()) j4AfterCalendarRender(grid); else renderTimeslotLegend();
     if (document.body.dataset.journey === '12') document.dispatchEvent(new Event('j12:calendar-rendered'));
@@ -8505,6 +8725,7 @@ const k1Focus = (() => {
     weekStart = new Date(CHECKPOINT_WEEK_START);
     selectedAssets = new Set(['hall1', 'studio2']);
     cartLines = [];
+    unifiedReapplyPending();   // unified build, slice 6: a Booking / Maintenance switch's context, during the journey's boot only (settled after it)
     stagedSelection = null;
     editingLineId = null;
     expandedLineId = null;
@@ -8533,6 +8754,26 @@ const k1Focus = (() => {
   }
 
   const REVIEW_PLAY_STEP_MS = 2500;
+  // Unified build, slice 2 (the Director, 29 Oct 2026 1:33 PM, condition 3): Pause / Resume / Restart / Stop for the Master's own guided-review players.
+  let guidedPaused = false, guidedStopAsked = false, guidedRestartAsked = false, guidedLastRun = null;
+  class GuidedStop extends Error { constructor() { super('Playback stopped'); this.guidedStop = true; } }
+  async function guidedGate() {   // a pause holds here; a stop ends the run here (each player's catch reports it, its finally ends the run cleanly)
+    while (guidedPaused && !guidedStopAsked) await new Promise((r) => setTimeout(r, 120));
+    if (guidedStopAsked) { guidedStopAsked = false; throw new GuidedStop(); }   // once per run: a player's own catch may still wait (Journey 2's completion hold)
+  }
+  function syncGuidedControls() {
+    const p = document.getElementById('guided-review-pause'); if (!p) return;
+    p.setAttribute('aria-pressed', String(guidedPaused)); p.textContent = guidedPaused ? '▶ Resume' : '❚❚ Pause';
+  }
+  document.addEventListener('click', (event) => {   // the player's own controls (in its card)
+    const b = event.target.closest && event.target.closest('#guided-review-pause, #guided-review-restart, #guided-review-stop'); if (!b) return;
+    event.preventDefault(); event.stopPropagation();
+    if (b.id === 'guided-review-pause') guidedPaused = !guidedPaused;
+    else { guidedStopAsked = true; guidedPaused = false; if (b.id === 'guided-review-restart') guidedRestartAsked = true; }
+    syncGuidedControls();
+    const live = $('#live-region');
+    if (live) live.textContent = b.id === 'guided-review-pause' ? (guidedPaused ? 'Playback paused.' : 'Playback resumed.') : b.id === 'guided-review-stop' ? 'Playback stopped.' : 'Playback restarting.';
+  }, true);
   const REVIEW_COMPLETE_STEP_MS = 1400;
   const REVIEW_PLAY_DIALOG_MS = 3000;
   const GUIDED_REVIEW_MOVE_MS = 650;
@@ -8540,9 +8781,9 @@ const k1Focus = (() => {
   let guidedReviewTarget = null;
 
   function waitForPlay(ms) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       if (!playJourneyActive) { resolve(); return; }
-      setTimeout(resolve, ms);
+      setTimeout(() => { guidedGate().then(resolve, reject); }, ms);   // unified build, slice 2: a pause holds here; a stop ends the run here
     });
   }
 
@@ -8553,13 +8794,18 @@ const k1Focus = (() => {
     overlay.id = 'guided-review-overlay';
     overlay.className = 'guided-review-overlay';
     overlay.hidden = true;
-    overlay.setAttribute('aria-hidden', 'true');
     overlay.innerHTML = `
       <div class="guided-review-card">
+        <span class="guided-review-sequence" id="guided-review-sequence" hidden></span>
         <span class="guided-review-count" id="guided-review-count"></span>
-        <strong class="guided-review-caption" id="guided-review-caption"></strong>
+        <strong class="guided-review-caption" id="guided-review-caption" aria-live="polite"></strong>
+        <div class="guided-review-controls" role="group" aria-label="Playback">
+          <button type="button" class="guided-review-btn" id="guided-review-pause" aria-pressed="false">❚❚ Pause</button>
+          <button type="button" class="guided-review-btn" id="guided-review-restart">↺ Restart</button>
+          <button type="button" class="guided-review-btn" id="guided-review-stop">■ Stop</button>
+        </div>
       </div>
-      <div class="guided-review-cursor" id="guided-review-cursor">
+      <div class="guided-review-cursor" id="guided-review-cursor" aria-hidden="true">
         <svg viewBox="0 0 32 40" aria-hidden="true" focusable="false"><path d="M2 2v29l8-7 6 14 6-3-6-14h11z"></path></svg>
         <span class="guided-review-ripple" aria-hidden="true"></span>
       </div>`;
@@ -8568,7 +8814,9 @@ const k1Focus = (() => {
   }
 
   function beginGuidedReview(mode, total) {
-    const overlay = ensureGuidedReviewOverlay();
+    guidedPaused = false; guidedStopAsked = false; guidedLastRun = mode;   // unified build, slice 2
+    const overlay = ensureGuidedReviewOverlay(); syncGuidedControls();
+    unifiedOnBegin();   // unified build, slice 7: the Play all line; a run starts from the Week view
     overlay.hidden = false;
     overlay.dataset.mode = mode;
     overlay.dataset.total = String(total);
@@ -8584,6 +8832,14 @@ const k1Focus = (() => {
   }
 
   function endGuidedReview() {
+    const unifiedOutcome = unifiedRunOutcome();   // unified build, slice 7: Play all — read before the flags reset
+    guidedPaused = false; guidedStopAsked = false; syncGuidedControls();   // unified build, slice 2: Restart = the same journey's rail button again
+    if (guidedRestartAsked) {   // unified build, slice 7: Restart during Play all → Journey 1, step 1; a scripted demonstration → its fresh fixture (also Journey 13, no rail)
+      guidedRestartAsked = false; const m = guidedLastRun;
+      if (unifiedAllRestartAsked) { unifiedAllRestartAsked = false; setTimeout(() => { if (UNIFIED_KEY === 1) unifiedAllRunHere(); else location.assign(location.pathname + '?journey=1'); }, 350); }
+      else if ((window.UNIFIED_SCRIPTS || {})[UNIFIED_KEY]) setTimeout(() => unifiedStartScript(UNIFIED_KEY, m, true), 350);
+      else { const again = m === 'complete' ? 'btn-play-complete' : 'btn-play-journey'; setTimeout(() => { const b = document.getElementById(again); if (b && !b.disabled) b.click(); }, 350); }
+    }
     if (guidedReviewTarget) {
       guidedReviewTarget.classList.remove('guided-review-target', 'guided-review-clicked');
       guidedReviewTarget = null;
@@ -8598,6 +8854,8 @@ const k1Focus = (() => {
     const cursor = $('#guided-review-cursor');
     if (cursor) cursor.classList.remove('is-visible', 'is-clicking');
     document.body.classList.remove('guided-review-running');
+    if (unifiedOutcome) window.setTimeout(() => unifiedAllAdvance(unifiedOutcome), 0);   // unified build, slice 7: the next journey of Play all
+    else if (unifiedAllStoppedAt === UNIFIED_KEY) { unifiedAllStoppedAt = null; window.setTimeout(() => showToast(`Play all stopped at Journey ${UNIFIED_KEY} of 16.`), 0); }
   }
 
   function resolveGuidedReviewTarget(target) {
@@ -8605,6 +8863,223 @@ const k1Focus = (() => {
     if (typeof target === 'string') return $(target);
     return target;
   }
+
+  // Unified build, slice 3: the generic demonstration player — a journey's step list (window.UNIFIED_SCRIPTS[key], from unified-scripts.js) played by
+  // the Master's own guidedReviewStep, inside the standard lifecycle (begin / steps / catch / finally / end), so Pause, Resume, Restart and Stop work.
+  // A step: { at: CSS selector, say: caption, act?: 'click' (default) | 'slot' | 'select' | 'fill' | 'check', value?, when?: CSS selector that must
+  // match for the step to run (a conditional step), wait?: ms after the step, completeOnly?: true (only in Play complete) }.
+  const UNIFIED_KEY = (() => { const q = Number(new URLSearchParams(location.search).get('journey')) || 1;
+    if (q === 12 && /^#agenda/.test(location.hash)) return 15; if (q === 12 && /^#settings/.test(location.hash)) return 16; return q; })();
+  function unifiedAct(el, s) {
+    if (s.act === 'select') { const v = s.value != null ? s.value : ([...(el.options || [])].find((o) => o.value && !o.disabled) || {}).value; el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); return; }
+    if (s.act === 'fill') { el.value = s.value || ''; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); return; }
+    if (s.act === 'check') { if (!el.checked) activateGuidedClickable(el); return; }
+    if (s.act === 'slot') { activateGuidedCalendarSlot(el); return; }
+    activateGuidedClickable(el);
+  }
+  async function playUnifiedScript(key, mode) {
+    const steps = (window.UNIFIED_SCRIPTS || {})[key]; if (!steps || playJourneyActive) return false;
+    playJourneyActive = true; const playBtn = $('#btn-play-journey'), completeBtn = $('#btn-play-complete');
+    if (playBtn) playBtn.disabled = true; if (completeBtn) completeBtn.disabled = true;
+    const list = steps.filter((s) => mode === 'complete' || !s.completeOnly); const total = list.length; let n = 0;
+    beginGuidedReview(mode, total);
+    try {
+      for (const s of list) {
+        n += 1;
+        if (s.when && !document.querySelector(s.when)) continue;   // a conditional step not needed now (for example, a dialog already open)
+        { const t = document.querySelector(s.at); const r = t ? t.getBoundingClientRect() : null;   // v4/v6 (AT-PLAY: J12/J13 below the fold; J6 inside the review rail's scrolling panel): the step's control is brought fully into view first — the engine scrolls only unrendered targets
+          if (r && r.width && r.height) { let L = r.left, T = r.top, R2 = r.right, B2 = r.bottom;
+            for (let e = t.parentElement; e && e !== document.body; e = e.parentElement) { const cs = getComputedStyle(e); if (/(hidden|clip|auto|scroll)/.test(cs.overflow + cs.overflowX + cs.overflowY)) { const q = e.getBoundingClientRect(); L = Math.max(L, q.left); T = Math.max(T, q.top); R2 = Math.min(R2, q.right); B2 = Math.min(B2, q.bottom); } }
+            L = Math.max(L, 0); T = Math.max(T, 0); R2 = Math.min(R2, window.innerWidth); B2 = Math.min(B2, window.innerHeight);
+            if (Math.max(0, R2 - L) * Math.max(0, B2 - T) < 0.9 * r.width * r.height) t.scrollIntoView({ block: 'center', inline: 'nearest' }); } }
+        await guidedReviewStep(s.at, s.say, n, total, (el) => unifiedAct(el, s), s.wait);
+      }
+      { const ov = $('#guided-review-overlay'); if (ov) ov.dataset.step = String(total); }   // unified build, slice 7: played to the end (conditional steps included)
+      showToast(`Journey ${key} demonstration finished — every step was a real control; data are simulated.`);
+    } catch (error) {
+      if (error && error.guidedStop) showToast('Playback stopped.');
+      else { console.error(error); showToast(`Journey ${key} demonstration stopped — ${String((error && error.message) || error).slice(0, 90)}`); }
+    } finally {
+      playJourneyActive = false; if (playBtn) playBtn.disabled = false; if (completeBtn) completeBtn.disabled = false; endGuidedReview();
+    }
+    return true;
+  }
+  window.__unifiedPlay = (key, mode) => playUnifiedScript(Number(key), mode || 'journey');
+  window.__unifiedPlayState = () => ({ active: playJourneyActive, key: UNIFIED_KEY });
+  // Unified build, slice 7: the journey menu, Play all 16, a scripted demonstration from the fresh fixture, and ask before a Cart would be lost.
+  const UNIFIED_NAMES = { 1: 'Create booking & Cart', 2: 'Modes, views & date', 3: 'Search & selected assets', 4: 'Timeslots & calendar', 5: 'Existing booking actions',
+    6: 'Reschedule & reallocation', 7: 'New-booking pricing', 8: 'Existing pricing change', 9: 'Recurring booking', 10: 'Blocks (Maintenance)',
+    11: 'Diary notes', 12: 'Public-event actions (review only)', 13: 'Configuration & capacity', 14: 'Location hand-offs',
+    15: 'Agenda, Custom view & export', 16: 'Rights, settings & states' };
+  const UNIFIED_AUTOPLAY = 'optimoUnified.autoplay.v1';
+  const UNIFIED_ALL = 'optimoUnified.playAll.v1';
+  let unifiedAllStoppedAt = null;
+  let unifiedAllRestartAsked = false;
+  let unifiedAllRunActive = false;   // v3: a Play all step's demonstration really began on this page — boot() → closeAllJourneyOverlays() also calls endGuidedReview()
+  let unifiedSeen = { step: 0, total: 0 };   // v7: the highest "Step N of M" shown during the run — Journey 2's own player ends with "Complete" in the counter
+  function unifiedWatchCount() {
+    const c = document.getElementById('guided-review-count'); if (!c || c.dataset.unifiedWatched) return; c.dataset.unifiedWatched = '1';
+    new MutationObserver(() => { const m = /Step (\d+) of (\d+)/.exec(c.textContent || ''); if (m) { unifiedSeen.step = Math.max(unifiedSeen.step, Number(m[1])); unifiedSeen.total = Math.max(unifiedSeen.total, Number(m[2])); } })
+      .observe(c, { childList: true, characterData: true, subtree: true });
+  }
+  const unifiedEsc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  function unifiedAllRead() { try { const s = JSON.parse(sessionStorage.getItem(UNIFIED_ALL) || 'null'); return s && s.running && Date.now() - s.at < 3600000 ? s : null; } catch (e) { return null; } }
+  function unifiedAllWrite(s) { try { if (s) sessionStorage.setItem(UNIFIED_ALL, JSON.stringify({ ...s, at: Date.now() })); else sessionStorage.removeItem(UNIFIED_ALL); } catch (e) { /* no storage */ } }
+  function unifiedGuardCart(reason, goLabel, proceed) {   // Gate A REQUIRED: ask before anything clears a Booking Cart (local review data, never saved)
+    const n = cartLines.length; if (!n) { proceed(); return; }
+    let d = document.getElementById('unified-confirm');
+    if (!d) {
+      d = document.createElement('div'); d.id = 'unified-confirm'; d.className = 'unified-confirm'; d.hidden = true;
+      d.innerHTML = '<div class="unified-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="unified-confirm-title" aria-describedby="unified-confirm-text">'
+        + '<h2 id="unified-confirm-title">Leave this Booking Cart?</h2><p id="unified-confirm-text"></p>'
+        + '<div class="unified-confirm-actions"><button type="button" class="unified-confirm-btn" id="unified-confirm-keep">Keep my Cart</button>'
+        + '<button type="button" class="unified-confirm-btn is-primary" id="unified-confirm-go"></button></div></div>';
+      document.body.appendChild(d);
+    }
+    const back = document.activeElement, keep = d.querySelector('#unified-confirm-keep'), go = d.querySelector('#unified-confirm-go');
+    d.querySelector('#unified-confirm-text').textContent = `Your Booking Cart has ${n} ${n === 1 ? 'item' : 'items'} (local review data — nothing is saved). ${reason}, so this Cart will be cleared.`;
+    go.textContent = goLabel;
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(false); }
+      else if (e.key === 'Tab') { e.preventDefault(); (document.activeElement === keep ? go : keep).focus(); }
+    };
+    function close(ok) {
+      d.hidden = true; d.removeEventListener('keydown', onKey); keep.onclick = null; go.onclick = null;
+      if (ok) { proceed(); return; }
+      const t = back && back.isConnected && back.offsetParent !== null ? back : document.getElementById('unified-journey-btn'); if (t) t.focus();
+    }
+    d.addEventListener('keydown', onKey); keep.onclick = () => close(false); go.onclick = () => close(true);
+    d.hidden = false; keep.focus();
+  }
+  function unifiedStartScript(key, mode, restart) {   // a scripted demonstration starts from the journey's fresh review fixture: reload, then play
+    if (!((window.UNIFIED_SCRIPTS || {})[key])) return false;
+    if (playJourneyActive) return true;
+    const go = () => {
+      try { sessionStorage.setItem(UNIFIED_AUTOPLAY, JSON.stringify({ key, mode, at: Date.now() })); } catch (e) { playUnifiedScript(key, mode); return; }
+      showToast(`${restart ? 'Restarting' : 'Starting'} the Journey ${key} demonstration from its review fixture…`);
+      window.setTimeout(() => location.reload(), 350);
+    };
+    if (restart) go(); else unifiedGuardCart(`Playing the Journey ${key} demonstration starts it again from its review fixture`, 'Play the demonstration', go);
+    return true;
+  }
+  function unifiedPlayThis() {
+    if ((window.UNIFIED_SCRIPTS || {})[UNIFIED_KEY]) { unifiedStartScript(UNIFIED_KEY, 'journey'); return; }
+    const b = document.getElementById('btn-play-journey');
+    if (b && !b.disabled) unifiedGuardCart(`Playing the Journey ${UNIFIED_KEY} demonstration starts it again from its review fixture`, 'Play the demonstration', () => b.click());
+    else showToast(`Journey ${UNIFIED_KEY} has no demonstration to play.`);
+  }
+  function unifiedSyncMenu() {
+    const b = document.getElementById('unified-play-all'); if (!b) return; const s = unifiedAllRead();
+    b.textContent = s ? `■ Stop playing all (Journey ${s.k} of 16)` : '▶▶ Play all 16 journeys';
+  }
+  function unifiedMenuOpen() {
+    const btn = document.getElementById('unified-journey-btn'), menu = document.getElementById('unified-journey-menu'); if (!btn || !menu) return;
+    unifiedSyncMenu(); menu.style.left = ''; menu.style.right = ''; menu.hidden = false; btn.setAttribute('aria-expanded', 'true');
+    if (getComputedStyle(menu).position !== 'fixed' && menu.getBoundingClientRect().right > window.innerWidth - 8) { menu.style.left = 'auto'; menu.style.right = '0'; }   // v4 (AT-SIZE 768 J2): kept inside the window — aligned to the button's right edge
+    const cur = menu.querySelector('.uj-link[aria-current="page"]') || menu.querySelector('.uj-link'); if (cur) cur.focus();
+  }
+  function unifiedMenuClose(refocus) {
+    const btn = document.getElementById('unified-journey-btn'), menu = document.getElementById('unified-journey-menu'); if (!btn || !menu || menu.hidden) return;
+    menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); if (refocus) btn.focus();
+  }
+  function unifiedMountJourneyMenu() {   // in the top bar (Journey 13: its own header) — never over the page
+    const j13 = document.body.dataset.journey === '13';
+    const host = j13 ? document.querySelector('#j13-standalone-surface .top') : document.getElementById('top-bar');
+    if (!host || document.getElementById('unified-journeys')) return;
+    let items = '';
+    for (let k = 1; k <= 16; k += 1) items += `<li><a class="uj-link" href="?journey=${k}" data-k="${k}"${k === UNIFIED_KEY ? ' aria-current="page"' : ''}><span class="uj-k" aria-hidden="true">${k}</span><span class="uj-t">${unifiedEsc(UNIFIED_NAMES[k])}</span><span class="visually-hidden">, Journey ${k}</span></a></li>`;
+    const wrap = document.createElement('div'); wrap.className = 'unified-journeys'; wrap.id = 'unified-journeys';
+    const label = `J${UNIFIED_KEY} — Journey ${UNIFIED_KEY} of 16, ${UNIFIED_NAMES[UNIFIED_KEY] || ''}: choose a journey or play a demonstration`;   // v3: the name holds every visible form (J2 / Journey 2 / Journey 2 of 16 · name)
+    wrap.innerHTML = `<button type="button" class="unified-journey-btn" id="unified-journey-btn" aria-expanded="false" aria-controls="unified-journey-menu" aria-label="${unifiedEsc(label).replace(/"/g, '&quot;')}">`
+      + `<span class="uj-label"><span class="uj-word">Journey </span><span class="uj-j">J</span>${UNIFIED_KEY}<span class="uj-of"> of 16</span></span><span class="uj-name">${unifiedEsc(UNIFIED_NAMES[UNIFIED_KEY] || '')}</span>`
+      + '<span class="uj-caret" aria-hidden="true">▾</span></button>'
+      + `<div class="unified-journey-menu" id="unified-journey-menu" hidden><nav aria-label="Journeys"><ol class="uj-list">${items}</ol></nav>`
+      + '<div class="uj-actions" role="group" aria-label="Demonstration"><button type="button" class="uj-act" id="unified-play-this">▶ Play this journey</button>'
+      + '<button type="button" class="uj-act is-primary" id="unified-play-all">▶▶ Play all 16 journeys</button></div>'
+      + '<p class="uj-note">Simulated review data — nothing is saved.</p></div>';
+    host.insertBefore(wrap, host.querySelector(j13 ? '.user' : '.user-identity'));
+    const sim = document.createElement('span'); sim.className = 'unified-sim'; sim.id = 'unified-sim'; sim.textContent = 'Simulated data · no server';
+    sim.title = 'Simulated review data — no server request; nothing is saved'; wrap.after(sim);   // Gate A AT-SIM
+    const btn = wrap.querySelector('#unified-journey-btn'), menu = wrap.querySelector('#unified-journey-menu');
+    btn.addEventListener('click', () => { if (menu.hidden) unifiedMenuOpen(); else unifiedMenuClose(true); });
+    wrap.addEventListener('keydown', (e) => {
+      if (menu.hidden) return;
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); unifiedMenuClose(true); return; }
+      const list = [...menu.querySelectorAll('.uj-link, .uj-act')]; const i = list.indexOf(document.activeElement);
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const m = list.length; list[(i < 0 ? 0 : i + (e.key === 'ArrowDown' ? 1 : m - 1)) % m].focus(); }
+      else if (e.key === 'Home' || e.key === 'End') { e.preventDefault(); list[e.key === 'Home' ? 0 : list.length - 1].focus(); }
+    });
+    wrap.addEventListener('focusout', (e) => { if (!menu.hidden && e.relatedTarget && !wrap.contains(e.relatedTarget)) unifiedMenuClose(false); });
+    document.addEventListener('click', (e) => { if (!menu.hidden && !wrap.contains(e.target)) unifiedMenuClose(false); }, true);
+    menu.querySelectorAll('.uj-link').forEach((a) => a.addEventListener('click', (e) => {
+      const k = Number(a.dataset.k);
+      if (k === UNIFIED_KEY) { e.preventDefault(); unifiedMenuClose(true); return; }
+      if (unifiedAllRead()) unifiedAllWrite(null);   // the person takes over: Play all ends
+      if (cartLines.length) { e.preventDefault(); unifiedMenuClose(false); unifiedGuardCart(`Opening Journey ${k} shows that journey's own review data`, `Open Journey ${k}`, () => location.assign(a.href)); }
+    }));
+    wrap.querySelector('#unified-play-this').addEventListener('click', () => { unifiedMenuClose(false); unifiedPlayThis(); });
+    wrap.querySelector('#unified-play-all').addEventListener('click', () => {
+      unifiedMenuClose(false);
+      if (unifiedAllRead()) { unifiedAllWrite(null); unifiedSyncMenu(); showToast('Play all stopped.'); } else unifiedAllStart();
+    });
+    unifiedSyncMenu();
+  }
+  function unifiedAllStart() {
+    unifiedGuardCart('Playing all 16 journeys starts each one from its review fixture', 'Play all 16', () => {
+      unifiedAllWrite({ running: true, k: 1, results: {} }); unifiedSyncMenu();
+      if (UNIFIED_KEY === 1 && !playJourneyActive) unifiedAllRunHere(); else location.assign(location.pathname + '?journey=1');
+    });
+  }
+  function unifiedAllRunHere() {   // this journey's own demonstration, as a step of Play all
+    unifiedSyncMenu();
+    if ((window.UNIFIED_SCRIPTS || {})[UNIFIED_KEY]) playUnifiedScript(UNIFIED_KEY, 'journey');
+    else { const b = document.getElementById('btn-play-journey'); if (b && !b.disabled) b.click(); }
+    if (!document.body.classList.contains('guided-review-running')) unifiedAllAdvance('had no demonstration');
+  }
+  function unifiedRunOutcome() {   // read in endGuidedReview before its flags reset: null = not a Play all step (or a Restart)
+    const s = unifiedAllRead(); if (!s || s.k !== UNIFIED_KEY || guidedRestartAsked || !unifiedAllRunActive) return null;
+    unifiedAllRunActive = false;
+    const o = $('#guided-review-overlay'); const m = /Step (\d+) of (\d+)/.exec(((document.getElementById('guided-review-count') || {}).textContent || ''));
+    const step = Math.max(Number(o && o.dataset.step) || 0, m ? Number(m[1]) : 0, unifiedSeen.step), total = Math.max(Number(o && o.dataset.total) || 0, m ? Number(m[2]) : 0, unifiedSeen.total);   // v5/v7 (AT-ALL runs 3–4): Journey 2's own player updates only the visible counter and ends with "Complete" in it
+    return total > 0 && step >= total ? 'played' : 'ended early';
+  }
+  function unifiedAllAdvance(outcome) {
+    const s = unifiedAllRead(); if (!s || s.k !== UNIFIED_KEY) return;
+    s.results[s.k] = outcome;
+    if (s.k >= 16) {
+      unifiedAllWrite(null); unifiedSyncMenu();
+      const played = Object.values(s.results).filter((r) => r === 'played').length;
+      const other = Object.keys(s.results).filter((k) => s.results[k] !== 'played').map((k) => `Journey ${k} ${s.results[k]}`);
+      showToast(`Play all finished — ${played} of 16 journeys played to the end${other.length ? ` (${other.join('; ')})` : ''}.`, 8000);
+      return;
+    }
+    const next = s.k + 1; s.k = next; unifiedAllWrite(s); unifiedSyncMenu();
+    showToast(`Journey ${UNIFIED_KEY} ${outcome === 'played' ? 'finished' : outcome} — next: Journey ${next}, ${UNIFIED_NAMES[next]}.`);
+    window.setTimeout(() => { const t = unifiedAllRead(); if (t && t.k === next) location.assign(location.pathname + '?journey=' + next); }, 1800);
+  }
+  function unifiedOnBegin() {   // at the start of every demonstration run
+    const seq = document.getElementById('guided-review-sequence'); const s = unifiedAllRead();
+    if (s && s.k === UNIFIED_KEY) unifiedAllRunActive = true;
+    unifiedSeen = { step: 0, total: 0 }; unifiedWatchCount();   // v7
+    if (seq) { seq.hidden = !(s && s.k === UNIFIED_KEY); if (!seq.hidden) seq.textContent = `Play all · Journey ${s.k} of 16 — ${UNIFIED_NAMES[s.k]}`; }
+    const j = document.body.dataset.journey;
+    if (j !== '2' && j !== '12' && (sharedView !== 'week' || document.body.dataset.j15View)) {   // the accepted players were written for the Week view
+      const wb = document.querySelector('.view-switch .view-btn[data-view="week"]'); if (wb) wb.click();
+    }
+  }
+  function unifiedAfterBoot() {   // after the journey's boot: Play all continues here, or a scripted demonstration plays from the fresh fixture
+    let fresh = null;
+    try { const a = JSON.parse(sessionStorage.getItem(UNIFIED_AUTOPLAY) || 'null'); sessionStorage.removeItem(UNIFIED_AUTOPLAY); if (a && a.key === UNIFIED_KEY && Date.now() - a.at < 60000) fresh = a; } catch (e) { /* no storage */ }
+    const all = unifiedAllRead();
+    if (all && all.k === UNIFIED_KEY) { unifiedAllRunHere(); return; }
+    if (all) { unifiedAllWrite(null); unifiedSyncMenu(); }   // a Play all left behind: the person went elsewhere
+    if (fresh) playUnifiedScript(fresh.key, fresh.mode);
+  }
+  document.addEventListener('click', (e) => {   // Stop in the guided-review card also ends Play all; Restart during Play all goes back to Journey 1
+    if (!(e.target instanceof Element) || !unifiedAllRead()) return;
+    if (e.target.closest('#guided-review-stop')) { unifiedAllStoppedAt = UNIFIED_KEY; unifiedAllWrite(null); unifiedSyncMenu(); }
+    else if (e.target.closest('#guided-review-restart')) { unifiedAllRestartAsked = true; unifiedAllWrite({ running: true, k: 1, results: {} }); unifiedSyncMenu(); }
+  }, true);
 
   function activateGuidedCalendarSlot(el) {
     if (document.body.dataset.journey === '1' && slotLayout === 'column') {
@@ -8725,29 +9200,29 @@ const k1Focus = (() => {
       await guidedReviewStep('#cart-primary-action', 'Add the Item-only selection to Cart', ++playJourneyStep, total);
       await guidedReviewStep(() => $('.cart-line [data-select-line]'), 'Select the staged Cart line', ++playJourneyStep, total);
       setCartViewMode('detailed');
-      await guidedReviewStep(() => $('.cart-line [data-time]'), 'Open Change date & time from the staged line', ++playJourneyStep, total);
+      await guidedReviewStep(() => revealGuidedLineAction('.cart-line', '[data-time]'), 'Open Change date & time from the staged line', ++playJourneyStep, total);
       await guidedReviewStep('#time-start-time', 'Change Start Time; live availability and the same-line summary update immediately', ++playJourneyStep, total, (el) => { el.value = '15:00'; el.dispatchEvent(new Event('input', { bubbles: true })); });
       await guidedReviewStep('#time-confirm', 'Confirm the valid time change and fixture repricing in one step', ++playJourneyStep, total);
-      await guidedReviewStep(() => $('.cart-line [data-config]'), 'Open per-line facility Configuration', ++playJourneyStep, total);
+      await guidedReviewStep(() => revealGuidedLineAction('.cart-line', '[data-config]'), 'Open per-line facility Configuration', ++playJourneyStep, total);
       await guidedReviewStep('#configuration-choice', 'Choose Banquet Configuration', ++playJourneyStep, total, (el) => { el.value = 'banquet'; el.dispatchEvent(new Event('change', { bubbles: true })); });
       await guidedReviewStep('#configuration-apply', 'Apply Configuration to the staged facility', ++playJourneyStep, total);
-      await guidedReviewStep(() => $('.cart-line [data-package]'), 'Open the private Package editor', ++playJourneyStep, total);
+      await guidedReviewStep(() => revealGuidedLineAction('.cart-line', '[data-package]'), 'Open the private Package editor', ++playJourneyStep, total);
       await guidedReviewStep('#package-picker-btn', 'Use the same scalable Package picker', ++playJourneyStep, total);
       await guidedReviewStep('#ldp-package-opt-private-day', 'Choose the Attendees-type Package', ++playJourneyStep, total);
       await guidedReviewStep('#package-value', 'Enter Package Attendees within fixture limits', ++playJourneyStep, total, (el) => { el.value = '25'; el.dispatchEvent(new Event('input', { bubbles: true })); });
       await guidedReviewStep('#package-apply', 'Apply Package contents and Attendees', ++playJourneyStep, total);
-      await guidedReviewStep(() => $('.cart-line [data-pricing]'), 'Open Change Pricing', ++playJourneyStep, total);
+      await guidedReviewStep(() => revealGuidedLineAction('.cart-line', '[data-pricing]'), 'Open Change Pricing', ++playJourneyStep, total);
       await guidedReviewStep('input[name="price-mode"][value="change"]', 'Choose another Price Type', ++playJourneyStep, total);
       await guidedReviewStep('#pricing-apply', 'Apply Pricing Option, Type, Unit and Concession', ++playJourneyStep, total);
       await guidedReviewStep(() => revealGuidedLineAction('.cart-line', '[data-details]'), 'Open progressive Item, Package, allocation and availability details', ++playJourneyStep, total);
-      await guidedReviewStep('#cart-primary-action', 'Return to Diary to add another interval', ++playJourneyStep, total);
+      await guidedReviewStep(() => { closeCartItemEditor(false); return $('#cart-primary-action'); }, 'Return to Diary to add another interval', ++playJourneyStep, total);   // unified build, slice 9: the details dialog (step 25) is closed first
       await guidedReviewStep('.cal-day-col[data-asset="studio2"][data-date="2026-08-29"] .cal-slot[data-slot="4"]', 'Stage Studio 2 · 10:00–12:00', ++playJourneyStep, total, activateGuidedCalendarSlot);
       await guidedReviewStep('#cart-primary-action', 'Add the second selection', ++playJourneyStep, total);
       await guidedReviewStep(() => revealGuidedLineAction('.cart-line:last-child', '[data-remove]'), 'Remove the second staged selection', ++playJourneyStep, total);
       showToast('Source-complete guided review finished — remove confirmation remains open for explicit review');
     } catch (error) {
-      console.error(error);
-      showToast('Guided journey recovered to the last valid control — inspect console evidence');
+      if (error && error.guidedStop) showToast('Playback stopped.');   // unified build, slice 2
+      else { console.error(error); showToast('Guided journey recovered to the last valid control — inspect console evidence'); }
     } finally {
       playJourneyActive = false;
       playBtn.disabled = false;
@@ -8781,8 +9256,8 @@ const k1Focus = (() => {
       await guidedReviewStep('#confirm-booking-btn', 'Book, show the created Diary event, then reach the external Booking App handoff boundary', ++step, total, activateGuidedClickable, REVIEW_COMPLETE_STEP_MS);
       showToast('Guided Diary-only create journey finished — Booking created, external handoff boundary shown');
     } catch (error) {
-      console.error(error);
-      showToast('Guided complete journey stopped — review target unavailable');
+      if (error && error.guidedStop) showToast('Playback stopped.');   // unified build, slice 2
+      else { console.error(error); showToast('Guided complete journey stopped — review target unavailable'); }
     } finally {
       playJourneyActive = false;
       playBtn.disabled = false;
@@ -9168,6 +9643,8 @@ const k1Focus = (() => {
   }
 
   function init() {
+    const unifiedRestored = unifiedRestoreState();   // unified build, slice 6: the context of a Booking / Maintenance switch, before anything renders
+    unifiedMountJourneyMenu();   // unified build, slice 7: the journey menu in the top bar
     const isJ9 = document.body.dataset.journey === '9';
     const isJ2 = document.body.dataset.journey === '2';
     const isJ3 = document.body.dataset.journey === '3';
@@ -9205,7 +9682,9 @@ const k1Focus = (() => {
 
     $('#date-prev').addEventListener('click', () => {
       if (document.body.dataset.journey === '2') { j2StepDate(-1); return; }
-      weekStart = addDays(weekStart, -7);
+      if (sharedView === 'month') { const m = sharedMonth || addDays(weekStart, 3); sharedMonth = new Date(m.getFullYear(), m.getMonth() - 1, 1); }   // unified build, slice 4: Month view steps a month
+      else if (sharedView === 'day') { sharedDay = addDays(sharedDay || weekStart, -1); if (sharedDay < weekStart) weekStart = addDays(weekStart, -7); }   // unified build, slice 1: Day view steps a day
+      else weekStart = addDays(weekStart, -7);
       setStage('b');
       renderCalendar();
       if (!isCheckpointWeek()) showToast('Checkpoint fixtures are in 24–30 Aug 2026. Today returns to that week.');
@@ -9213,7 +9692,9 @@ const k1Focus = (() => {
 
     $('#date-next').addEventListener('click', () => {
       if (document.body.dataset.journey === '2') { j2StepDate(1); return; }
-      weekStart = addDays(weekStart, 7);
+      if (sharedView === 'month') { const m = sharedMonth || addDays(weekStart, 3); sharedMonth = new Date(m.getFullYear(), m.getMonth() + 1, 1); }   // unified build, slice 4
+      else if (sharedView === 'day') { sharedDay = addDays(sharedDay || weekStart, 1); if (sharedDay >= addDays(weekStart, 7)) weekStart = addDays(weekStart, 7); }   // unified build, slice 1: Day view steps a day
+      else weekStart = addDays(weekStart, 7);
       setStage('b');
       renderCalendar();
       if (!isCheckpointWeek()) showToast('Checkpoint fixtures are in 24–30 Aug 2026. Today returns to that week.');
@@ -9222,6 +9703,8 @@ const k1Focus = (() => {
     $('#date-today').addEventListener('click', () => {
       if (document.body.dataset.journey === '2') { j2SetDate(J2_TODAY); return; }
       weekStart = new Date(CHECKPOINT_WEEK_START);
+      if (sharedView === 'day') sharedDay = new Date(TODAY);   // unified build, slice 1: Today returns to the fixture day
+      if (sharedView === 'month') sharedMonth = null;   // unified build, slice 4: Today returns to the fixture month
       setStage('b');
       renderCalendar();
     });
@@ -9272,15 +9755,35 @@ const k1Focus = (() => {
 
     $$('.view-switch .view-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
-        if (btn.dataset.view === 'week') return;
+        const v = btn.dataset.view;
+        if (v === 'day' || v === 'week' || v === 'workweek' || v === 'month') { setSharedView(v); return; }   // unified build, slices 1 and 4: in place
+        if ((v === 'agenda' || v === 'custom') && window.__j15V2) {   // unified build, slice 5: Journey 15's module handles it, in place — no checkpoint toast
+          if (sharedView !== 'week') { sharedView = 'week'; sharedMonth = null; document.body.dataset.sharedView = 'week'; renderCalendar(); }   // the Agenda lists the shown week
+          return;
+        }
         showToast('Checkpoint proves Week — other views are not removed from Product scope.');
       });
     });
 
+    function setSharedView(v) {   // unified build, slice 1: Day / Work Week / Week in place on the shared calendar (every journey but Journey 2)
+      if (document.body.dataset.journey === '2') return;
+      sharedView = v;
+      if (v === 'month') sharedMonth = null;   // unified build, slice 4: the month of the shown week
+      if (v === 'day') {
+        const week = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+        const keep = sharedDay && week.some((d) => dateKey(d) === dateKey(sharedDay));
+        if (!keep) sharedDay = week.find((d) => dateKey(d) === dateKey(TODAY)) || weekStart;
+      }
+      $$('.view-switch .view-btn').forEach((b) => { const on = b.dataset.view === v; b.classList.toggle('is-active', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+      document.body.dataset.sharedView = v;
+      renderCalendar();
+      const live = $('#live-region'); if (live) live.textContent = `${v === 'day' ? 'Day' : v === 'workweek' ? 'Work Week' : v === 'month' ? 'Month' : 'Week'} view, ${$('#date-range-label').textContent}`;
+    }
+
     $$('.mode-nav .mode-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         if (btn.dataset.mode === 'booking') return;
-        showToast(isJ4 || isJ5 || isJ6 ? `Maintenance is outside the Journey ${isJ6 ? '6' : isJ5 ? '5' : '4'} review fixture.` : 'Maintenance is not Journey 1');
+        unifiedSwitchWorkspace('maintenance');   // unified build, slice 6: the Maintenance workspace, keeping the context
       });
     });
 
@@ -9540,6 +10043,209 @@ const k1Focus = (() => {
     window.addEventListener('resize', () => window.requestAnimationFrame(syncCartSheetRoom));   // L-35: the expanded cart sheet follows the view bar
     if (window.ResizeObserver && document.getElementById('view-bar')) new ResizeObserver(() => syncCartSheetRoom()).observe(document.getElementById('view-bar'));
     syncCartSheetRoom();
+    // KV-1 / KV-C (25 Oct 2026, candidate): on phones the Journey 12 route's view strip scrolls sideways, and Edge scrolls a focused view button
+    // into view only when it is entirely outside the strip — a partly visible one stayed mostly hidden (320 px: "Work Week" 2 of 19 points). Scroll it fully in.
+    document.addEventListener('focusin', (event) => {
+      const btn = event.target instanceof Element ? event.target.closest('.view-switch .view-btn') : null;
+      const strip = btn && btn.closest('.view-switch');
+      if (!strip || strip.scrollWidth <= strip.clientWidth) return;
+      const b = btn.getBoundingClientRect(), s = strip.getBoundingClientRect();
+      if (b.left < s.left || b.right > s.right) btn.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    });
+    // KV-1 / L-42 (25 Oct 2026, candidate v3): inside the scrolling details dialog (Journeys 4, 5, 6, 8) a control reached with Tab or Shift+Tab could
+    // stop under the dialog's sticky footer — scroll it up above the footer, after the browser's own scroll. Only for Tab: focus set by the page itself
+    // (when the dialog opens, while it is still being drawn) or by a mouse is left as it is, so nothing changes at load.
+    let kv1TabAt = -Infinity;   // when Tab was the last key pressed; any other key or a pointer press clears it
+    window.addEventListener('keydown', (event) => { kv1TabAt = event.key === 'Tab' ? event.timeStamp : -Infinity; }, true);
+    window.addEventListener('pointerdown', () => { kv1TabAt = -Infinity; }, true);
+    document.addEventListener('focusin', (event) => {
+      const el = event.target instanceof Element ? event.target : null;
+      const dlg = el && el.closest('#j4-details-dialog');
+      if (!dlg || event.timeStamp - kv1TabAt > 500) return;
+      window.requestAnimationFrame(() => {
+        const foot = dlg.querySelector('.j4-details-footer');
+        if (!foot || foot.contains(el) || document.activeElement !== el || dlg.scrollHeight <= dlg.clientHeight) return;
+        const k = el.getBoundingClientRect(), f = foot.getBoundingClientRect();
+        if (k.bottom > f.top && k.top < f.bottom) dlg.scrollTop += Math.ceil(k.bottom - f.top) + 8;
+      });
+    });
+    // KV-2 (26 Oct 2026, candidate) — B3 / L-41, the Director's design direction B′ "skip what is hidden, keep what is visible" (approved
+    // 26 Oct 2026, 11:38 AM). While a panel, sheet or drawer covers part of the calendar, the assets list or the assets launcher, only their
+    // controls that can be seen outside it stay in the Tab order: the others get tabindex -1 (marked data-kv2-tab, which keeps the page's own
+    // value) and get it back as soon as they can be seen again; a panel covering (almost) all of an area leaves nothing of it in the Tab order.
+    // Nothing is made inert: the page itself returns the focus to a calendar control the moment a panel closes (Journey 12's event), which an
+    // inert calendar would refuse.
+    // Scrolling elements are skipped like controls (Edge makes a scroller with nothing focusable inside a Tab stop of its own), and so is the
+    // scrolling work area while (almost) fully covered. An area scrolled fully out of view is measured against the part of the window where it
+    // would appear. An element counts as covering unless the area is
+    // drawn above it (a hit test), so a drawer drawn above the backdrop keeps its controls. The phone cart sheet covers only while expanded.
+    // Mouse, touch and everything that can be seen work as before; nothing changes on screen. Re-checked right before Tab moves the focus, and
+    // once per frame after a panel opens, closes or moves, a redraw of the calendar or the assets list, a resize, any scroll, any focus change
+    // and the end of a transition.
+    (function kv2CoverGuard() {
+      const COVERS = ['body.sheet-expanded #cart-sheet', '#booking-cart', '#j3-explorer-scrim', '#j12-event-actions-panel', '#j14-diary-panel'];
+      // [area, the container only (its controls belong to the areas inside it)]
+      const AREAS = [['#calendar-scroll', false], ['#assets-panel', false], ['#j3-asset-launcher', false], ['#diary-workspace', true]];
+      const CONTROLS = 'button, a[href], input, select, textarea, summary, iframe, audio[controls], video[controls], [contenteditable]:not([contenteditable="false"]), [tabindex], [data-kv2-tab]';
+      let queued = false;
+      const shown = (el) => {
+        if (!el || el.hidden || el.closest('[hidden]') || !el.getClientRects().length) return false;
+        const cs = getComputedStyle(el);
+        return cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0.05;
+      };
+      const meet = (a, k) => ({ l: Math.max(a.l, k.left ?? k.l), t: Math.max(a.t, k.top ?? k.t), r: Math.min(a.r, k.right ?? k.r), b: Math.min(a.b, k.bottom ?? k.b) });
+      const size = (a) => Math.max(0, a.r - a.l) * Math.max(0, a.b - a.t);
+      const inside = (x, y, a) => x >= a.l && x <= a.r && y >= a.t && y <= a.b;
+      function sync() {
+        queued = false;
+        const view = { l: 0, t: 0, r: window.innerWidth, b: window.innerHeight }, memo = new Map(), notes = [];
+        const clip = (el) => {   // the part of the window in which the content of el can be seen: the window cut down by el and every ancestor that clips
+          if (!el || el === document.body || el === document.documentElement) return view;
+          let box = memo.get(el);
+          if (!box) {
+            const up = clip(el.parentElement), cs = getComputedStyle(el), k = el.getBoundingClientRect();
+            box = { l: cs.overflowX === 'visible' ? up.l : Math.max(up.l, k.left), r: cs.overflowX === 'visible' ? up.r : Math.min(up.r, k.right),
+              t: cs.overflowY === 'visible' ? up.t : Math.max(up.t, k.top), b: cs.overflowY === 'visible' ? up.b : Math.min(up.b, k.bottom),
+              scroller: /(auto|scroll)/.test(cs.overflowX + cs.overflowY) && (el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1) };
+            memo.set(el, box);
+          }
+          return box;
+        };
+        const covers = COVERS.map((sel) => document.querySelector(sel)).filter(shown);
+        for (const [sel, shell] of AREAS) {
+          const area = document.querySelector(sel);
+          if (!area) continue;
+          const room = clip(area.parentElement), seen = meet(room, area.getBoundingClientRect());
+          const ref = size(seen) > 0 ? seen : room, total = size(ref);   // scrolled fully out of view: where it would appear
+          const over = [];   // the boxes of the covers drawn over this area
+          let cover = 0;
+          if (total > 0) for (const c of covers) {
+            if (c.contains(area) || area.contains(c)) continue;
+            const k = c.getBoundingClientRect(), o = meet(ref, k);
+            if (size(o) <= 0) continue;
+            let mine = 0, theirs = 0;   // a 3 × 3 hit test in the overlap: the area drawn above the cover, or the cover above the area
+            for (let i = 1; i <= 3; i++) for (let n = 1; n <= 3; n++) {
+              const hit = document.elementFromPoint(o.l + (o.r - o.l) * i / 4, o.t + (o.b - o.t) * n / 4);
+              if (hit && area.contains(hit)) mine++; else if (hit && c.contains(hit)) theirs++;
+            }
+            if (mine && !theirs) continue;   // the area is drawn above it (an asset explorer above the Cart's backdrop)
+            over.push({ l: k.left, t: k.top, r: k.right, b: k.bottom });
+            cover = Math.max(cover, size(o) / total);
+          }
+          const hidden = (el) => {   // its centre cannot be seen: clipped away, or under a cover
+            let k = el.getBoundingClientRect();
+            if (k.width * k.height < 4 && el.labels && el.labels[0]) k = el.labels[0].getBoundingClientRect();   // a visually hidden control: its label
+            const x = (k.left + k.right) / 2, y = (k.top + k.bottom) / 2;
+            return !(k.width > 0 && k.height > 0 && inside(x, y, clip(el.parentElement)) && !over.some((r) => inside(x, y, r)));
+          };
+          const skip = [], keep = [], scrollers = new Set();
+          if (!shell) for (const el of area.querySelectorAll(over.length ? CONTROLS : '[data-kv2-tab]')) (over.length && hidden(el) ? skip : keep).push(el);   // reads first …
+          if (shell) { const box = clip(area); if ((box.scroller && !area.hasAttribute('tabindex')) || area.dataset.kv2Tab !== undefined) { scrollers.add(area); (over.length && cover >= 0.95 ? skip : keep).push(area); } }
+          else if (over.length) for (const [el, box] of memo) {
+            if (!box.scroller || !area.contains(el) || (el.hasAttribute('tabindex') && el.dataset.kv2Tab === undefined)) continue;   // a tabindex the page set; the guard's own mark is re-classified
+            scrollers.add(el);
+            ((el === area ? cover >= 0.95 : hidden(el)) ? skip : keep).push(el);
+          }
+          if (!shell && area.dataset.kv2Tab !== undefined && !skip.includes(area) && !keep.includes(area)) keep.push(area);   // the area's own mark (its descendants are queried above)
+          for (const el of skip) {   // … then writes
+            if (el.getAttribute('tabindex') === '-1' || (el.dataset.kv2Tab === undefined && el.tabIndex < 0 && !scrollers.has(el))) continue;
+            el.dataset.kv2Tab = el.getAttribute('tabindex') ?? '';
+            el.tabIndex = -1;
+          }
+          for (const el of keep) {
+            if (el.dataset.kv2Tab === undefined) continue;
+            const t = el.dataset.kv2Tab;
+            delete el.dataset.kv2Tab;
+            if (el.getAttribute('tabindex') === '-1') { if (t === '') el.removeAttribute('tabindex'); else el.setAttribute('tabindex', t); }
+          }
+          const left = (shell ? 0 : area.querySelectorAll('[data-kv2-tab]').length) + (area.dataset.kv2Tab !== undefined ? 1 : 0);
+          notes.push(area.id + (left ? ':skipped-' + left : ':clear'));
+        }
+        const note = notes.join(' ');
+        if (document.documentElement.dataset.kv2Cover !== note) document.documentElement.dataset.kv2Cover = note;
+      }
+      const queue = () => { if (!queued) { queued = true; window.requestAnimationFrame(sync); } };
+      window.addEventListener('keydown', (event) => { if (event.key === 'Tab') sync(); }, true);   // fresh before the browser moves the focus
+      new MutationObserver(queue).observe(document.body, { attributes: true, subtree: true, attributeFilter: ['hidden', 'class', 'data-cw-cart', 'data-cw-assets'] });
+      for (const [sel] of AREAS) { const area = document.querySelector(sel); if (area) new MutationObserver(queue).observe(area, { childList: true, subtree: true }); }
+      window.addEventListener('resize', queue);
+      document.addEventListener('scroll', queue, true);
+      document.addEventListener('focusin', queue);
+      document.addEventListener('focusout', queue);
+      document.addEventListener('transitionend', queue, true);
+      document.addEventListener('animationend', queue, true);
+      queue();
+    })();
+    // KV-2 (26 Oct 2026, candidate): what is pinned to the bottom of the window — the phone cart sheet's bar while it is collapsed, the Journey 15
+    // and 16 review guides — could cover a control reached with Tab or Shift+Tab (the calendar at 320 × 568 on Journey 9; Journey 16 Event
+    // actions on phones). Scroll it up above the bar, after the browser's own scroll — the nearest scrolling box first, then the next one out,
+    // never above a box's visible top — only for Tab, like the details-dialog rule above.
+    // Batch B1 / L-51 (26 Oct 2026): Journey 13's own action bar is added. Up to 680 px wide it is fixed to the bottom of the window
+    // (styles.css, `body[data-journey="13"] … .actions` in the max-width 680 px block), so a configuration card or a facility radio reached
+    // with Tab stopped under it (1 stop at 320 × 568, on a phone and at 200 %). Wider screens keep the sticky bar inside the page, where it is
+    // not pinned to the window. The bar's own look is untouched.
+    // Journey 13's page is not a box at all: `body { overflow: hidden }` is propagated to the viewport, so body's own scroll height equals its
+    // client height and setting body.scrollTop changes nothing (measured: body 844/844 while the page itself had scrolled 1 057 px). Its page
+    // step is therefore done on the window.
+    document.addEventListener('focusin', (event) => {
+      const el = event.target instanceof Element ? event.target : null;
+      if (!el || event.timeStamp - kv1TabAt > 500) return;
+      window.requestAnimationFrame(() => {
+        if (document.activeElement !== el) return;
+        // Batch B1 rework (27 Oct 2026, candidate) — L-52, first cause: the browser slid the shell sideways.
+        // The calendar's view switch still spills out of #app-shell (that spill belongs to DEC-J16-04 and is left exactly as it is), and the shell
+        // hides its overflow, so when Tab reaches a control the browser slides the shell sideways to bring that control in (measured on Journey 6's
+        // customer view at 390 × 844: #app-shell scrollLeft 0 → 105). Everything that is not spilled goes along with it and leaves the window on
+        // the left — the calendar above all, so a cell focused for its own sake ends up out of sight although it was never the reason for the slide.
+        // When the control now focused is not part of the spill, that slide bought nothing and is put back; the calendar then places the control in
+        // its own box, below. A control that really is inside the spilled part keeps the slide, because it is only on screen because of it. Only a
+        // scroll the browser applied is undone: no rule, size or position of the view bar is touched.
+        if (!el.closest('.view-switch, .calendar-controls')) {
+          for (let box = el.parentElement; box; box = box.parentElement) {
+            if (box.scrollLeft === 0 || box.scrollWidth <= box.clientWidth) continue;
+            if (getComputedStyle(box).overflowX !== 'hidden') continue;
+            const b = box.getBoundingClientRect(), r = el.getBoundingClientRect();
+            const left = r.left + box.scrollLeft, right = left + r.width;   // where the control sits once the slide is put back
+            const own = el.closest('.calendar-scroll');                     // …and this one can bring it back if that is not inside the box
+            if ((own && own.scrollWidth > own.clientWidth) || (left >= Math.max(b.left, 0) + 4 && right <= Math.min(b.right, innerWidth) - 4)) box.scrollLeft = 0;
+          }
+        }
+        // Batch B1 / L-52 (26 Oct 2026): the calendar's own sideways scroll. At a phone the calendar shows five of seven day columns, so a cell
+        // in the last columns is only on screen once that box is scrolled. The browser does not scroll it for a focused cell — measured on
+        // Journey 6's customer view at 390 × 844: the cell kept its place, four screen widths of nothing happened, and the focus ring sat off the
+        // right edge, which is the one hidden stop of L-52. This moves that box by the few pixels needed to show the cell, never further.
+        const cal = el.closest('.calendar-scroll');
+        if (cal && cal.scrollWidth > cal.clientWidth) {
+          const c = cal.getBoundingClientRect(), k0 = el.getBoundingClientRect(), pad = 6;
+          if (k0.right > c.right - pad) cal.scrollLeft += Math.ceil(k0.right - c.right) + pad;
+          else if (k0.left < c.left + pad) cal.scrollLeft -= Math.ceil(c.left - k0.left) + pad;
+        }
+        const k = el.getBoundingClientRect();
+        const bars = [document.body.classList.contains('sheet-expanded') ? null : document.getElementById('cart-sheet'), document.getElementById('j15-guide'), document.getElementById('j16-guide'),
+          window.matchMedia('(max-width: 680px)').matches ? document.querySelector('#j13-standalone-surface .actions') : null];
+        const bar = bars.find((b) => {
+          if (!b || b.contains(el) || !b.getClientRects().length) return false;
+          const r = b.getBoundingClientRect();
+          return k.bottom > r.top && k.top < r.bottom && k.right > r.left && k.left < r.right;
+        });
+        if (!bar) return;
+        let need = Math.ceil(k.bottom - bar.getBoundingClientRect().top) + 8;
+        if (el.closest('#j13-standalone-surface')) {   // the page step, on the window — see above; Journey 13 only
+          const before = window.scrollY;
+          window.scrollBy(0, Math.min(need, Math.max(0, Math.floor(k.top - 4))));
+          need -= Math.round(window.scrollY - before);
+        }
+        for (let box = el.parentElement; box && need > 0; box = box.parentElement) {
+          const cs = getComputedStyle(box);
+          if (!(/(auto|scroll)/.test(cs.overflowY) && box.scrollHeight > box.clientHeight)) continue;
+          const room = Math.floor(el.getBoundingClientRect().top - Math.max(box.getBoundingClientRect().top, 0)) - 4;   // never above the box's visible top
+          if (room <= 0) break;
+          const before = box.scrollTop;
+          box.scrollTop += Math.min(need, room);
+          need -= box.scrollTop - before;
+        }
+      });
+    });
 
     $$('.stage-chip').forEach((btn) => {
       btn.addEventListener('click', () => applyStageTarget(btn.dataset.stageTarget));
@@ -9550,6 +10256,7 @@ const k1Focus = (() => {
     });
 
     $('#btn-play-journey').addEventListener('click', () => {
+      if ((window.UNIFIED_SCRIPTS || {})[UNIFIED_KEY]) { unifiedStartScript(UNIFIED_KEY, 'journey'); return; }   // unified build, slices 3 and 7: this journey's own demonstration, from its fresh fixture
       if (document.body.dataset.journey === '2') j2PlayJourney();
       else if (document.body.dataset.journey === '3') j3PlayJourney();
       else if (document.body.dataset.journey === '4') j4PlayJourney();
@@ -9558,6 +10265,7 @@ const k1Focus = (() => {
       else playJourney();
     });
     $('#btn-play-complete').addEventListener('click', () => {
+      if ((window.UNIFIED_SCRIPTS || {})[UNIFIED_KEY]) { unifiedStartScript(UNIFIED_KEY, 'complete'); return; }   // unified build, slices 3 and 7
       if (document.body.dataset.journey === '2') j2PlayComplete();
       else if (document.body.dataset.journey === '3') j3PlayComplete();
       else if (document.body.dataset.journey === '4') j4PlayComplete();
@@ -9634,6 +10342,8 @@ const k1Focus = (() => {
     } else {
       loadTimeslotVisualOptions().then(() => resetJourney());
     }
+    if (unifiedRestored && unifiedBootLoad) unifiedBootLoad.then(() => { unifiedPending = null; window.setTimeout(() => unifiedShowRestored(unifiedRestored), 0); });   // unified build, slice 6: right after the journey's own boot (same load, registered after it) — settled, then said
+    if (unifiedBootLoad) unifiedBootLoad.then(() => window.setTimeout(unifiedAfterBoot, 1400));   // unified build, slice 7: Play all continues, or a scripted demonstration plays, after the boot
   }
 
   /* ===== Journey 8 isolated UJ-09 existing item/package/pricing change ===== */
@@ -10312,7 +11022,7 @@ const k1Focus = (() => {
     setHidden($('j10-route-status'), false); setHidden($('j10-block-dialog'), false); setHidden($('j10-delete-dialog'), false);
     const grid = $('calendar-grid'); grid?.addEventListener('mousedown', onGridPointer, true); grid?.addEventListener('click', onGridPointer, true); grid?.addEventListener('keydown', onGridKey, true);
     ['j10-block-dialog', 'j10-delete-dialog'].forEach((id) => { const dialog = $(id); shared().trapDialogFocus?.(dialog); dialog.addEventListener('keydown', (event) => { if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); if (id === 'j10-block-dialog') closeEditor(); else closeDeleteConfirm(); } }, true); });
-    document.addEventListener('click', (event) => { if (!isJ10()) return; const mode = event.target.closest('.mode-nav .mode-btn'); if (mode) { event.preventDefault(); event.stopImmediatePropagation(); setMaintenance(); announce(mode.dataset.mode === 'maintenance' ? 'Maintenance context active for Journey 10.' : 'Booking is outside the Journey 10 bounded maintenance scope.'); return; } const dateControl = event.target.closest('#date-prev, #date-next, #date-today'); if (dateControl) window.setTimeout(render, 0); }, true);
+    document.addEventListener('click', (event) => { if (!isJ10()) return; const mode = event.target.closest('.mode-nav .mode-btn'); if (mode) { event.preventDefault(); event.stopImmediatePropagation(); if (mode.dataset.mode === 'booking' && window.__unifiedSwitch) { window.__unifiedSwitch('booking'); return; } /* unified build, slice 6 (a block comment: this listener is one line) */ setMaintenance(); announce(mode.dataset.mode === 'maintenance' ? 'Maintenance context active for Journey 10.' : 'Booking is outside the Journey 10 bounded maintenance scope.'); return; } const dateControl = event.target.closest('#date-prev, #date-next, #date-today'); if (dateControl) window.setTimeout(render, 0); }, true);
     $('j10-add-block')?.addEventListener('click', (e) => openEditor('create', e.currentTarget)); $('j10-block-close')?.addEventListener('click', () => closeEditor()); $('j10-block-cancel')?.addEventListener('click', () => closeEditor());
     $('j10-block-form')?.addEventListener('submit', (event) => { event.preventDefault(); if (state.busy) return; if (state.editorMode === 'update') { if (!state.block) return; const category = $('j10-block-category').value; if (!category) { $('j10-block-error').textContent = 'Choose a Category before saving the Block.'; $('j10-block-category').focus(); return; } state.busy = true; state.block = { ...state.block, marker: $('j10-block-marker').value.trim(), category }; state.actions.update += 1; closeEditor(false); render(); announce('Block changes saved locally.'); state.busy = false; $('j10-committed-block')?.focus(); return; } if (state.block || !state.selection || !rangeEligible(state.selection.asset, state.selection.date, state.selection.startSlot, state.selection.endSlot)) { $('j10-block-error').textContent = 'Choose one eligible interval; only one local Block is allowed.'; return; } const category = $('j10-block-category').value; if (!category) { $('j10-block-error').textContent = 'Choose a Category before saving the Block.'; $('j10-block-category').focus(); return; } state.busy = true; state.block = { ...state.selection, category, marker: $('j10-block-marker').value.trim() }; state.selection = null; state.actions.create += 1; closeEditor(false); render(); announce('Block created locally.'); state.busy = false; $('j10-committed-block')?.focus(); });
     $('j10-block-delete')?.addEventListener('click', openDeleteConfirm); $('j10-delete-keep')?.addEventListener('click', closeDeleteConfirm);
@@ -10534,7 +11244,7 @@ const k1Focus = (() => {
       if (!isJ11()) return;
       const header = event.target instanceof Element ? event.target.closest('.cal-day-header[data-date]') : null;
       if (header) { event.preventDefault(); event.stopImmediatePropagation(); openNotes(header); return; }
-      if (event.target.closest('.mode-nav .mode-btn')) { event.preventDefault(); event.stopImmediatePropagation(); announce('Maintenance context is active for Journey 11.'); return; }
+      if (event.target.closest('.mode-nav .mode-btn')) { event.preventDefault(); event.stopImmediatePropagation(); if (event.target.closest('.mode-nav .mode-btn').dataset.mode === 'booking' && window.__unifiedSwitch) { window.__unifiedSwitch('booking'); return; } announce('Maintenance context is active for Journey 11.'); return; }   // unified build, slice 6
       const edit = event.target.closest('[data-j11-edit]');
       if (edit) { event.preventDefault(); openEditor(state.notes.find((note) => note.id === edit.dataset.j11Edit)); return; }
       const remove = event.target.closest('[data-j11-delete]');
@@ -10713,6 +11423,7 @@ const k1Focus = (() => {
       if (!isJ12()) return;
       const eventBtn = event.target.closest('#j12-public-event, .j12-public-event');
       if (eventBtn) { event.preventDefault(); event.stopImmediatePropagation(); selectEvent(eventBtn); return; }
+      if (event.target.closest('.mode-nav .mode-btn') && window.__unifiedSwitch) { event.preventDefault(); event.stopImmediatePropagation(); window.__unifiedSwitch(event.target.closest('.mode-nav .mode-btn').dataset.mode === 'maintenance' ? 'maintenance' : 'booking'); return; }   // unified build, slice 6
       if (event.target.closest('.mode-nav .mode-btn')) { event.preventDefault(); event.stopImmediatePropagation(); announce('Public Events review context is active for Journey 12. No API, persistence or external navigation.'); return; }
       if (event.target.closest('#j12-event-actions-close')) { event.preventDefault(); closePanel(); return; }
       if (event.target.closest('#j12-reschedule-event')) { event.preventDefault(); startReschedule(); return; }
@@ -11390,7 +12101,7 @@ const k1Focus = (() => {
     else {
       document.body.dataset.j15View = view;
       ensureBuilt();
-      document.title = 'Optimo Diary — Journey 15 Agenda, Custom view and Excel export candidate';
+      if (document.body.dataset.journey === '12') document.title = 'Optimo Diary — Journey 15 Agenda, Custom view and Excel export candidate';   // unified build, slice 5: the title stays the journey's own elsewhere
     }
     markButtons();
     render();
@@ -11644,12 +12355,15 @@ const k1Focus = (() => {
       '<div class="j15-guide-body"><ol><li><em>Agenda</em> in the view bar shows this week\'s events full-width.</li><li>Tick <em>Show booked events only</em>.</li><li><em>Export</em> shows the export preview (no file is created).</li><li><em>Details</em> on a row opens its secondary actions.</li><li><em>Custom</em> → pick dates and days → <em>Apply</em>.</li><li><em>Week</em> returns to the normal calendar.</li></ol>' +
       '<p class="j15-note">Proposed, not current behaviour: Export\'s “Preparing…” step and its lock when there is nothing to export (decision DEC-J15-03). Today\'s Export gives no feedback.</p>' +
       '<p class="j15-note">Phones: here the Agenda and Custom buttons are cut off at the end of the view bar; in the current system and some Master journeys the view buttons are hidden on small screens. Mobile entry is an open decision.</p></div></aside>');
-    if (window.innerWidth <= 600) { // phones: start with the slim guide bar so it never covers the list
+    // Batch B2 / L-55, L-37 (27 Oct 2026, candidate): also on short screens (600 px tall or less) — at zoom 200 % on a 1280 × 800 window the open
+    // guide covered 5 controls. The guide stays one click away (its own toggle).
+    if (window.innerWidth <= 600 || window.innerHeight <= 600) { // phones and short screens: start with the slim guide bar so it never covers the list
       const g = $('#j15-guide');
       if (g) g.dataset.collapsed = 'true';
       const tg = $('#j15-guide-toggle');
       if (tg) { tg.textContent = 'Journey 15 guide'; tg.setAttribute('aria-expanded', 'false'); }
     }
+    if (document.body.dataset.journey !== '12') { const g = $('#j15-guide'); if (g) { g.hidden = true; g.style.display = 'none'; } }   // unified build, slice 5: Journey 15's review guide only on Journey 15's own screen
   }
 
   /* ---------- events ---------- */
@@ -11657,8 +12371,9 @@ const k1Focus = (() => {
     if (!state.ready) return;
     const t = event.target;
     const vb = t.closest('.view-switch .view-btn[data-view]');
-    if (vb && vb.dataset.view === 'agenda') { event.preventDefault(); event.stopImmediatePropagation(); closePanels(); setView('agenda'); announce('Agenda view. Review fixture.'); return; }
-    if (vb && vb.dataset.view === 'custom') { event.preventDefault(); event.stopImmediatePropagation(); closePanels(); openCustom(vb); return; }
+    if (vb && vb.dataset.view === 'agenda') { event.preventDefault(); event.stopImmediatePropagation(); closePanels(); if (window.__unifiedToWeek) window.__unifiedToWeek(); setView('agenda'); announce('Agenda view. Review fixture.'); return; }
+    if (vb && vb.dataset.view === 'custom') { event.preventDefault(); event.stopImmediatePropagation(); closePanels(); if (window.__unifiedToWeek) window.__unifiedToWeek(); openCustom(vb); return; }
+    if (vb && (vb.dataset.view === 'day' || vb.dataset.view === 'workweek' || vb.dataset.view === 'month') && state.view !== 'week') { state.view = 'week'; delete document.body.dataset.j15View; render(); return; }   // unified build, slice 1: Day / Work Week leave Agenda/Custom for the in-place calendar (the shared handler marks and announces the view)
     if (vb && vb.dataset.view === 'week' && state.view !== 'week') { setView('week'); announce('Week view.'); return; }
     if (t.closest('#j15-export')) { event.preventDefault(); openExport(); return; }
     if (t.closest('#j15-custom-apply')) { event.preventDefault(); applyCustom(); return; }
@@ -11717,8 +12432,9 @@ const k1Focus = (() => {
   function init() {
     const isJ12 = () => document.body.dataset.journey === '12';
     document.body.dataset.j15Candidate = 'ready';
-    if (!isJ12()) return;
-    if (!window.__j12Review) { state.tries += 1; if (state.tries < 80) window.setTimeout(init, 50); return; }
+    const shared = ['1', '3', '4', '5', '6', '7', '8', '9', '11'].includes(document.body.dataset.journey);   // unified build, slice 5: Agenda / Custom in place on the shared-calendar journeys
+    if (!isJ12() && !shared) return;
+    if (isJ12() && !window.__j12Review) { state.tries += 1; if (state.tries < 80) window.setTimeout(init, 50); return; }
     state.ready = true;
     window.__j15V2 = Object.freeze({ state, setView, openCustom, openExport });
     if (location.hash === '#agenda') { closePanels(); setView('agenda'); }

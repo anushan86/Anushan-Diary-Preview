@@ -815,7 +815,7 @@ body {
 .calendar-grid { min-width: 680px; }
 .cal-header {
   display: grid;
-  grid-template-columns: var(--gutter-w) repeat(7, minmax(68px, 1fr));
+  grid-template-columns: var(--gutter-w) repeat(var(--cal-cols, 7), minmax(68px, 1fr));   /* unified build, slice 1: 1, 5 or 7 columns */
   position: sticky;
   top: 0;
   z-index: 4;
@@ -852,7 +852,7 @@ body {
 }
 .cal-lane-body {
   display: grid;
-  grid-template-columns: var(--gutter-w) repeat(7, minmax(68px, 1fr));
+  grid-template-columns: var(--gutter-w) repeat(var(--cal-cols, 7), minmax(68px, 1fr));   /* unified build, slice 1 */
 }
 .cal-time-gutter {
   position: sticky;
@@ -7317,8 +7317,9 @@ body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule):has(.j12tc-se
 body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence { margin:12px 0; border:1px solid var(--diary-border-strong); background:#fff; }
 body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence > summary { display:flex; align-items:center; gap:8px; min-height:var(--diary-control-touch,44px); padding:0 12px; color:var(--diary-blue-700); font-size:13px; font-weight:700; cursor:pointer; list-style:none; }
 body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence > summary::-webkit-details-marker { display:none; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence > summary::before { content:'▸'; color:var(--diary-blue-500); }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence[open] > summary::before { content:'▾'; }
+/* L-18 (27 Oct 2026): the disclosure triangle is decoration; the empty alt text keeps ▸/▾ out of every name and description. */
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence > summary::before { content:'▸' / ''; color:var(--diary-blue-500); }
+body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence[open] > summary::before { content:'▾' / ''; }
 body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence > summary:focus-visible { outline:2px solid var(--diary-blue-500); outline-offset:-2px; }
 body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence-content { display:grid; gap:10px; padding:0 12px 12px; font-size:12px; line-height:1.45; color:var(--diary-text); }
 body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence-content > p, body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence-content > div { margin:0; padding:9px 11px; }
@@ -8940,6 +8941,7 @@ body[data-j15-view="custom"] #slot-layout-control { visibility: hidden; }
     scrollbar-width: thin;
     -webkit-overflow-scrolling: touch;
     max-width: 100%;
+    scroll-padding-inline: 4px;   /* KV-1 / KV-C (25 Oct 2026, candidate): a button scrolled in keeps its focus ring inside the strip */
   }
   /* keep the Master's 40px view-button height so nothing shifts */
   body[data-journey="12"] .view-switch .view-btn { flex: 0 0 auto; min-height: 40px; }
@@ -9292,3 +9294,171 @@ body[data-journey="13"] #j13-standalone-surface .config[aria-pressed="true"] spa
    text meets WCAG 2.2 SC 1.4.3 at rest (4.864:1 on white) and on a hovered row (4.577:1 on #f7f8fa; the row hover changes only the
    background, so this one rule covers both states). The shared --diary-success token is unchanged everywhere else. */
 .j15-c-status .st-confirmed { color: #128069; }
+
+/* ===== KV-2 (26 Oct 2026, candidate) — the Director's design direction B′ (approved 26 Oct 2026, 11:38 AM). ===== */
+/* B3 / L-36: the Journey 14 Location & handoffs panel opens 8 px below the view bar, like the accepted L-26 Event actions panel (the same
+   variable), so it no longer covers the view-bar buttons. */
+body[data-journey="12"] .j14-diary-panel { top: var(--j12-panel-top, calc(var(--header-h, 56px) + 14px)); }
+@media (max-width: 1024px) { body[data-journey="12"] .j14-diary-panel { top: var(--j12-panel-top, 96px); } }
+@media (max-width: 650px) { body[data-journey="12"] .j14-diary-panel { top: var(--j12-panel-top, 96px); } }
+/* B4 / L-44: on very short screens (600 px tall or less) the calendar keeps at least 240 px and the workspace scrolls to it, instead of the
+   calendar being squeezed to 0–30 px. */
+@media (max-height: 600px) {
+  .workspace { overflow-y: auto; }
+  .calendar-scroll { min-height: 240px; }
+  /* and wherever the assets list is a page column (not the Journey 1/7/9 contextual workspace or the Journey 3 asset explorer, both drawers)
+     its chip strip keeps its height and the venue tree at least 160 px, instead of both being squeezed to 2 px (a chip or venue reached
+     with Tab was cut off) */
+  body:not([data-contextual-workspace="true"]):not([data-journey="3"]) .selected-strip { flex-shrink: 0; }
+  body:not([data-contextual-workspace="true"]):not([data-journey="3"]) .asset-tree { min-height: 160px; }
+}
+
+/* ===== Batch B1 option C (27 Oct 2026, candidate) ===== */
+/* Journeys 4, 5 and 6 on screens 600 px tall or less. KV-2's approved short-screen rule (B4 / L-44: the calendar at least 240 px) reaches every
+   other journey but not these three. Not because they lay themselves out differently from each other, but because they are the only three whose
+   calendar panel is a grid: `body[data-journey="4"] .calendar-panel` (and 5, 6) gives the calendar a `minmax(0, 1fr)` row, and that row — not the
+   calendar itself — is what the 240 px has to hold. The approved `.calendar-scroll { min-height: 240px }` sits on the wrong side of the grid: the
+   item's own `min-height: 0` in the same journeys' rule is more specific (0,2,1 against 0,1,0), and even without it a 240 px item in a
+   minimum-zero row overflows a panel that is `overflow: hidden` rather than growing it. Measured on the Master: an 18 px calendar window at
+   320 × 568 and 18–30 px at 640 × 400, the calendar's top in the same place as every other journey's; measured with this row floor: 240 px at
+   both sizes, in both views, on all three journeys, with the box where the Master puts it or higher. So the approved 240 px is expressed where
+   the grid can honour it, and nothing else changes: one row minimum, no rule added to or removed from the calendar itself, no control, heading,
+   label or text touched, nothing above 600 px tall affected, and the day labels stay pinned exactly as on the Master (option A's unpinning is not
+   used — this is the alternative to it, not a combination). */
+@media (max-height: 600px) {
+  body[data-journey="4"] .calendar-panel,
+  body[data-journey="5"] .calendar-panel,
+  body[data-journey="6"] .calendar-panel { grid-template-rows: auto auto auto auto minmax(240px, 1fr) auto; }
+}
+
+/* ===== Batch B2 / L-56 (27 Oct 2026, candidate) ===== */
+/* The off-week notice ("Checkpoint fixtures are in 24–30 Aug 2026 …") now sits inside the calendar's own scroll box, above the grid (app.js):
+   it scrolls with the calendar instead of taking its height, and stays in view when a phone's calendar is scrolled sideways. */
+.calendar-scroll > .off-week-banner { position: sticky; left: 0; }
+/* KV-2's approved short-screen rule (B4 / L-44: the calendar keeps at least 240 px and the workspace scrolls to it), with Batch B1's grid-row
+   form for Journeys 4–6, also at 900 px wide or less. Measured on the accepted Master (170 loads): only the review view went under 240 px —
+   46 px on a portrait tablet (Journeys 12, 14, 16, squeezed by the Journey 12 route notes) and 48–104 px on a phone (Journeys 6, 7); the
+   product (customer) view keeps 530 px or more everywhere, so nothing changes there. Where the calendar already has 240 px this does nothing. */
+@media (max-width: 900px) {
+  .workspace { overflow-y: auto; }
+  .calendar-scroll { min-height: 240px; }
+  body[data-journey="4"] .calendar-panel,
+  body[data-journey="5"] .calendar-panel,
+  body[data-journey="6"] .calendar-panel { grid-template-rows: auto auto auto auto minmax(240px, 1fr) auto; }
+}
+
+/* L-60 (27 Oct 2026): phones narrower than 360 px. The review rail takes the left 40 px, so at 320 the top bar has only
+   280 px of content — and its fixed parts (O mark 32 + OPTIMO 67, the two mode buttons 194, gaps and padding 64) already
+   need 365 px before the identity gets a single pixel: the name was painted outside the screen on two wrapped lines and
+   "Maintenance" was cut in half. Below 360 px the word OPTIMO steps aside (the yellow O mark keeps the brand), the two
+   mode buttons tighten to a 12 px label, and the identity keeps every character in the DOM in one line.
+   Measured: scrollWidth 385 → 280 = clientWidth at 320 px (and 389 → 300 at 340, 389 → 319 at 359); name and both mode
+   buttons fully on screen. 360 px and wider is untouched, box for box (brand 107, mode-nav 194 at x 179, identity at
+   x 389 — measured identical at 360/390/768/1024/1440). */
+@media (max-width: 359px) {
+  .top-bar { padding: 0 10px; gap: 10px; }
+  .top-bar .brand-text { display: none; }
+  .top-bar .mode-nav { gap: 4px; }
+  .top-bar .mode-btn { padding: 6px; font-size: 12px; }
+  .top-bar .mode-sep { display: none; }
+  .top-bar .user-identity { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+
+/* Gate A-approved correction (27 Oct 2026) — L-55 / L-37: on screens 600 px tall or less the Journey 15 review guide, collapsed, is a bar pinned
+   to the bottom of the window. A control reached with Tab stopped under it: 3 "Details" at 320 × 568 (the list scrolled them to its bottom edge,
+   which lies under the bar) and "Show booked events only" at 640 × 400 (the Journey 15 page clipped 89 px and could not scroll). The list and the
+   page now keep the bar's height as room for focus scrolling, the list has the same room at its end, and the page scrolls. Review view only (the
+   guide is review furniture; the customer view is html.d0-product-only); nothing moves at load. */
+@media (max-height: 600px) {
+  html:not(.d0-product-only) body:has(#j15-guide[data-collapsed="true"]) .j15-list-wrap { scroll-padding-bottom: 104px; padding-bottom: 104px; }
+  html:not(.d0-product-only) body:has(#j15-guide[data-collapsed="true"]) #j15-surface { overflow-y: auto; scroll-padding-bottom: 104px; }
+}
+
+/* Gate A-approved correction (27 Oct 2026) — L-59: on Journeys 4–6 at 600 px tall or less the calendar panel (#calendar) clipped what did not fit
+   — its notes and the 240 px calendar below them — so a mouse or a finger could not reach the calendar (only Tab could, on some screens). The panel
+   now scrolls. The calendar keeps its 240 px minimum and its own scroll. */
+@media (max-height: 600px) {
+  body[data-journey="4"] #calendar, body[data-journey="5"] #calendar, body[data-journey="6"] #calendar { overflow-y: auto; }
+}
+
+/* Gate A-approved correction (27 Oct 2026) — L-05 (b), option A: the Cart's own notice line, just above its buttons (the notice's navy colours, in a slimmer line). */
+.cart-sticky-actions > .cart-inline-notice { grid-column: 1 / -1; order: -1; margin: 0 0 2px; padding: 6px 8px; background: var(--nav); color: var(--surface); font-size: 12px; line-height: 1.3; border-radius: 0; }
+.cart-sticky-actions > .cart-inline-notice[hidden] { display: none; }
+
+/* Unified build, slice 2 (the Director's 29 Oct 1:33 PM condition 3): the guided-review player's own controls in its card — Master tokens,
+   square corners; a white focus ring on the blue card; 44 px on touch; the pressed (Resume) state keeps its yellow under the mouse. */
+.guided-review-controls { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; pointer-events: auto; }
+.guided-review-btn { min-height: 32px; padding: 4px 12px; border: 1px solid rgba(255, 255, 255, 0.7); border-radius: 0; background: transparent; color: #fff; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+.guided-review-btn:hover { background: rgba(255, 255, 255, 0.16); }
+.guided-review-btn[aria-pressed="true"], .guided-review-btn[aria-pressed="true"]:hover { background: var(--diary-brand-accent, #f5cd45); border-color: var(--diary-brand-accent, #f5cd45); color: var(--diary-navy-deep, #0b2038); }
+.guided-review-btn:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+@media (pointer: coarse) { .guided-review-btn { min-height: 44px; min-width: 44px; } }
+
+/* Unified build, slice 4: Month in place on the shared calendar — Journey 2's accepted month design (its Journey-2-scoped rules, styles.css 3658–3690),
+   applied to the shared month; the day cells are buttons (focus ring = the Master's --focus; hover a light tint). */
+.shared-month.month-grid { display: grid; grid-template-columns: repeat(7, minmax(72px, 1fr)); }
+.shared-month .month-weekday { text-align: center; padding: 6px; font-size: 11px; font-weight: 700; background: var(--surface); border-bottom: 1px solid var(--line); border-right: 1px solid var(--line-soft); }
+.shared-month .month-cell { display: flex; flex-direction: column; align-items: stretch; min-height: 88px; margin: 0; border: 0; border-right: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); border-radius: 0; padding: 4px; background: var(--surface); color: inherit; cursor: pointer; font: inherit; font-size: 12px; text-align: left; }
+.shared-month .month-cell:hover { background: #f3f7fe; }
+.shared-month .month-cell:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.shared-month .month-cell.is-other-month { background: #f6f8fb; color: var(--text-quiet); }
+.shared-month .month-cell.is-today { box-shadow: inset 0 -3px 0 var(--diary-blue-500); }
+.shared-month .month-cell-date { font-weight: 600; margin-bottom: 4px; }
+.shared-month .month-cell-events { display: flex; flex-direction: column; gap: 2px; }
+.shared-month .month-chip { font-size: 10px; padding: 2px 4px; border-radius: 0; border: 1px solid var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shared-month .month-chip.cal-event { position: static; left: auto; right: auto; z-index: auto; }   /* the week grid's absolute event placement must not apply inside a month cell (run 1: one chip spread over the week and covered the days) */
+
+/* Unified build, slice 7: the journey menu in the top bar (Gate A RECOMMENDED item 1 — it never covers the page; the Gate A dock is retired), the Cart
+   confirmation (Gate A REQUIRED item 3) and the Play all line in the Master's guided-review card. The Master's tokens; 44 px targets on touch. */
+.unified-journeys { position: relative; display: flex; align-items: center; flex-shrink: 0; }
+.unified-journey-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; max-width: 440px; padding: 4px 10px; border: 1px solid rgba(255, 255, 255, 0.38); border-radius: 0; background: transparent; color: var(--diary-surface); font: inherit; font-size: 13px; white-space: nowrap; cursor: pointer; }
+.unified-journey-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.65); }
+.unified-journey-btn:focus-visible { outline: 2px solid var(--diary-surface); outline-offset: 2px; }
+.unified-journey-btn[aria-expanded="true"] { background: rgba(255, 255, 255, 0.16); }
+.unified-journey-btn .uj-label { font-weight: 700; }
+.unified-journey-btn .uj-name { overflow: hidden; text-overflow: ellipsis; color: rgba(255, 255, 255, 0.86); }
+.unified-journey-btn .uj-caret { font-size: 11px; opacity: 0.85; }
+.unified-journey-menu { position: absolute; top: calc(100% + 8px); left: 0; z-index: 1200; width: 340px; max-height: calc(100vh - 72px); overflow-y: auto; padding: 6px 0; background: var(--diary-surface); color: var(--diary-text); border: 1px solid var(--diary-border); box-shadow: 0 10px 28px rgba(16, 42, 70, 0.22); text-align: left; }
+.unified-journey-menu[hidden] { display: none; }
+.uj-list { list-style: none; margin: 0; padding: 0; }
+.uj-link { display: flex; align-items: center; gap: 10px; min-height: 34px; padding: 5px 14px; color: var(--diary-text); font-size: 13px; text-decoration: none; }
+.uj-link:hover { background: var(--diary-blue-050); }
+.uj-link:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.uj-link[aria-current="page"] { font-weight: 700; background: var(--diary-blue-075); box-shadow: inset 3px 0 0 var(--diary-blue-500); }
+.uj-k { display: inline-grid; place-items: center; min-width: 26px; height: 22px; border: 1px solid var(--diary-border); color: var(--diary-text-secondary); font-size: 11px; font-weight: 700; }
+.uj-link[aria-current="page"] .uj-k { border-color: var(--diary-blue-500); color: var(--diary-blue-600); }
+.uj-actions { display: grid; gap: 6px; margin-top: 6px; padding: 10px 14px 4px; border-top: 1px solid var(--diary-border); }
+.uj-act { min-height: 36px; padding: 6px 12px; border: 1px solid var(--diary-blue-500); border-radius: 0; background: var(--diary-surface); color: var(--diary-blue-600); font: inherit; font-size: 13px; font-weight: 600; text-align: left; cursor: pointer; }
+.uj-act:hover { background: var(--diary-blue-050); }
+.uj-act.is-primary { background: var(--diary-blue-500); color: var(--diary-surface); }
+.uj-act.is-primary:hover { background: var(--diary-blue-600); }
+.uj-act:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.uj-note { margin: 8px 14px 4px; color: var(--diary-text-secondary); font-size: 11px; }
+.unified-confirm { position: fixed; inset: 0; z-index: 3000; display: grid; place-items: center; padding: 16px; background: rgba(11, 32, 56, 0.48); }
+.unified-confirm[hidden] { display: none; }
+.unified-confirm-card { width: min(460px, 100%); padding: 20px 22px 16px; background: var(--diary-surface); color: var(--diary-text); border: 1px solid var(--diary-border); box-shadow: 0 14px 36px rgba(0, 0, 0, 0.28); }
+.unified-confirm-card h2 { margin: 0 0 8px; font-size: 18px; }
+.unified-confirm-card p { margin: 0 0 18px; font-size: 14px; line-height: 1.45; }
+.unified-confirm-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.unified-confirm-btn { min-height: 38px; padding: 6px 16px; border: 1px solid var(--diary-blue-500); border-radius: 0; background: var(--diary-surface); color: var(--diary-blue-600); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.unified-confirm-btn.is-primary { background: var(--diary-blue-500); color: var(--diary-surface); }
+.unified-confirm-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.guided-review-sequence { grid-column: 1 / -1; color: rgba(255, 255, 255, 0.94); font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+.guided-review-sequence[hidden] { display: none; }
+@media (pointer: coarse) { .unified-journey-btn, .uj-link, .uj-act, .unified-confirm-btn { min-height: 44px; } }
+.unified-sim { padding: 2px 8px; border: 1px solid rgba(255, 255, 255, 0.32); color: rgba(255, 255, 255, 0.86); font-size: 11px; white-space: nowrap; }
+@media (max-width: 1100px) { .unified-sim { display: none; } }
+@media (max-width: 1100px) { .unified-journey-btn .uj-name { display: none; } }
+.unified-journey-btn .uj-j { display: none; }
+/* v3 (the 4:15 PM top-bar measurement, Master and build at 390 / 640 / 768): at 640 px Journey 2's wider mode group pushed the button onto the user
+   name (H6); at 390 px the Master's own bar is already full — its user name starts at the screen edge (L-60) — so the button would sit off-screen.
+   ≤ 640 px: the button reads "J2"; ≤ 480 px: the word OPTIMO steps aside (the yellow O keeps the brand — the Master's own L-60 rule below 360 px)
+   and Journey 2's mode indicator is hidden visually only (its aria-live announcement stays; the pressed mode button already shows the mode). */
+@media (max-width: 640px) { .unified-journey-btn { gap: 4px; padding: 4px 8px; } .unified-journey-btn .uj-word, .unified-journey-btn .uj-of { display: none; } .unified-journey-btn .uj-j { display: inline; } }
+@media (max-width: 480px) {
+  .top-bar .brand-text { display: none; }
+  .top-bar .user-identity { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }   /* v3b (4:22 PM probe): the Master's L-60 identity line, from 480 px — it ellipsises instead of running under the menu */
+  body[data-journey="2"] .top-bar .mode-indicator { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; padding: 0; margin: -1px; border: 0; }
+}
+@media (max-width: 520px) { .unified-journey-menu { position: fixed; top: 60px; left: 8px; right: 8px; width: auto; } }
