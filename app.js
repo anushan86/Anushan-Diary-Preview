@@ -8836,9 +8836,9 @@ const k1Focus = (() => {
     guidedPaused = false; guidedStopAsked = false; syncGuidedControls();   // unified build, slice 2: Restart = the same journey's rail button again
     if (guidedRestartAsked) {   // unified build, slice 7: Restart during Play all → Journey 1, step 1; a scripted demonstration → its fresh fixture (also Journey 13, no rail)
       guidedRestartAsked = false; const m = guidedLastRun;
-      if (unifiedAllRestartAsked) { unifiedAllRestartAsked = false; setTimeout(() => { if (UNIFIED_KEY === 1) unifiedAllRunHere(); else location.assign(location.pathname + '?journey=1'); }, 350); }
+      if (unifiedAllRestartAsked) { unifiedAllRestartAsked = false; setTimeout(() => unifiedGuardCart('Restarting Play all starts again from Journey 1 and its review fixture', 'Restart Play all', () => { if (UNIFIED_KEY === 1) unifiedAllRunHere(); else location.assign(location.pathname + '?journey=1'); }, null, () => { unifiedAllWrite(null); unifiedSyncMenu(); showToast('Play all stopped — your Booking Cart is kept.'); }), 350); }   // slice 10 (R2)
       else if ((window.UNIFIED_SCRIPTS || {})[UNIFIED_KEY]) setTimeout(() => unifiedStartScript(UNIFIED_KEY, m, true), 350);
-      else { const again = m === 'complete' ? 'btn-play-complete' : 'btn-play-journey'; setTimeout(() => { const b = document.getElementById(again); if (b && !b.disabled) b.click(); }, 350); }
+      else { const again = m === 'complete' ? 'btn-play-complete' : 'btn-play-journey'; setTimeout(() => unifiedGuardCart('Restarting the demonstration starts it again from its review fixture', 'Restart the demonstration', () => { const b = document.getElementById(again); if (b && !b.disabled) b.click(); }, null, () => showToast('Restart cancelled — your Booking Cart is kept.')), 350); }   // slice 10 (R2)
     }
     if (guidedReviewTarget) {
       guidedReviewTarget.classList.remove('guided-review-target', 'guided-review-clicked');
@@ -8925,8 +8925,19 @@ const k1Focus = (() => {
   const unifiedEsc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
   function unifiedAllRead() { try { const s = JSON.parse(sessionStorage.getItem(UNIFIED_ALL) || 'null'); return s && s.running && Date.now() - s.at < 3600000 ? s : null; } catch (e) { return null; } }
   function unifiedAllWrite(s) { try { if (s) sessionStorage.setItem(UNIFIED_ALL, JSON.stringify({ ...s, at: Date.now() })); else sessionStorage.removeItem(UNIFIED_ALL); } catch (e) { /* no storage */ } }
-  function unifiedGuardCart(reason, goLabel, proceed) {   // Gate A REQUIRED: ask before anything clears a Booking Cart (local review data, never saved)
-    const n = cartLines.length; if (!n) { proceed(); return; }
+  // unified build, slice 10 (R1 — the Director's Q1 condition, 29 Oct 2026 8:30 PM: "Do not silently discard user work"): a Booking Cart kept in the
+  // context while the person is in a non-booking workspace (Maintenance, or another journey reached from there) — its lines and its booking journey.
+  function unifiedParkedCart() {
+    if (UNIFIED_BOOKING_JOURNEYS.includes(UNIFIED_KEY)) return null;
+    const c = unifiedReadCtx(); const lines = c && c.home && Array.isArray(c.home.cart) ? c.home.cart : [];
+    return lines.length ? { lines, home: c.bookingHome || 1 } : null;
+  }
+  function unifiedDropParked() {   // slice 10: the person chose to leave the kept Cart — it is cleared from the context, so it never comes back unannounced
+    const c = unifiedReadCtx(); if (!c || !c.home) return;
+    c.home = { ...c.home, cart: [] }; try { sessionStorage.setItem(UNIFIED_CTX, JSON.stringify(c)); } catch (e) { /* no storage */ }
+  }
+  function unifiedGuardCart(reason, goLabel, proceed, parked, onKeep) {   // Gate A REQUIRED: ask before anything clears a Booking Cart (local review data, never saved); slice 10: also a kept Cart, and what keeping it means
+    const n = cartLines.length || (parked ? parked.lines.length : 0); if (!n) { proceed(); return; }
     let d = document.getElementById('unified-confirm');
     if (!d) {
       d = document.createElement('div'); d.id = 'unified-confirm'; d.className = 'unified-confirm'; d.hidden = true;
@@ -8937,7 +8948,8 @@ const k1Focus = (() => {
       document.body.appendChild(d);
     }
     const back = document.activeElement, keep = d.querySelector('#unified-confirm-keep'), go = d.querySelector('#unified-confirm-go');
-    d.querySelector('#unified-confirm-text').textContent = `Your Booking Cart has ${n} ${n === 1 ? 'item' : 'items'} (local review data — nothing is saved). ${reason}, so this Cart will be cleared.`;
+    const keptFrom = !cartLines.length && parked ? ` kept from Journey ${parked.home}` : '';   // slice 10: the Cart kept while in another workspace
+    d.querySelector('#unified-confirm-text').textContent = `Your Booking Cart${keptFrom} has ${n} ${n === 1 ? 'item' : 'items'} (local review data — nothing is saved). ${reason}, so this Cart will be cleared.`;
     go.textContent = goLabel;
     const onKey = (e) => {
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(false); }
@@ -8945,7 +8957,8 @@ const k1Focus = (() => {
     };
     function close(ok) {
       d.hidden = true; d.removeEventListener('keydown', onKey); keep.onclick = null; go.onclick = null;
-      if (ok) { proceed(); return; }
+      if (ok) { if (!cartLines.length && parked) unifiedDropParked(); proceed(); return; }   // slice 10: a kept Cart the person chose to leave is cleared
+      if (onKeep) onKeep();   // slice 10: what keeping the Cart means for the caller (Restart: the demonstration stays stopped)
       const t = back && back.isConnected && back.offsetParent !== null ? back : document.getElementById('unified-journey-btn'); if (t) t.focus();
     }
     d.addEventListener('keydown', onKey); keep.onclick = () => close(false); go.onclick = () => close(true);
@@ -8959,7 +8972,8 @@ const k1Focus = (() => {
       showToast(`${restart ? 'Restarting' : 'Starting'} the Journey ${key} demonstration from its review fixture…`);
       window.setTimeout(() => location.reload(), 350);
     };
-    if (restart) go(); else unifiedGuardCart(`Playing the Journey ${key} demonstration starts it again from its review fixture`, 'Play the demonstration', go);
+    if (restart) unifiedGuardCart(`Restarting the Journey ${key} demonstration starts it again from its review fixture`, 'Restart the demonstration', go, null, () => showToast('Restart cancelled — your Booking Cart is kept.'));   // slice 10 (R2)
+    else unifiedGuardCart(`Playing the Journey ${key} demonstration starts it again from its review fixture`, 'Play the demonstration', go);
     return true;
   }
   function unifiedPlayThis() {
@@ -9015,6 +9029,9 @@ const k1Focus = (() => {
       const k = Number(a.dataset.k);
       if (k === UNIFIED_KEY) { e.preventDefault(); unifiedMenuClose(true); return; }
       if (unifiedAllRead()) unifiedAllWrite(null);   // the person takes over: Play all ends
+      const parked = cartLines.length ? null : unifiedParkedCart();   // slice 10 (R1): a Booking Cart kept while in another workspace
+      if (parked && k === parked.home) { e.preventDefault(); unifiedMenuClose(false); unifiedSwitchWorkspace('booking'); return; }   // carried back, as the Booking button does
+      if (parked && UNIFIED_BOOKING_JOURNEYS.includes(k)) { e.preventDefault(); unifiedMenuClose(false); unifiedGuardCart(`Opening Journey ${k} shows that journey's own review data`, `Open Journey ${k}`, () => location.assign(a.href), parked); return; }
       if (cartLines.length) { e.preventDefault(); unifiedMenuClose(false); unifiedGuardCart(`Opening Journey ${k} shows that journey's own review data`, `Open Journey ${k}`, () => location.assign(a.href)); }
     }));
     wrap.querySelector('#unified-play-this').addEventListener('click', () => { unifiedMenuClose(false); unifiedPlayThis(); });

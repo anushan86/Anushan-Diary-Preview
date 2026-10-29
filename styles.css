@@ -9462,3 +9462,8 @@ body[data-journey="12"] .j14-diary-panel { top: var(--j12-panel-top, calc(var(--
   body[data-journey="2"] .top-bar .mode-indicator { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; padding: 0; margin: -1px; border: 0; }
 }
 @media (max-width: 520px) { .unified-journey-menu { position: fixed; top: 60px; left: 8px; right: 8px; width: auto; } }
+/* Slice 11 (29 Oct 2026) — the Director's Q3 condition ("No overlapping or inaccessible controls"), found by the Q3 validation of acceptance run 7:
+   at 360 px the top bar kept its 390 px boxes and the journey menu button ended 0.8–5.1 px past the screen's right edge (J1, J10–J12, J14–J16).
+   From 379 px down the Master's own L-60 narrow-phone spacing applies (below 360 px it already did): the button moves 18 px left and ends
+   13–18 px inside a 360 px screen. 380 px and wider: unchanged, box for box. */
+@media (max-width: 379px) { .top-bar { padding: 0 10px; gap: 10px; } }
