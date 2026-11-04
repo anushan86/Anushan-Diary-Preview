@@ -1,3 +1,65 @@
+/* Step b12, C4 (3 Nov 2026): one Documents list, reused. Sample names; opening shows a sample page.
+   Existing rules kept: the section appears only when there are documents; venue documents only if shared with facilities, then the asset's own; each opens in a new tab. */
+(function () {
+  const SAMPLE = {
+    hall1: { venue: [{ name: 'Northside fire safety plan.pdf', shareWithFacilities: true }, { name: 'Northside staff rota.xlsx', shareWithFacilities: false }], asset: [{ name: 'Hall 1 floor plan.pdf' }, { name: 'Hall 1 AV specification.docx' }] },
+    riverside: { venue: [{ name: 'Riverside Pavilion site map.pdf', shareWithFacilities: true }], asset: [{ name: 'Standard seated layout.pdf' }] },
+    none: { venue: [], asset: [] },
+  };
+  const urls = {};
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function href(name) {
+    if (!urls[name]) urls[name] = URL.createObjectURL(new Blob([`<!doctype html><meta charset="utf-8"><title>${esc(name)}</title><body style="font:16px system-ui;margin:40px"><h1 style="font-size:20px">${esc(name)}</h1><p>Sample document. Simulated data: the real file is not available in this preview.</p>`], { type: 'text/html' }));
+    return urls[name];
+  }
+  const ICON = '<svg class="doc-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg>';
+  const rowHtml = (name) => `<li>${ICON}<a class="doc-link" href="${href(name)}" target="_blank" rel="noopener" title="${esc(name)}">${esc(name)}</a></li>`;
+  function names(key) { const s = SAMPLE[key] || SAMPLE.none; return s.venue.filter((d) => d.shareWithFacilities).concat(s.asset).map((d) => d.name); }
+  function block(key) { const n = names(key); return n.length ? `<section class="doc-block" aria-label="Documents"><h4 class="doc-title">Documents</h4><ul class="doc-list">${n.map(rowHtml).join('')}</ul></section>` : ''; }
+
+  // J10: the existing Add Block and Update Block have Add Document; a paperclip and a count sit on the Block card. Names only here: nothing is read or uploaded.
+  const j10 = { saved: [], pending: [] };
+  const byId = (id) => document.getElementById(id);
+  const announce = (msg) => { const a = byId('j10-doc-live'); if (a) a.textContent = msg; };
+  function j10Render() {
+    const saved = byId('j10-doc-saved'), pending = byId('j10-doc-pending'); if (!saved || !pending) return;
+    saved.innerHTML = j10.saved.map(rowHtml).join('');
+    pending.innerHTML = '';
+    j10.pending.forEach((name) => {
+      const li = document.createElement('li'); li.innerHTML = ICON;
+      const label = document.createElement('span'); label.className = 'doc-pending-name'; label.textContent = name;
+      const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'doc-remove'; remove.textContent = '×'; remove.setAttribute('aria-label', `Remove ${name}`); remove.title = 'Remove';
+      remove.addEventListener('click', () => { j10.pending = j10.pending.filter((n) => n !== name); j10Render(); announce(`${name} removed.`); byId('j10-doc-input')?.focus(); });
+      li.append(label, remove); pending.append(li);
+    });
+  }
+  function j10Wire() {
+    const input = byId('j10-doc-input'); if (!input) return;
+    input.addEventListener('change', () => {
+      const added = Array.from(input.files || []).map((f) => f.name).filter((n) => !j10.pending.includes(n) && !j10.saved.includes(n));
+      j10.pending.push(...added); input.value = ''; j10Render();
+      if (added.length) announce(`${added.length} document${added.length === 1 ? '' : 's'} added: ${added.join(', ')}.`);
+    });
+  }
+  window.__c14 = {
+    block,
+    j10Open() { j10.pending = []; j10Render(); },
+    j10Commit() { j10.saved.push(...j10.pending); j10.pending = []; },
+    j10Drop() { j10.pending = []; },
+    j10Reset() { j10.saved = []; j10.pending = []; },
+    j10Clip(node) {
+      const n = j10.saved.length; if (!n) return;
+      const clip = document.createElement('span'); clip.className = 'doc-clip'; clip.setAttribute('aria-hidden', 'true');
+      clip.innerHTML = `<svg viewBox="0 0 24 24" width="13" height="13"><path fill="currentColor" d="M16.5 6v11.5a4 4 0 0 1-8 0V5a2.5 2.5 0 0 1 5 0v10.5a1 1 0 0 1-2 0V6H10v9.5a2.5 2.5 0 0 0 5 0V5a4 4 0 0 0-8 0v12.5a5.5 5.5 0 0 0 11 0V6h-1.5z"/></svg>${n}`;
+      node.append(clip); node.setAttribute('aria-label', `${node.getAttribute('aria-label')}, ${n} document${n === 1 ? '' : 's'}`);
+    },
+  };
+  document.addEventListener('DOMContentLoaded', () => {
+    const holder = byId('c14-docs-riverside'); if (holder) holder.innerHTML = block('riverside');
+    j10Wire();
+  });
+})();
+
 // K1: recovery is allowed only for the actual last keyboard activation, never load/pointer paths.
 const k1Focus = (() => {
   let keyboard = false, origin = null;
@@ -266,12 +328,16 @@ const k1Focus = (() => {
       '#contextual-cart-launcher', '#contextual-cart-open', '#contextual-cart-close'
     ];
     const j3Only = [
-      '#j3-filters-toolbar', '#j3-filters-toggle', '#j3-fixture-caption', '#j3-capacity-fieldset',
-      '.capacity-heading-row', '.capacity-inputs-row', '.cap-col',
-      '#j3-capacity-from', '#j3-capacity-to', '#j3-reset-filters', '#j3-filter-status', '#j3-filter-error',
+      '#j3-fixture-caption',
       '#j3-selected-heading', '#j3-available-heading', '#j3-explorer-footer', '#j3-explorer-selected-count',
       '#j3-explorer-done', '#j3-visibility-card'
     ];
+    const filterControls = [
+      '#j3-filters-toolbar', '#j3-filters-toggle', '#j3-capacity-fieldset', '#j3-refine', '#j3-active-filters',
+      '.capacity-heading-row', '.capacity-inputs-row', '.cap-col',
+      '#j3-capacity-from', '#j3-capacity-to', '#j3-reset-filters', '#j3-filter-status', '#j3-filter-error'
+    ];
+    const exShared = EX_JOURNEYS.includes(String(journey));
     const j4Only = ['#j4-overview', '#j4-selection-summary'];
     const j5Only = ['#j5-review-controls', '#j5-lifecycle-review-controls'];
     const j6Only = ['#j6-review-controls'];
@@ -293,6 +359,11 @@ const k1Focus = (() => {
     j3Only.forEach((sel) => {
       document.querySelectorAll(sel).forEach((el) => j2SetSurfaceExcluded(el, !isJ3));
     });
+    filterControls.forEach((sel) => {
+      document.querySelectorAll(sel).forEach((el) => j2SetSurfaceExcluded(el, !(isJ3 || exShared)));
+    });
+    if (exShared) document.body.dataset.explorerFilters = 'on';
+    else delete document.body.dataset.explorerFilters;
     j4Only.forEach((sel) => {
       document.querySelectorAll(sel).forEach((el) => j2SetSurfaceExcluded(el, !(isJ4 || isJ5 || isJ6 || isJ8)));
     });
@@ -325,7 +396,7 @@ const k1Focus = (() => {
         '#cart-primary-action', '#confirm-booking-btn', '#clear-cart-btn', '#cart-book-footer',
         '#cart-toolbar', '#cart-view-controls', '#cart-amount-context', '#cart-totals', '#cart-added-items',
         '#cart-bulk-actions', '#cart-column-head', '#cart-high-volume-summaries', '#cart-item-editor-dialog',
-        '#mismatch-dialog', '#remove-dialog', '#clear-dialog', '#large-data-picker', '#large-data-picker-backdrop',
+        '#mismatch-dialog', '#clear-dialog', '#large-data-picker', '#large-data-picker-backdrop',
         '#current-selection-details-toggle', '#configure-form', '#cart-success', '#cart-unavailable',
         '#j4-details-dialog', '#j4-context-menu', '#j5-workflow-dialog'
       ].forEach((sel) => document.querySelectorAll(sel).forEach((el) => j2SetSurfaceExcluded(el, true)));
@@ -353,7 +424,7 @@ const k1Focus = (() => {
     const assetsPanel = $('#assets-panel');
     const assetsPanelTitle = assetsPanel?.querySelector('.panel-header h2');
     if (assetsPanel) {
-      if (isJ3 || isJ1) {
+      if (isJ3 || isJ1 || journey === 10) {
         assetsPanel.setAttribute('aria-label', 'Asset Explorer');
         if (assetsPanelTitle) assetsPanelTitle.textContent = 'Asset Explorer';
       } else if (isJ4 || isJ5) {
@@ -364,6 +435,7 @@ const k1Focus = (() => {
       }
     }
     if (isJ3) j3SyncExplorerChrome();
+    if (exShared) exSyncSurface();
   }
 
   /* ===== Journey 4 MASTER-ancestry candidate — CR-J4-001 / CR-J4-002 / CR-J4-003 ===== */
@@ -372,22 +444,22 @@ const k1Focus = (() => {
     {
       id: 'available', kind: 'available', label: 'Available', reference: 'Available interval',
       status: 'Available · Selectable', asset: 'hall1', resource: 'Hall 1', dayOffset: 5,
-      startSlot: 12, endSlot: 18, access: 'Booking-create permitted review fixture', details: false, more: false
+      startSlot: 12, endSlot: 18, access: 'Booking can be created · sample', details: false, more: false
     },
     {
       id: 'selected', kind: 'selected', label: 'Selected', reference: 'SEL-LOCAL-001',
       status: 'Selected · Not saved', asset: 'hall1', resource: 'Hall 1', dayOffset: 4,
-      startSlot: 8, endSlot: 11, access: 'Read-only review fixture', details: true, more: false
+      startSlot: 8, endSlot: 11, access: 'Read-only · sample', details: true, more: false
     },
     {
       id: 'private', kind: 'private', label: 'Private Booking', reference: 'BK-10482',
       status: 'Private Booking · Confirmed', asset: 'studio2', resource: 'Studio 2', dayOffset: 4,
-      startSlot: 2, endSlot: 10, visualType: 'confirmed', access: 'Details and context permitted review fixture', details: true, more: true
+      startSlot: 2, endSlot: 10, visualType: 'confirmed', access: 'Details and actions available · sample', details: true, more: true
     },
     {
-      id: 'public-review', kind: 'public-review', journey6: true, label: 'Public timeslot · review fixture', reference: 'PUB-REVIEW-001',
-      status: 'Maintenance / Public Events · review-only', asset: 'hall1', resource: 'Hall 1', dayOffset: 4,
-      startSlot: 4, endSlot: 26, access: 'Review-only control; public identification unverified', details: true, more: false
+      id: 'public-review', kind: 'public-review', journey6: true, label: 'Public timeslot · sample', reference: 'PUB-REVIEW-001',
+      status: 'Maintenance and public events · sample', asset: 'hall1', resource: 'Hall 1', dayOffset: 4,
+      startSlot: 4, endSlot: 26, access: 'Sample; public identification not confirmed', details: true, more: false
     },
     {
       id: 'blocked', kind: 'blocked', label: 'Blocked', reference: 'BLK-220',
@@ -397,7 +469,7 @@ const k1Focus = (() => {
     {
       id: 'facility-not-in-use', kind: 'facility-not-in-use', label: 'Facility Not In Use', reference: 'FNI-301',
       status: 'Facility Not In Use · Unavailable', asset: 'studio2', resource: 'Studio 2', dayOffset: 6,
-      startSlot: 14, endSlot: 18, visualType: 'facility-not-in-use', access: 'Read-only review fixture', details: true, more: false
+      startSlot: 14, endSlot: 18, visualType: 'facility-not-in-use', access: 'Read-only · sample', details: true, more: false
     },
     {
       id: 'conflict', kind: 'conflict', label: 'Conflict', reference: 'CNF-LOCAL-001',
@@ -431,7 +503,7 @@ const k1Focus = (() => {
   }
 
   function j6PublicRescheduleWorkflowActive() {
-    return isJ6Journey() || (document.body.dataset.journey === '12' && j5Operation?.action === 'PublicReschedule');
+    return isJ6Journey() || (document.body.dataset.journey === '12' && j5Operation?.action === 'PublicReschedule') || (isJ5Journey() && j5Operation?.action === 'BookingReschedule');
   }
 
   function j4FindFixture(id) {
@@ -494,7 +566,7 @@ const k1Focus = (() => {
     const title = document.createElement('strong');
     const copy = document.createElement('span');
     if (j4ViewState === 'loading') {
-      title.textContent = 'Loading calendar fixtures';
+      title.textContent = 'Loading calendar';
       copy.textContent = ' Current content is unsettled and timeslot actions are unavailable.';
       panel.setAttribute('aria-busy', 'true');
     } else if (j4ViewState === 'empty') {
@@ -514,8 +586,8 @@ const k1Focus = (() => {
       panel.append(title, copy, retry);
       return;
     } else if (j4ViewState === 'access-denied') {
-      title.textContent = 'Access denied review fixture';
-      copy.textContent = ' Restricted details, context and create-selection actions are disabled. No complete tenant rights matrix is claimed.';
+      title.textContent = 'Access denied · sample';
+      copy.textContent = ' Restricted details, context and create-selection actions are disabled.';
       panel.removeAttribute('aria-busy');
     } else {
       title.textContent = 'Varies';
@@ -529,7 +601,7 @@ const k1Focus = (() => {
     const host = $('#timeslot-colours-legend');
     if (!host) return;
     host.innerHTML = '';
-    host.setAttribute('aria-label', 'Journey 4 timeslot visual filters');
+    host.setAttribute('aria-label', 'Timeslot visual filters');
     const title = document.createElement('span');
     title.className = 'timeslot-legend-title';
     title.textContent = 'Show timeslots';
@@ -575,7 +647,7 @@ const k1Focus = (() => {
     const empty = $('#j4-filter-empty');
     if (empty) empty.hidden = visibleCount !== 0;
     if (announce) {
-      announceLive(`${visibleCount} Journey 4 timeslot ${visibleCount === 1 ? 'fixture' : 'fixtures'} shown. Filter state is session-only.`);
+      announceLive(`${visibleCount} sample ${visibleCount === 1 ? 'timeslot' : 'timeslots'} shown.`);
     }
   }
 
@@ -654,9 +726,9 @@ const k1Focus = (() => {
       open.type = 'button';
       open.className = 'btn-primary btn-sm j6-timeslot-entry';
       open.id = 'j6-open-public-review';
-      open.textContent = 'Open review flow';
+      open.textContent = 'Open public timeslot';
       open.disabled = blocked;
-      open.setAttribute('aria-label', 'REVIEW FIXTURE — public-event identification and the public context menu are UNVERIFIED (runtime validation 2026-08-04). This entry is a review-only control, not a reproduced menu path.');
+      open.setAttribute('aria-label', 'Open public timeslot. Public event actions are not shown here.');
       open.addEventListener('click', (event) => { event.stopPropagation(); j6StartOperation('PublicReschedule', event.currentTarget); });
       actions.appendChild(open);
     } else if (fixture.kind === 'available') {
@@ -749,7 +821,7 @@ const k1Focus = (() => {
       title.textContent = 'Varies';
       copy.textContent = 'The selected intervals do not share common values.';
       state.textContent = 'Varies';
-      time.textContent = 'Varies · zero-duration review state';
+      time.textContent = 'Varies · zero-duration sample';
       resource.textContent = 'Varies';
       access.textContent = 'Actions blocked until resolved';
       guidance.textContent = 'No normalization or mutation is inferred.';
@@ -763,15 +835,15 @@ const k1Focus = (() => {
     if (isJ6Journey()) {
       const fixture = j4FindFixture('public-review');
       if (!fixture) return;
-      title.textContent = 'Public timeslot · REVIEW FIXTURE';
-      copy.textContent = 'Maintenance / Public Events context is presented as one local review fixture; no public context menu is reproduced.';
-      state.textContent = 'REVIEW FIXTURE';
+      title.textContent = 'Public timeslot · sample';
+      copy.textContent = 'Maintenance and public events are shown as one sample; the public context menu is not included.';
+      state.textContent = 'SAMPLE';
       time.textContent = j6PublicInterval.start + '–' + j6PublicInterval.end;
       resource.textContent = fixture.resource;
       access.textContent = fixture.access;
-      guidance.textContent = 'Dedicated review control only. Public identification, menu options and gating are UNVERIFIED.';
+      guidance.textContent = 'Public event actions are not shown here.';
       open.dataset.j4Fixture = fixture.id;
-      open.textContent = 'Open review flow';
+      open.textContent = 'Open public timeslot';
       open.disabled = j4ActionsBlocked();
       more.hidden = true;
       return;
@@ -790,7 +862,7 @@ const k1Focus = (() => {
     resource.textContent = handedOff ? j4StagedResource() : fixture.resource;
     access.textContent = handedOff ? 'Existing J1 New Selection state' : fixture.access;
     guidance.textContent = j4ViewState === 'access-denied'
-      ? 'Access-denied fixture: all timeslot actions are disabled.'
+      ? 'Access denied: all timeslot actions are disabled.'
       : (fixture.more ? 'Direct details and the separate non-mutating context handoff are available.' : 'No mutation or lifecycle action is available.');
     open.dataset.j4Fixture = fixture.id;
     more.dataset.j4Fixture = fixture.id;
@@ -811,7 +883,7 @@ const k1Focus = (() => {
       else card.setAttribute('aria-selected', selected ? 'true' : 'false');
     });
     j4RenderSummary();
-    announceLive(`${fixture.label} selected for read-only review.`);
+    announceLive(`${fixture.label} selected; read-only.`);
     if (trigger && typeof trigger.focus === 'function' && document.body.contains(trigger)) trigger.focus();
   }
 
@@ -845,11 +917,12 @@ const k1Focus = (() => {
     if (!isJ4Journey() || j4ActionsBlocked()) return;
     const fixture = j4FindFixture('available');
     if (!fixture) return;
+    const previousFixtureId = j4ActiveFixtureId;
     j4ActiveFixtureId = fixture.id;
     j4SetCartHandoffVisible(true);
-    createSelection(fixture.asset, dateKey(j4FixtureDate(fixture)), fixture.startSlot, fixture.endSlot);
+    if (!selectNewTime(fixture.asset, dateKey(j4FixtureDate(fixture)), fixture.startSlot, fixture.endSlot)) { j4ActiveFixtureId = previousFixtureId; updateCartUI(); return; }
     if (isNarrowViewport()) setSheetExpanded(true);
-    announceLive('Available interval selected. The existing Journey 1 Booking Cart is the sole staged-selection surface. Nothing was saved.');
+    announceLive('Available interval selected. It goes to the Booking Cart. Nothing was saved.');
     window.setTimeout(() => {
       const next = $('#j4-select-available') || $('.j4-timeslot[data-j4-fixture="available"]');
       if (next && typeof next.focus === 'function') next.focus();
@@ -986,7 +1059,7 @@ const k1Focus = (() => {
     document.body.dataset.j4State = nextState;
     j4SyncReviewControls();
     renderCalendar();
-    announceLive(`Journey 4 ${nextState.replace('-', ' ')} review fixture shown.`);
+    announceLive(`Sample state shown: ${nextState.replace('-', ' ')}.`);
   }
 
   function j4RenderCalendar() {
@@ -994,7 +1067,7 @@ const k1Focus = (() => {
     if (!grid) return;
     grid.innerHTML = '';
     grid.classList.add('j4-calendar-grid');
-    grid.setAttribute('aria-label', 'Journey 4 labelled timeslot review fixtures');
+    grid.setAttribute('aria-label', 'Sample timeslots');
     syncSlotLayoutControl();
     j4RenderStatePanel();
     j4RenderLegend();
@@ -1010,7 +1083,7 @@ const k1Focus = (() => {
     const countCell = document.createElement('div');
     countCell.setAttribute('role', 'columnheader');
     const count = document.createElement('span');
-    count.textContent = j4ViewState === 'loading' ? 'Loading' : (isJ6Journey() ? 'One public review fixture' : 'Six supported fixture classes');
+    count.textContent = j4ViewState === 'loading' ? 'Loading' : (isJ6Journey() ? 'One public sample' : 'Six sample timeslot types');
     countCell.appendChild(count);
     boardHead.append(titleCell, countCell);
     grid.appendChild(boardHead);
@@ -1032,8 +1105,8 @@ const k1Focus = (() => {
       const noContentCell = document.createElement('div');
       noContentCell.setAttribute('role', 'gridcell');
       noContentCell.textContent = j4ViewState === 'loading'
-        ? 'Loading labelled calendar fixtures…'
-        : 'The calendar is unavailable. Use Retry or another review state; no selection was created.';
+        ? 'Loading calendar…'
+        : 'The calendar is unavailable. Use Retry or another state; no selection was created.';
       noContent.appendChild(noContentCell);
       grid.appendChild(noContent);
     }
@@ -1087,7 +1160,7 @@ const k1Focus = (() => {
     return s ? ((ASSETS.find((a) => a.id === s.asset) || {}).name || s.asset) : '';
   }
   function j4PrimaryAction(fixture, trigger) {
-    if (j4ActionsBlocked()) { announceLive('Timeslot actions are unavailable in this review state.'); return; }
+    if (j4ActionsBlocked()) { announceLive('Timeslot actions are unavailable in this state.'); return; }
     if (fixture.kind === 'available') { j4SelectAvailable(trigger); return; }
     if (isJ6Journey() && fixture.journey6) { j6StartOperation('PublicReschedule', trigger); return; }
     j4OpenDetails(fixture, trigger);
@@ -1166,7 +1239,7 @@ const k1Focus = (() => {
     main.id = isJ6Journey() && fixture.journey6 ? 'j6-open-public-review' : `j4-open-${fixture.id}`;
     main.innerHTML = text;
     main.disabled = blocked;
-    const action = isJ6Journey() && fixture.journey6 ? 'Open review flow' : 'Open details';
+    const action = isJ6Journey() && fixture.journey6 ? 'Open public timeslot' : 'Open details';
     main.setAttribute('aria-label', `${fixture.label}. ${fixture.reference}. ${j4FixtureDateTime(fixture)}. ${fixture.resource}. ${fixture.status}. ${action}${fixture.more ? '. More actions available' : ''}.`);
     if (fixture.id === j4ActiveFixtureId) main.setAttribute('aria-current', 'true');
     main.addEventListener('click', (event) => { event.stopPropagation(); j4PrimaryAction(fixture, main); });
@@ -1218,7 +1291,7 @@ const k1Focus = (() => {
       const empty = document.createElement('div');
       empty.className = 'stack-empty';
       empty.textContent = '—';
-      empty.setAttribute('aria-label', 'No fixture slots');
+      empty.setAttribute('aria-label', 'No timeslots');
       col.appendChild(empty);
       return;
     }
@@ -1229,12 +1302,12 @@ const k1Focus = (() => {
     });
   }
   function j4AfterCalendarRender(grid) {
-    grid.setAttribute('aria-label', 'Journey 4 labelled timeslot review fixtures');
+    grid.setAttribute('aria-label', 'Sample timeslots');
     j4RenderStatePanel();
     j4RenderLegend();
     const message = j4ViewState === 'loading'
-      ? 'Loading labelled calendar fixtures…'
-      : (j4ViewState === 'error' ? 'The calendar is unavailable. Use Retry or another review state; no selection was created.' : '');
+      ? 'Loading calendar…'
+      : (j4ViewState === 'error' ? 'The calendar is unavailable. Use Retry or another state; no selection was created.' : '');
     const filterEmpty = document.createElement('div');
     filterEmpty.className = 'j4-calendar-message j4-filter-empty';
     filterEmpty.id = 'j4-filter-empty';
@@ -1264,7 +1337,7 @@ const k1Focus = (() => {
     document.body.dataset.j4State = 'ready';
     document.body.dataset.surface = 'week';
     const caption = $('.calendar-caption');
-    if (caption) caption.textContent = 'REVIEW FIXTURE — six labelled Journey 4 states on the shared calendar; not exhaustive tenant data.';
+    if (caption) caption.textContent = 'Sample data: six labelled timeslot states.';
     j4SyncReviewControls();
     selectedAssets = new Set(['hall1', 'hall2', 'studio2']); // One Calendar: every timeslot fixture lane is visible by default
     unifiedReapplyPending();   // unified build, slice 6 (Journey 4's own boot reset of the assets)
@@ -1417,7 +1490,7 @@ const k1Focus = (() => {
   let j5CommandSerial = 0;
 
   function j5CloneBooking() { return { ...J5_BASE_BOOKING, items: J5_BASE_BOOKING.items.map((item) => ({ ...item })) }; }
-  function j5LocalResult(text) { return `${text} Local review result — no server request sent; reload resets it.`; }
+  function j5LocalResult(text) { return `${text} Nothing was saved.`; }
 
   function j5SyncReviewControls() {
     $$('.j5-review-state[data-j5-review-state]').forEach((button) => {
@@ -1433,13 +1506,13 @@ const k1Focus = (() => {
   }
   function j5LifecycleMessage() {
     return ({
-      loading: 'Lifecycle fixture is loading. No action entry or confirmation is available.',
-      ready: 'Lifecycle fixture ready for local review. No production availability or permission rule is claimed.',
-      empty: 'No eligible private items in this local fixture. Nothing can be confirmed.',
-      unavailable: 'Lifecycle review is unavailable in this local fixture. No success is inferred.',
-      error: 'The local lifecycle fixture failed to load. Retry the review fixture; the original booking is preserved.',
+      loading: 'The sample booking is loading. No action is available yet.',
+      ready: 'Sample booking ready. Nothing is saved.',
+      empty: 'No eligible private items in this sample. Nothing can be confirmed.',
+      unavailable: 'This is unavailable in this sample.',
+      error: 'The sample booking failed to load. Retry; the original booking is preserved.',
       'permission-denied': 'Permission denied before action entry. The booking remains unchanged.',
-      success: 'A prior local result is shown for review only. It is not persisted and is not a server outcome.'
+      success: 'An earlier sample result is shown. It is not saved.'
     })[j5LifecycleState];
   }
   function j5CanEnterAction() { return j5ReviewState === 'loaded' || j5ReviewState === 'partial'; }
@@ -1455,8 +1528,8 @@ const k1Focus = (() => {
     const heading = document.createElement('strong'); const copy = document.createElement('span');
     const states = {
       loading: ['Loading booking details', ' Current details are unsettled. No lifecycle action is available.'],
-      loaded: ['Booking details loaded', ' Private lifecycle controls are local review flows; previews never write.'],
-      partial: ['Partial details', ' Total is unavailable in this degraded local fixture. No value is inferred.'],
+      loaded: ['Booking details loaded', ' Nothing is saved here.'],
+      partial: ['Partial details', ' Total is unavailable in this sample.'],
       error: ['Booking details could not load', ' Original booking state is preserved; no outcome is fabricated.'],
       denied: ['Permission denied', ' Details are visible for context only; lifecycle entry is unavailable.']
     };
@@ -1466,16 +1539,17 @@ const k1Focus = (() => {
       retry.addEventListener('click', () => { j5SetState('loaded', true); announceLive(j5LocalResult('Details retry returned the local fixture.')); }); stateMessage.appendChild(retry);
     }
     const detailsVisible = !['loading', 'error'].includes(j5ReviewState); content.hidden = !detailsVisible; content.inert = !detailsVisible;
-    total.textContent = j5ReviewState === 'partial' ? 'Unavailable — partial fixture' : `${J5_BOOKING_FIXTURE.total.toLocaleString('en-AU', { style: 'currency', currency: 'AUD' })} fixture`;
+    total.textContent = j5ReviewState === 'partial' ? 'Unavailable — partial sample' : `${J5_BOOKING_FIXTURE.total.toLocaleString('en-AU', { style: 'currency', currency: 'AUD' })} sample`;
     if (itemCount) itemCount.textContent = `${J5_BOOKING_FIXTURE.items.length} local booking item${J5_BOOKING_FIXTURE.items.length === 1 ? '' : 's'}`;
     const actionsEnabled = detailsVisible && j5CanEnterAction() && j5LifecycleState === 'ready';
     $$('.j5-action[data-j5-action]').forEach((button) => {
-      button.disabled = !actionsEnabled; button.setAttribute('aria-describedby', 'j5-review-boundary j5-action-announcement'); button.title = actionsEnabled ? `${button.dataset.j5Action} opens a local review flow` : 'Unavailable in the current review fixture state';
+      button.disabled = !actionsEnabled; button.setAttribute('aria-describedby', 'j5-review-boundary j5-action-announcement'); button.title = actionsEnabled ? `${button.dataset.j5Action} opens a preview` : 'Unavailable in this sample state';
     });
+    const corporate = $('#j5-open-corporate'); if (corporate) corporate.disabled = !actionsEnabled;
     const announcement = $('#j5-action-announcement'); if (announcement && !j5Operation) announcement.textContent = actionsEnabled ? j5LifecycleMessage() : `${j5LifecycleMessage()} ${j5LocalResult('No booking data changed.')}`;
   }
   function j5SetState(nextState, focusState) {
-    if (!isJ5Journey() || !J5_REVIEW_STATES.has(nextState)) return; j5ReviewState = nextState; j5RenderState(); announceLive(`Journey 5 ${nextState.replace('-', ' ')} review fixture shown. No saved data changed.`); if (focusState) window.requestAnimationFrame(() => $('#j5-state-message')?.focus());
+    if (!isJ5Journey() || !J5_REVIEW_STATES.has(nextState)) return; j5ReviewState = nextState; j5RenderState(); announceLive(`Sample state shown: ${nextState.replace('-', ' ')}. No saved data changed.`); if (focusState) window.requestAnimationFrame(() => $('#j5-state-message')?.focus());
   }
   function j5SetLifecycleState(nextState, focusState) {
     if (!isJ5Journey() || !J5_LIFECYCLE_STATES.has(nextState)) return; j5LifecycleState = nextState; j5RenderState(); announceLive(j5LifecycleMessage()); if (focusState) window.requestAnimationFrame(() => $('#j5-action-announcement')?.focus());
@@ -1490,7 +1564,7 @@ const k1Focus = (() => {
   function j5OpenActionHub(trigger) {
     if (!isJ5Journey()) return; const fixture = j4FindFixture('private'); if (!fixture) return; j4OpenDetails(fixture, trigger);
     const dialog = $('#j4-details-dialog'); $('#j4-only-details').hidden = true; $('#j4-only-details').inert = true; $('#j5-action-hub').hidden = false; $('#j5-action-hub').inert = false; $('#j5-action-hub').removeAttribute('aria-hidden');
-    $('#j4-details-kicker').textContent = 'Existing private booking · local review'; $('#j4-details-title').textContent = J5_BASE_BOOKING.reference; $('#j4-details-close').setAttribute('aria-label', 'Close existing booking details'); $('#j4-details-back').textContent = 'Back to calendar'; dialog.setAttribute('aria-describedby', 'j5-details-intro j5-review-boundary'); dialog.dataset.j5ActionHub = 'true'; j5DockPlaybackControls(); j5RenderState(); announceLive(`${J5_BASE_BOOKING.reference} private details and local lifecycle action hub opened.`);
+    $('#j4-details-kicker').textContent = 'Existing private booking'; $('#j4-details-title').textContent = J5_BASE_BOOKING.reference; $('#j4-details-close').setAttribute('aria-label', 'Close existing booking details'); $('#j4-details-back').textContent = 'Back to calendar'; dialog.setAttribute('aria-describedby', 'j5-details-intro j5-review-boundary'); dialog.dataset.j5ActionHub = 'true'; j5DockPlaybackControls(); j5RenderState(); announceLive(`${J5_BASE_BOOKING.reference} private details and local lifecycle action hub opened.`);
   }
   function j5ReturnFromWorkflow() {
     if (j5WorkflowReturning) return; j5WorkflowReturning = true; const dialog = $('#j5-workflow-dialog'); if (dialog?.open) dialog.close(); const op = j5Operation; const trigger = j5WorkflowTrigger; const origin = op?.origin; const action = op?.action; j5WorkflowTrigger = null; j5Operation = null;
@@ -1508,6 +1582,7 @@ const k1Focus = (() => {
   function j5OpenWorkflow(action, trigger) {
     if (isJ6Journey()) return j6StartOperation(action, trigger);
     if (!j5CanEnterAction() || j5LifecycleState !== 'ready') { announceLive(j5LifecycleMessage()); const announcement = $('#j5-action-announcement'); if (announcement) announcement.textContent = j5LifecycleMessage(); return; }
+    if (action === 'Reschedule') return j6StartOperation('BookingReschedule', trigger);
     j5WorkflowTrigger = trigger; j5Operation = { action, stage: action === 'Copy' ? 'guard' : 'setup', commandToken: null, stale: false, permissionChanged: false, previewFailed: false, selectedItem: 'ITEM-LOCAL-001', selectedTarget: 'Studio 4', result: null };
     const details = $('#j4-details-dialog'); if (details?.open) details.close('workflow'); const dialog = $('#j5-workflow-dialog'); if (!dialog) return; j5RenderWorkflow(); dialog.showModal(); window.setTimeout(() => dialog.querySelector('input, select, button:not(.dialog-close)')?.focus(), 0);
   }
@@ -1548,40 +1623,40 @@ const k1Focus = (() => {
     if (!op || !stage || !preview || !footer || !title || !description || !announcement) return;
     const focusBefore = workflowFocusCapture();   // A11Y-INH-02 (rule R2)
     $('#j5-workflow-dialog')?.setAttribute('aria-describedby', 'j5-workflow-description');   // L-18: back to the default description outside the J12 setup stage
-    const names = { Copy: 'Copy private booking', Edit: 'Update existing booking', Remove: 'Remove one booking item', Move: 'Move one private item', Batch: 'Batch move private items' }; title.textContent = names[op.action] || 'Local operation'; description.textContent = 'Review fixture only. Previews are non-writing; no server request is sent; reload resets it.'; preview.hidden = true; preview.replaceChildren(); announcement.textContent = '';
+    const names = { Copy: 'Copy Booking', Edit: 'Update existing booking', Remove: 'Remove one booking item', Move: 'Move one private item', Batch: 'Batch move private items' }; title.textContent = names[op.action] || 'Local operation'; description.textContent = 'Nothing is saved; reload restores the sample.'; preview.hidden = true; preview.replaceChildren(); announcement.textContent = '';
     let html = ''; let buttons = '';
     if (op.permissionChanged) {
-      html = `<div class="j5-block-card"><span class="badge badge-evidence">PERMISSION CHANGED</span><h3>Confirmation is no longer available</h3><p>The local permission fixture changed before confirmation. The original booking state is preserved; no operation was applied.</p><p class="j5-result-boundary">${j5LocalResult('Refresh the local permission fixture to review the unchanged preview again.')}</p></div>`;
+      html = `<div class="j5-block-card"><span class="badge badge-evidence">PERMISSION CHANGED</span><h3>Confirmation is no longer available</h3><p>The permission changed before confirmation. The original booking state is preserved; no operation was applied.</p><p class="j5-result-boundary">${j5LocalResult('Refresh to see the unchanged preview again.')}</p></div>`;
       buttons = j5Button('permission-confirm-blocked', 'Confirmation unavailable', 'btn-secondary', true) + j5Button('permission-refresh', 'Refresh permission', 'btn-primary') + j5Button('workflow-cancel', 'Cancel without loss');
     } else if (op.result) {
       html = `<div class="j5-result-card"><span class="badge badge-safe">LOCAL RESULT</span><h3>${op.result.title}</h3><p>${op.result.copy}</p><p class="j5-result-boundary">${j5LocalResult('This result exists only in memory.')}</p></div>`;
-      if (op.action === 'Remove' && op.result.mutated) buttons += j5Button('remove-undo', 'Undo local removal'); if (op.action === 'Batch' && op.result.mutated) buttons += j5Button('batch-rollback', 'Rollback local batch'); if (op.action === 'Batch' && op.result.partial) buttons += j5Button('batch-retry', 'Retry partial fixture', 'btn-primary'); buttons += j5Button('workflow-done', 'Done', 'btn-primary');
+      if (op.action === 'Remove' && op.result.mutated) buttons += j5Button('remove-undo', 'Undo local removal'); if (op.action === 'Batch' && op.result.mutated) buttons += j5Button('batch-rollback', 'Rollback local batch'); if (op.action === 'Batch' && op.result.partial) buttons += j5Button('batch-retry', 'Retry', 'btn-primary'); buttons += j5Button('workflow-done', 'Done', 'btn-primary');
     } else if (op.action === 'Copy' && op.stage === 'guard') {
-      html = `<div class="j5-guard-card"><span class="badge badge-decision">STAGED WORK GUARD</span><h3>Local staged work is present</h3><p>Choose whether to preserve this local staged selection or explicitly clear it before copying. This is a review fixture, not persisted work.</p></div>`; buttons = j5Button('copy-preserve', 'Preserve & continue', 'btn-primary') + j5Button('copy-clear', 'Clear & continue') + j5Button('workflow-cancel', 'Cancel');
+      html = `<div class="j5-guard-card"><span class="badge badge-decision">STAGED WORK GUARD</span><h3>Local staged work is present</h3><p>Choose whether to preserve this local staged selection or explicitly clear it before copying. This is sample work; nothing is saved.</p></div>`; buttons = j5Button('copy-preserve', 'Preserve & continue', 'btn-primary') + j5Button('copy-clear', 'Clear & continue') + j5Button('workflow-cancel', 'Cancel');
     } else if (op.action === 'Copy' && op.stage === 'setup') {
-      html = `<div class="j5-form-grid"><label>New start date<input id="j5-copy-date" type="date" value="${j5DraftValue('date', '2026-09-04')}"></label><label class="j5-check-row"><input id="j5-copy-customer" type="checkbox" ${op.retainCustomer === false ? '' : 'checked'}> Retain customer/contact</label><label class="j5-check-row"><input id="j5-copy-prices" type="checkbox" ${op.retainPrices ? 'checked' : ''}> Retain prices <span class="field-hint">off by default</span></label></div><div class="j5-inline-note">Source read-back: fresh local token v${J5_BASE_BOOKING.version}. Package/item graph has ${J5_BASE_BOOKING.items.length} fixture items.</div>`; buttons = j5Button('copy-stale', 'Show stale source') + j5Button('copy-preview', 'Preview copy', 'btn-primary') + j5Button('workflow-cancel', 'Cancel');
+      html = `<div class="j5-form-grid"><label>New start date<input id="j5-copy-date" type="date" value="${j5DraftValue('date', '2026-09-04')}"></label><label class="j5-check-row"><input id="j5-copy-customer" type="checkbox" ${op.retainCustomer === false ? '' : 'checked'}> Retain customer/contact</label><label class="j5-check-row"><input id="j5-copy-prices" type="checkbox" ${op.retainPrices ? 'checked' : ''}> Retain prices <span class="field-hint">off by default</span></label></div><div class="j5-inline-note">Version ${J5_BASE_BOOKING.version}. The booking has ${J5_BASE_BOOKING.items.length} sample items.</div>`; buttons = j5Button('copy-stale', 'Show stale source') + j5Button('copy-preview', 'Preview copy', 'btn-primary') + j5Button('workflow-cancel', 'Cancel');
     } else if (op.action === 'Copy' && op.stage === 'preview') {
-      html = `<div class="j5-preview-list"><div><strong>New start</strong><span>${op.date || '04 Sep 2026'}</span></div><div><strong>Customer/contact</strong><span>${op.retainCustomer === false ? 'Reset in local fixture' : 'Retained'}</span></div><div><strong>Prices</strong><span>${op.retainPrices ? 'Retained for comparison only' : 'Reset for comparison only'}</span></div><div><strong>Items</strong><span>${J5_BASE_BOOKING.items.length} copied fixture items</span></div></div><p class="j5-illustrative">Fixture comparison only — this is not a pricing rule.</p>`; buttons = j5Button('copy-confirm', 'Confirm local copy', 'btn-primary', op.stale) + j5Button('copy-refresh', 'Refresh source', 'btn-secondary', !op.stale) + j5Button('workflow-cancel', 'Cancel'); if (op.stale) announcement.textContent = 'Source is stale. Refresh before preview can be confirmed.';
+      html = `<div class="j5-preview-list"><div><strong>New start</strong><span>${op.date || '04 Sep 2026'}</span></div><div><strong>Customer/contact</strong><span>${op.retainCustomer === false ? 'Reset in this sample' : 'Retained'}</span></div><div><strong>Prices</strong><span>${op.retainPrices ? 'Retained for comparison only' : 'Reset for comparison only'}</span></div><div><strong>Items</strong><span>${J5_BASE_BOOKING.items.length} copied sample items</span></div></div><p class="j5-illustrative">Sample comparison only — this is not a pricing rule.</p>`; buttons = j5Button('copy-confirm', 'Confirm copy', 'btn-primary', op.stale) + j5Button('copy-refresh', 'Refresh source', 'btn-secondary', !op.stale) + j5Button('workflow-cancel', 'Cancel'); if (op.stale) announcement.textContent = 'Source is stale. Refresh before preview can be confirmed.';
     } else if (op.action === 'Edit' && op.stage === 'setup') {
       html = `<div class="j5-form-grid"><label>Scheduled date<input id="j5-edit-date" type="date" value="${j5DraftValue('date', J5_BASE_BOOKING.date)}"></label><label>Scheduled time<input id="j5-edit-time" type="time" value="${j5DraftValue('time', '09:00')}" step="1800"></label><label>Attendee/cover quantity<input id="j5-edit-covers" type="number" min="1" max="80" value="${j5DraftValue('covers', J5_BASE_BOOKING.covers)}"></label><label>Existing private item<select id="j5-edit-item">${j5ItemOptions(op.selectedItem)}</select></label></div><div class="j5-inline-note">Edit-start version token: v${J5_BASE_BOOKING.version}. The original booking remains unchanged until one local confirmation.</div>`; buttons = j5Button('update-stale', 'Show stale version') + (op.stale ? j5Button('update-refresh', 'Refresh current version', 'btn-primary') : '') + j5Button('update-failure', 'Show preview failure') + j5Button('update-preview', 'Preview update', 'btn-primary', op.stale) + j5Button('workflow-cancel', 'Cancel without loss'); if (op.stale) announcement.textContent = 'Stale version detected. Refresh current version before preview can be confirmed, or cancel without loss.';
     } else if (op.action === 'Edit' && op.stage === 'preview') {
-      html = `<div class="j5-preview-list"><div><strong>Scheduled date</strong><span>${op.date || J5_BASE_BOOKING.date}</span></div><div><strong>Scheduled time</strong><span>${op.time || '09:00'}</span></div><div><strong>Covers</strong><span>${op.covers || J5_BASE_BOOKING.covers}</span></div><div><strong>Item</strong><span>${op.item || 'Existing private item'}</span></div><div><strong>Illustrative price drift</strong><span>AU$ 2,750.00 → AU$ 2,887.50 fixture comparison</span></div></div><p class="j5-illustrative">Illustrative drift evidence only — not authoritative production pricing.</p>`; buttons = j5Button('update-confirm', 'Confirm local update', 'btn-primary') + j5Button('workflow-cancel', 'Cancel without loss');
+      html = `<div class="j5-preview-list"><div><strong>Scheduled date</strong><span>${op.date || J5_BASE_BOOKING.date}</span></div><div><strong>Scheduled time</strong><span>${op.time || '09:00'}</span></div><div><strong>Covers</strong><span>${op.covers || J5_BASE_BOOKING.covers}</span></div><div><strong>Item</strong><span>${op.item || 'Existing private item'}</span></div><div><strong>Illustrative price drift</strong><span>AU$ 2,750.00 → AU$ 2,887.50 sample comparison</span></div></div><p class="j5-illustrative">Sample comparison only — not a real price.</p>`; buttons = j5Button('update-confirm', 'Confirm local update', 'btn-primary') + j5Button('workflow-cancel', 'Cancel without loss');
     } else if (op.action === 'Edit' && op.stage === 'error') {
-      html = `<div class="j5-error-card"><span class="badge badge-evidence">RECOVERABLE ERROR</span><h3>Preview failed locally</h3><p>The original booking is preserved. Retry the fixture or cancel without loss.</p></div>`; buttons = j5Button('update-retry', 'Retry preview', 'btn-primary') + j5Button('workflow-cancel', 'Cancel without loss');
+      html = `<div class="j5-error-card"><span class="badge badge-evidence">RECOVERABLE ERROR</span><h3>Preview failed locally</h3><p>The original booking is preserved. Retry or cancel without loss.</p></div>`; buttons = j5Button('update-retry', 'Retry preview', 'btn-primary') + j5Button('workflow-cancel', 'Cancel without loss');
     } else if (op.action === 'Remove' && op.stage === 'setup') {
       html = `<div class="j5-form-grid"><label>Exact item to remove<select id="j5-remove-item">${j5ItemOptions(op.selectedItem, true)}</select></label><label>Type target reference<input id="j5-remove-reference" type="text" value="" placeholder="ITEM-LOCAL-001" autocomplete="off"></label></div><div class="j5-impact-card"><strong>Impact</strong><span>Selected private booking item/allocation is removed; the Booking shell remains.</span></div>`; buttons = j5Button('remove-preview', 'Review exact impact', 'btn-primary') + j5Button('remove-failure', 'Show failure') + j5Button('workflow-cancel', 'Cancel');
     } else if (op.action === 'Remove' && op.stage === 'preview') {
-      const item = j5SelectedRemoveFixture(); const blocked = item.state !== 'eligible'; html = `<div class="j5-preview-list"><div><strong>Booking</strong><span>${J5_BASE_BOOKING.reference}</span></div><div><strong>Package/item</strong><span>${item.name}</span></div><div><strong>Private timeslot</strong><span>${item.target}</span></div><div><strong>Resulting impact</strong><span>Item/allocation removed; Booking shell remains</span></div></div>${blocked ? `<div class="j5-block-card"><strong>Blocked fixture: ${item.state === 'delivered' ? 'delivered/scanned' : 'linked standard item'}</strong><span>Cancel or failure preserves the item. No deletion is offered.</span></div>` : `<p class="j5-destructive-warning">Destructive local review action. Type <strong>${item.id}</strong> to confirm the exact target.</p>`}`; buttons = blocked ? j5Button('workflow-cancel', 'Cancel') : j5Button('remove-confirm', 'Confirm local removal', 'btn-danger', op.typed !== item.id) + j5Button('workflow-cancel', 'Cancel'); if (!blocked) announcement.textContent = op.typed === item.id ? 'Exact target matches. One local confirmation is available.' : `Type ${item.id} exactly to enable confirmation.`;
+      const item = j5SelectedRemoveFixture(); const blocked = item.state !== 'eligible'; html = `<div class="j5-preview-list"><div><strong>Booking</strong><span>${J5_BASE_BOOKING.reference}</span></div><div><strong>Package/item</strong><span>${item.name}</span></div><div><strong>Private timeslot</strong><span>${item.target}</span></div><div><strong>Resulting impact</strong><span>Item/allocation removed; Booking shell remains</span></div></div>${blocked ? `<div class="j5-block-card"><strong>Blocked: ${item.state === 'delivered' ? 'delivered/scanned' : 'linked standard item'}</strong><span>Cancel or failure preserves the item. No deletion is offered.</span></div>` : `<p class="j5-destructive-warning">Destructive action. Type <strong>${item.id}</strong> to confirm the exact target.</p>`}`; buttons = blocked ? j5Button('workflow-cancel', 'Cancel') : j5Button('remove-confirm', 'Confirm local removal', 'btn-danger', op.typed !== item.id) + j5Button('workflow-cancel', 'Cancel'); if (!blocked) announcement.textContent = op.typed === item.id ? 'Exact target matches. One local confirmation is available.' : `Type ${item.id} exactly to enable confirmation.`;
     } else if (op.action === 'Remove' && op.stage === 'error') {
-      html = `<div class="j5-error-card"><span class="badge badge-evidence">RECOVERABLE ERROR</span><h3>Removal fixture failed</h3><p>The selected item remains present. Retry or cancel; no partial removal is claimed.</p></div>`; buttons = j5Button('remove-retry', 'Retry impact review', 'btn-primary') + j5Button('workflow-cancel', 'Cancel');
+      html = `<div class="j5-error-card"><span class="badge badge-evidence">RECOVERABLE ERROR</span><h3>Removal failed</h3><p>The selected item remains present. Retry or cancel.</p></div>`; buttons = j5Button('remove-retry', 'Retry impact review', 'btn-primary') + j5Button('workflow-cancel', 'Cancel');
     } else if (op.action === 'Move' && op.stage === 'setup') {
-      html = `<div class="j5-form-grid"><label>Private item<select id="j5-move-item">${j5ItemOptions(op.selectedItem)}</select></label><label>Eligible target<select id="j5-move-target">${J5_TARGETS.map(t => `<option value="${t.value}"${t.value === op.selectedTarget ? ' selected' : ''}${t.state === 'same' ? ' disabled' : ''}>${t.label}${t.state === 'same' ? ' · unavailable' : ''}</option>`).join('')}</select></label><label>Cover distribution<input id="j5-move-covers" type="number" min="1" max="80" value="${J5_BASE_BOOKING.covers}"></label></div><div class="j5-inline-note">Current target is excluded and unavailable. Eligible target capacity is enforced against entered covers; conflict and capacity are deterministic local fixtures.</div>`; buttons = j5Button('move-preview', 'Preview move', 'btn-primary') + j5Button('move-rollback', 'Reset fixture') + j5Button('workflow-cancel', 'Cancel');
+      html = `<div class="j5-form-grid"><label>Private item<select id="j5-move-item">${j5ItemOptions(op.selectedItem)}</select></label><label>Eligible target<select id="j5-move-target">${J5_TARGETS.map(t => `<option value="${t.value}"${t.value === op.selectedTarget ? ' selected' : ''}${t.state === 'same' ? ' disabled' : ''}>${t.label}${t.state === 'same' ? ' · unavailable' : ''}</option>`).join('')}</select></label><label>Cover distribution<input id="j5-move-covers" type="number" min="1" max="80" value="${J5_BASE_BOOKING.covers}"></label></div><div class="j5-inline-note">Current target is excluded and unavailable. Eligible target capacity is enforced against entered covers; conflict and capacity are deterministic local fixtures.</div>`; buttons = j5Button('move-preview', 'Preview move', 'btn-primary') + j5Button('move-rollback', 'Reset sample') + j5Button('workflow-cancel', 'Cancel');
     } else if (op.action === 'Move' && op.stage === 'preview') {
-      const target = J5_TARGETS.find(t => t.value === op.selectedTarget) || J5_TARGETS[0]; const covers = Number(op.covers || J5_BASE_BOOKING.covers); const capacityOk = !target.capacity || covers <= target.capacity; const valid = target.state === 'eligible' && capacityOk; html = `<div class="j5-preview-list"><div><strong>Item</strong><span>${op.item || 'Private booking item'}</span></div><div><strong>Current → proposed</strong><span>Studio 2 → ${target.value}</span></div><div><strong>Cover distribution</strong><span>${covers} covers</span></div><div><strong>Eligibility</strong><span>${target.label}</span></div><div><strong>Capacity check</strong><span>${target.capacity ? `${covers} / ${target.capacity} covers` : 'No eligible capacity'}</span></div></div>${valid ? '<p class="j5-inline-note">Non-writing preview. Confirming changes only this in-memory candidate fixture.</p>' : `<div class="j5-block-card"><strong>Move blocked in local fixture</strong><span>${target.state === 'eligible' && !capacityOk ? `Entered covers exceed ${target.value} fixture capacity (${target.capacity}). Reduce covers or cancel.` : 'Select an eligible target or cancel. No allocation or availability claim is made.'}</span></div>`}`; buttons = j5Button('move-confirm', 'Confirm local move', 'btn-primary', !valid) + j5Button('move-refresh', 'Refresh targets') + j5Button('workflow-cancel', 'Cancel');
+      const target = J5_TARGETS.find(t => t.value === op.selectedTarget) || J5_TARGETS[0]; const covers = Number(op.covers || J5_BASE_BOOKING.covers); const capacityOk = !target.capacity || covers <= target.capacity; const valid = target.state === 'eligible' && capacityOk; html = `<div class="j5-preview-list"><div><strong>Item</strong><span>${op.item || 'Private booking item'}</span></div><div><strong>Current → proposed</strong><span>Studio 2 → ${target.value}</span></div><div><strong>Cover distribution</strong><span>${covers} covers</span></div><div><strong>Eligibility</strong><span>${target.label}</span></div><div><strong>Capacity check</strong><span>${target.capacity ? `${covers} / ${target.capacity} covers` : 'No eligible capacity'}</span></div></div>${valid ? '<p class="j5-inline-note">Preview. Confirming changes only this sample.</p>' : `<div class="j5-block-card"><strong>Move blocked in local fixture</strong><span>${target.state === 'eligible' && !capacityOk ? `Entered covers exceed ${target.value} capacity (${target.capacity}). Reduce covers or cancel.` : 'Select an eligible target or cancel. No allocation or availability claim is made.'}</span></div>`}`; buttons = j5Button('move-confirm', 'Confirm local move', 'btn-primary', !valid) + j5Button('move-refresh', 'Refresh targets') + j5Button('workflow-cancel', 'Cancel');
     } else if (op.action === 'Batch' && op.stage === 'setup') {
-      html = `<fieldset class="j5-batch-fieldset"><legend>Select private booking items</legend>${J5_BOOKING_FIXTURE.items.map((item, i) => `<label class="j5-check-row"><input type="checkbox" data-j5-batch-item value="${item.id}"${(op.items ? op.items.includes(item.id) : i === 0) ? ' checked' : ''}> ${item.name} <span class="field-hint">${item.target}</span></label>`).join('')}</fieldset><div class="j5-form-grid"><label>Shared date<input id="j5-batch-date" type="date" value="${j5DraftValue('date', '2026-09-04')}"></label><label>Shared time<input id="j5-batch-time" type="time" value="${j5DraftValue('time', '09:00')}" step="1800"></label><label>Shared target<select id="j5-batch-target"><option value="Studio 4"${op.selectedTarget === 'Studio 4' ? ' selected' : ''}>Studio 4 · complete fixture</option><option value="Studio 7"${op.selectedTarget === 'Studio 7' ? ' selected' : ''}>Studio 7 · partial/conflict fixture</option></select></label></div><div class="j5-inline-note">Shared proposed date/time/target and per-item accounting remain visible in the preview. One local confirmation is used for the selected set.</div>`; buttons = j5Button('batch-preview', 'Preview batch', 'btn-primary') + j5Button('batch-rollback', 'Reset fixture') + j5Button('workflow-cancel', 'Cancel');
+      html = `<fieldset class="j5-batch-fieldset"><legend>Select private booking items</legend>${J5_BOOKING_FIXTURE.items.map((item, i) => `<label class="j5-check-row"><input type="checkbox" data-j5-batch-item value="${item.id}"${(op.items ? op.items.includes(item.id) : i === 0) ? ' checked' : ''}> ${item.name} <span class="field-hint">${item.target}</span></label>`).join('')}</fieldset><div class="j5-form-grid"><label>Shared date<input id="j5-batch-date" type="date" value="${j5DraftValue('date', '2026-09-04')}"></label><label>Shared time<input id="j5-batch-time" type="time" value="${j5DraftValue('time', '09:00')}" step="1800"></label><label>Shared target<select id="j5-batch-target"><option value="Studio 4"${op.selectedTarget === 'Studio 4' ? ' selected' : ''}>Studio 4 · complete fixture</option><option value="Studio 7"${op.selectedTarget === 'Studio 7' ? ' selected' : ''}>Studio 7 · partial/conflict fixture</option></select></label></div><div class="j5-inline-note">Shared proposed date/time/target and per-item accounting remain visible in the preview. One local confirmation is used for the selected set.</div>`; buttons = j5Button('batch-preview', 'Preview batch', 'btn-primary') + j5Button('batch-rollback', 'Reset sample') + j5Button('workflow-cancel', 'Cancel');
     } else if (op.action === 'Batch' && op.stage === 'preview') {
-      const partial = op.selectedTarget === 'Studio 7'; html = `<div class="j5-preview-list"><div><strong>Shared proposed date</strong><span>${op.date || '2026-09-04'}</span></div><div><strong>Shared proposed time</strong><span>${op.time || '09:00'}</span></div><div><strong>Shared proposed target</strong><span>${op.selectedTarget}</span></div></div><div class="j5-batch-table" role="table" aria-label="Batch per-item accounting"><div role="row" class="j5-batch-row j5-batch-head"><span>Item</span><span>Eligibility</span><span>Proposed target</span></div>${(op.items || J5_BOOKING_FIXTURE.items.map(i => i.id)).map(id => { const item = J5_BOOKING_FIXTURE.items.find(i => i.id === id) || J5_BOOKING_FIXTURE.items[0]; return `<div role="row" class="j5-batch-row"><span>${item.name}</span><span>${partial && id === 'ITEM-LOCAL-002' ? 'Conflict' : 'Eligible'}</span><span>${op.selectedTarget}</span></div>`; }).join('')}</div><div class="j5-inline-note">Aggregate preview only. Complete/partial labels describe this deterministic fixture, not atomicity or production allocation.</div>`; buttons = j5Button('batch-confirm', partial ? 'Confirm partial local batch' : 'Confirm complete local batch', 'btn-primary') + j5Button('batch-retry', 'Retry targets') + j5Button('workflow-cancel', 'Cancel');
+      const partial = op.selectedTarget === 'Studio 7'; html = `<div class="j5-preview-list"><div><strong>Shared proposed date</strong><span>${op.date || '2026-09-04'}</span></div><div><strong>Shared proposed time</strong><span>${op.time || '09:00'}</span></div><div><strong>Shared proposed target</strong><span>${op.selectedTarget}</span></div></div><div class="j5-batch-table" role="table" aria-label="Batch per-item accounting"><div role="row" class="j5-batch-row j5-batch-head"><span>Item</span><span>Eligibility</span><span>Proposed target</span></div>${(op.items || J5_BOOKING_FIXTURE.items.map(i => i.id)).map(id => { const item = J5_BOOKING_FIXTURE.items.find(i => i.id === id) || J5_BOOKING_FIXTURE.items[0]; return `<div role="row" class="j5-batch-row"><span>${item.name}</span><span>${partial && id === 'ITEM-LOCAL-002' ? 'Conflict' : 'Eligible'}</span><span>${op.selectedTarget}</span></div>`; }).join('')}</div><div class="j5-inline-note">Preview only. Complete and partial describe this sample.</div>`; buttons = j5Button('batch-confirm', partial ? 'Confirm partial local batch' : 'Confirm complete local batch', 'btn-primary') + j5Button('batch-retry', 'Retry targets') + j5Button('workflow-cancel', 'Cancel');
     }
     if (op.stage === 'preview' && !op.result && !op.permissionChanged) buttons += j5Button('permission-change', 'Simulate permission changed');
     stage.innerHTML = html; footer.innerHTML = buttons;
@@ -1632,11 +1707,11 @@ const k1Focus = (() => {
     const op = j5Operation; if (!op || op.commandToken) return;
     if (['Copy', 'Edit', 'Move', 'Batch'].includes(action) && j5ValidationMessage()) { op.stage = 'setup'; j5RenderWorkflow(); return; }
     op.commandToken = `J5-LOCAL-${++j5CommandSerial}`;
-    if (action === 'Remove') { const item = j5SelectedRemoveFixture(); J5_BOOKING_FIXTURE.items = J5_BOOKING_FIXTURE.items.filter(i => i.id !== item.id); op.result = { title: 'Private booking item removed locally', copy: `${item.name} was removed from the in-memory candidate. The Booking shell remains.`, mutated: true }; }
+    if (action === 'Remove') { const item = j5SelectedRemoveFixture(); J5_BOOKING_FIXTURE.items = J5_BOOKING_FIXTURE.items.filter(i => i.id !== item.id); op.result = { title: 'Private booking item removed locally', copy: `${item.name} was removed from this sample. The Booking remains.`, mutated: true }; }
     else if (action === 'Move') { const item = J5_BOOKING_FIXTURE.items.find(i => i.id === op.selectedItem); if (item) item.target = op.selectedTarget; op.result = { title: 'Private item moved locally', copy: `${op.item || 'Selected item'} now previews at ${op.selectedTarget}.`, mutated: true }; }
-    else if (action === 'Batch') { const partial = op.selectedTarget === 'Studio 7'; op.result = { title: partial ? 'Partial batch result shown locally' : 'Complete batch result shown locally', copy: `${(op.items || []).length} selected private item(s) are accounted for at ${op.selectedTarget} on ${op.date || '2026-09-04'} at ${op.time || '09:00'}; ${partial ? 'one conflict remains retryable.' : 'all selected items are eligible in this fixture.'}`, mutated: true, partial }; }
+    else if (action === 'Batch') { const partial = op.selectedTarget === 'Studio 7'; op.result = { title: partial ? 'Partial batch result shown locally' : 'Complete batch result shown locally', copy: `${(op.items || []).length} selected private item(s) are accounted for at ${op.selectedTarget} on ${op.date || '2026-09-04'} at ${op.time || '09:00'}; ${partial ? 'one conflict remains retryable.' : 'all selected items are eligible in this sample.'}`, mutated: true, partial }; }
     else if (action === 'Copy') op.result = { title: 'Copy preview confirmed locally', copy: `A transient copy result ${op.retainCustomer ? 'retaining customer/contact' : 'resetting customer/contact'} was created for ${op.date || 'the selected start date'}; the source booking is unchanged.`, mutated: false };
-    else op.result = { title: 'Update preview confirmed locally', copy: `The requested scheduled date ${op.date || J5_BASE_BOOKING.date} at ${op.time || '09:00'}, cover quantity and existing item selection were accepted as a transient local result; the original booking is unchanged.`, mutated: false };
+    else op.result = { title: 'Update preview confirmed locally', copy: `The requested scheduled date ${op.date || J5_BASE_BOOKING.date} at ${op.time || '09:00'}, cover quantity and existing item selection were accepted for this sample; the original booking is unchanged.`, mutated: false };
     j5RenderWorkflow(); j5RenderState(); announceLive(j5LocalResult(op.result.title));
   }
   function j5HandleWorkflowCommand(event) {
@@ -1664,7 +1739,7 @@ const k1Focus = (() => {
     if (command === 'remove-failure') { op.stage = 'error'; return j5RenderWorkflow(); }
     if (command === 'remove-retry') { op.stage = 'setup'; return j5RenderWorkflow(); }
     if (command === 'remove-confirm') { if (op.typed === j5SelectedRemoveFixture().id && j5SelectedRemoveFixture().state === 'eligible') return j5CommitResult('Remove'); }
-    if (command === 'remove-undo') { const item = J5_REMOVE_FIXTURES.find(i => i.id === op.selectedItem); if (item && !J5_BOOKING_FIXTURE.items.some(i => i.id === item.id)) J5_BOOKING_FIXTURE.items.push({ id: item.id, name: item.name, target: 'Studio 2', covers: 18, state: 'eligible' }); op.result = { title: 'Removal rolled back locally', copy: 'The selected booking item is present again in the in-memory candidate.', mutated: false }; j5RenderWorkflow(); j5RenderState(); return; }
+    if (command === 'remove-undo') { const item = J5_REMOVE_FIXTURES.find(i => i.id === op.selectedItem); if (item && !J5_BOOKING_FIXTURE.items.some(i => i.id === item.id)) J5_BOOKING_FIXTURE.items.push({ id: item.id, name: item.name, target: 'Studio 2', covers: 18, state: 'eligible' }); op.result = { title: 'Removal rolled back locally', copy: 'The selected booking item is back in this sample.', mutated: false }; j5RenderWorkflow(); j5RenderState(); return; }
     if (command === 'move-preview') { op.stage = 'preview'; return j5RenderWorkflow(); }
     if (command === 'move-refresh' || command === 'move-rollback') { op.stage = 'setup'; op.selectedTarget = 'Studio 4'; return j5RenderWorkflow(); }
     if (command === 'move-confirm') { const target = J5_TARGETS.find(t => t.value === op.selectedTarget); const covers = Number(op.covers || J5_BASE_BOOKING.covers); if (target?.state === 'eligible' && covers <= target.capacity) return j5CommitResult('Move'); }
@@ -1673,17 +1748,31 @@ const k1Focus = (() => {
     if (command === 'batch-rollback') { op.result = null; op.commandToken = null; op.stage = 'setup'; op.date = undefined; op.time = undefined; op.items = undefined; op.selectedTarget = 'Studio 4'; return j5RenderWorkflow(); }
     if (command === 'batch-confirm') { if ((op.items || []).length) return j5CommitResult('Batch'); }
   }
+  // J5, the Director's approval of 3 Nov 2026: the existing system's two routes from a private booking. In production the control opens Corporate Booking in a new tab; here nothing opens.
+  function j5AddExistingSystemRoutes() {
+    const move = $('.j5-action[data-j5-action="Move"]'); const access = $('.j5-details-facts > div:last-child');
+    if (!move || !access || $('#j5-open-corporate')) return;
+    const reschedule = document.createElement('button'); reschedule.type = 'button'; reschedule.className = 'j5-action'; reschedule.dataset.j5Action = 'Reschedule'; reschedule.textContent = 'Reschedule';
+    move.before(reschedule);
+    const cell = document.createElement('div'); cell.id = 'j5-corporate-fact';
+    const label = document.createElement('dt'); label.textContent = 'Open in';
+    const value = document.createElement('dd'); const open = document.createElement('button'); open.type = 'button'; open.id = 'j5-open-corporate'; open.className = 'j5-open-corporate';
+    open.setAttribute('aria-label', 'Open in Corporate Booking, opens a new tab'); open.innerHTML = 'Corporate Booking <span aria-hidden="true">↗</span>';
+    open.addEventListener('click', () => { const line = $('#j5-action-announcement'); if (line) line.textContent = `In production this opens ${J5_BASE_BOOKING.reference} in Corporate Booking, in a new tab. Nothing opens in this sample.`; });
+    value.append(open); cell.append(label, value); access.before(cell);
+  }
   function j5SetupEvents() {
+    if (isJ5Journey()) j5AddExistingSystemRoutes();
     if (isJ5Journey()) $$('.j5-review-state[data-j5-review-state]').forEach((button) => button.addEventListener('click', () => { j5SetState(button.dataset.j5ReviewState, false); if (!$('#j4-details-dialog').open) j5OpenActionHub(button); }));
     if (isJ5Journey()) $$('.j5-review-state[data-j5-lifecycle-state]').forEach((button) => button.addEventListener('click', () => j5SetLifecycleState(button.dataset.j5LifecycleState, false)));
     if (isJ5Journey()) $$('.j5-action[data-j5-action]').forEach((button) => button.addEventListener('click', (event) => j5OpenWorkflow(event.currentTarget.dataset.j5Action, event.currentTarget)));
     if (isJ6Journey()) $$('[data-j6-action]').forEach((button) => button.addEventListener('click', (event) => j5OpenWorkflow(event.currentTarget.dataset.j6Action, event.currentTarget)));
-    if (isJ6Journey()) $$('[data-j6-permission]').forEach((button) => button.addEventListener('click', (event) => { j5ReviewState = event.currentTarget.dataset.j6Permission === 'denied' ? 'denied' : 'loaded'; announceLive(j5ReviewState === 'denied' ? 'Permission denied before action entry.' : 'Permission fixture restored to ready.'); }));
+    if (isJ6Journey()) $$('[data-j6-permission]').forEach((button) => button.addEventListener('click', (event) => { j5ReviewState = event.currentTarget.dataset.j6Permission === 'denied' ? 'denied' : 'loaded'; announceLive(j5ReviewState === 'denied' ? 'Permission denied before action entry.' : 'Permission restored.'); }));
     document.addEventListener('click', (event) => { if (event.target.closest('#j5-workflow-footer [data-j5-command]') || (document.body.dataset.journey === '12' && event.target.closest('#j12tc-evidence [data-j5-command]'))) j5HandleWorkflowCommand(event); }); $('#j5-workflow-close')?.addEventListener('click', j5ReturnFromWorkflow); $('#j5-workflow-dialog')?.addEventListener('cancel', (event) => { event.preventDefault(); j5ReturnFromWorkflow(); }); $('#j5-workflow-dialog')?.addEventListener('close', () => { if (j5WorkflowTrigger && !j5WorkflowReturning) j5ReturnFromWorkflow(); }); $('#j4-details-dialog').addEventListener('close', (event) => { if (event?.returnValue !== 'workflow') j5RestorePlaybackControls(); });
   }
   function j5ResetBootState() {
     j4ResetBootState(); j4ActiveFixtureId = 'private'; J5_BOOKING_FIXTURE = j5CloneBooking(); const overviewTitle = $('#j4-overview-title'); const overviewCopy = $('#j4-overview p'); const caption = $('.calendar-caption');
-    if (overviewTitle) overviewTitle.textContent = 'Review private Existing Booking lifecycle flows'; if (overviewCopy) overviewCopy.textContent = 'CR-J5-002 through CR-J5-006 are deterministic local review fixtures. Copy, update, item removal, Move and Batch never call a server or persist data.'; if (caption) caption.textContent = 'REVIEW FIXTURE — private lifecycle candidate; previews are non-writing and reload resets local results.';
+    if (overviewTitle) overviewTitle.textContent = 'Existing booking'; if (overviewCopy) overviewCopy.textContent = 'Copy, update, item removal, Move and Batch are sample previews; nothing is saved.'; if (caption) caption.textContent = 'Sample booking — nothing is saved';
     j5ReviewState = 'loaded'; j5LifecycleState = 'ready'; j5Operation = null; renderCalendar(); j5RenderState(); window.setTimeout(() => j5OpenActionHub($('#j4-open-private')), 0);
   }
   function j5PreparePlayback() { const panel = $('#review-rail-panel'); panel.hidden = false; $('#review-rail-toggle').setAttribute('aria-expanded', 'true'); if (!$('#j4-details-dialog').open) j5OpenActionHub($('#j4-open-private')); else j5RenderState(); }
@@ -1699,14 +1788,14 @@ const k1Focus = (() => {
 
   /* ===== Journey 6 isolated candidate — CR-J6-001 through CR-J6-006 ===== */
 
-  const J6_PUBLIC_BANNER = 'REVIEW FIXTURE — this local playback represents one runtime-confirmed public-event timeslot change and restore. It is not Public lifecycle support. Canonical FN-RES-008 remains NOT FOUND in the code trace and OUT OF SCOPE for the current Diary approval boundary. Journey 6 claims no ownership of Public behavior.';
-  const J6_ENTRY_COPY = 'REVIEW FIXTURE — public-event identification and the public context menu are UNVERIFIED (runtime validation 2026-08-04). This entry is a review-only control, not a reproduced menu path.';
-  const J6_DEFECT_COPY = 'DEFECT — duplicate/cancelled availability preparation was observed in the current system. It is described here and deliberately not reproduced.';
-  const J6_RESULT_SUFFIX = 'Local review result — no server request sent; reload resets it.';
+  const J6_PUBLIC_BANNER = 'Sample only: one public event timeslot change and restore. Managing public events is not part of this screen.';
+  const J6_ENTRY_COPY = 'Public event actions are not shown here.';
+  const J6_DEFECT_COPY = 'Availability is checked once here.';
+  const J6_RESULT_SUFFIX = 'Nothing was saved.';
 
   function j6PermissionAllowed() { return j5ReviewState !== 'denied' && j5LifecycleState === 'ready'; }
   function j6ActionTitle(action) {
-    return ({ PublicReschedule: 'Public timeslot reschedule · review fixture', BookingReschedule: 'Booking reschedule · blocked review', MultiReschedule: 'Multiple reschedule · heterogeneous review', AssetDescription: 'Asset Description → Resources → Resource Booking → Reschedule Booking', Reallocate: 'Resource reallocation · proposed review' })[action] || 'Journey 6 local review';
+    return ({ PublicReschedule: 'Public timeslot reschedule', BookingReschedule: 'Booking reschedule', MultiReschedule: 'Multiple reschedule', AssetDescription: 'Asset description', Reallocate: 'Resource reallocation' })[action] || 'Reschedule';
   }
   function j6Duration(start, end) {
     const mins = (v) => { const [h, m] = String(v || '00:00').split(':').map(Number); return h * 60 + m; };
@@ -1728,7 +1817,7 @@ const k1Focus = (() => {
       if (!error) { $('#j5-workflow-stage').insertAdjacentHTML('beforeend', '<div id="f1-j6-validation" class="j5-error-card" role="alert"></div>'); error = $('#f1-j6-validation'); }
       error.textContent = message;
     } else error?.remove();
-    ['j6-check', 'j6-confirm', 'j6-proposed-preview'].forEach((command) => { const button = $(`[data-j5-command="${command}"]`); if (button) button.disabled = !!message || j5Operation.selection === 'heterogeneous' || (command === 'j6-confirm' && (j5Operation.stale || !j5Operation.changed)); });
+    ['j6-check', 'j6-confirm', 'j6-proposed-preview'].forEach((command) => { const button = $(`[data-j5-command="${command}"]`); if (button) button.disabled = !!message || j5Operation.selection === 'heterogeneous' || (command === 'j6-confirm' && (j5Operation.stale || !j5Operation.changed)) || (command === 'j6-check' && !!$('#j6-auto-availability') && !j6AutoEnabled); });
   }
   function j6ReadValues() {
     const op = j5Operation; if (!op) return;
@@ -1748,15 +1837,15 @@ const k1Focus = (() => {
     op.changed = op.date !== op.baseline.date || op.start !== op.baseline.start || op.end !== op.baseline.end;
   }
   function j6StartOperation(action, trigger) {
-    const routeOk = isJ6Journey() || (document.body.dataset.journey === '12' && action === 'PublicReschedule');
+    const routeOk = isJ6Journey() || (document.body.dataset.journey === '12' && action === 'PublicReschedule') || (isJ5Journey() && action === 'BookingReschedule');
     if (!routeOk) return;
-    if (!j6PermissionAllowed()) { announceLive('Permission denied before action entry. The local fixture remains unchanged.'); return; }
+    if (!j6PermissionAllowed()) { announceLive('Permission denied. The sample is unchanged.'); return; }
     const publicAction = action === 'PublicReschedule';
     j5WorkflowTrigger = trigger || document.activeElement;
     const opener = j5WorkflowTrigger;
     j5Operation = {
       action,
-      evidenceClass: publicAction ? 'REVIEW FIXTURE' : action === 'BookingReschedule' ? 'PARTIAL' : 'UNVERIFIED',
+      evidenceClass: publicAction ? 'Sample' : action === 'BookingReschedule' ? 'Partial' : 'Not confirmed',
       origin: { openerSelector: opener?.id ? `#${opener.id}` : null, restore: () => opener?.focus?.() },
       stage: action === 'Reallocate' ? 'preview' : 'setup',
       substage: action === 'AssetDescription' ? 'summary' : null,
@@ -1777,7 +1866,7 @@ const k1Focus = (() => {
     announceLive(`${j6ActionTitle(action)} opened. No server request sent.`);
   }
   function j6ResultCard(title, copy, cls = 'j6-open') {
-    const label = cls === 'j6-unverified' ? 'UNVERIFIED' : cls === 'j6-blocked' ? 'BLOCKED/DEFECT-AFFECTED' : 'RUNTIME-CONFIRMED';
+    const label = cls === 'j6-unverified' ? 'Not confirmed' : cls === 'j6-blocked' ? 'Blocked — known defect' : 'Confirmed';
     return `<div class="j6-stage-card ${cls}"><span class="j6-workflow-label">${label}</span><h3>${title}</h3><p>${copy}</p></div>`;
   }
   function j6RenderTimeForm(op, heading, extra = '') {
@@ -1785,7 +1874,7 @@ const k1Focus = (() => {
     const timeFields = op.timeMode === 'different'
       ? `<div class="j6-different-time-rows" role="group" aria-label="Different time per-item rows"><div class="j6-different-time-row"><strong>Item A · ${op.resource?.selectedId || 'Hall 1'}</strong><label>Start<input id="j6-start-a" type="time" value="${op.itemTimes[0].start}"></label><label>End<input id="j6-end-a" type="time" value="${op.itemTimes[0].end}"></label><label class="j6-field-readonly">Duration (derived)<input id="j6-duration-a" type="text" value="${j6Duration(op.itemTimes[0].start, op.itemTimes[0].end)}" readonly aria-readonly="true"></label></div><div class="j6-different-time-row"><strong>Item B · ${op.resource?.selectedId || 'Studio 2'}</strong><label>Start<input id="j6-start-b" type="time" value="${op.itemTimes[1].start}"></label><label>End<input id="j6-end-b" type="time" value="${op.itemTimes[1].end}"></label><label class="j6-field-readonly">Duration (derived)<input id="j6-duration-b" type="text" value="${j6Duration(op.itemTimes[1].start, op.itemTimes[1].end)}" readonly aria-readonly="true"></label></div></div>`
       : `<div class="j5-form-grid"><label>Start<input id="j6-start" type="time" value="${op.start}"></label><label>End<input id="j6-end" type="time" value="${op.end}"></label><label class="j6-field-readonly">Duration (derived)<input id="j6-duration" type="text" value="${op.duration}" readonly aria-readonly="true"></label></div>`;
-    return `<div class="j6-stage-card ${stageModifier}"><span class="j6-workflow-label">${op.evidenceClass}</span><h3>${heading}</h3><div class="j5-form-grid"><label>Date<input id="j6-date" type="date" value="${op.date}"></label><label>Time mode<select id="j6-time-mode"><option value="common"${op.timeMode === 'common' ? ' selected' : ''}>Common time</option><option value="different"${op.timeMode === 'different' ? ' selected' : ''}>Different times</option></select></label></div>${timeFields}<p class="j5-inline-note">Before / after preview only. Duration is derived and not independently editable. No pricing, persistence, transaction or concurrency outcome is claimed.</p>${extra}${op.changed ? '' : '<p class="j6-resource-state">Unchanged interval: submit is an exact no-op. The dialog remains open and no result or token is created.</p>'}</div>`;
+    return `<div class="j6-stage-card ${stageModifier}"><span class="j6-workflow-label">${op.evidenceClass}</span><h3>${heading}</h3><div class="j5-form-grid"><label>Date<input id="j6-date" type="date" value="${op.date}"></label><label>Time mode<select id="j6-time-mode"><option value="common"${op.timeMode === 'common' ? ' selected' : ''}>Common time</option><option value="different"${op.timeMode === 'different' ? ' selected' : ''}>Different times</option></select></label></div>${timeFields}<p class="j5-inline-note">Before / after preview only. Duration is derived and not independently editable. Nothing is saved.</p>${extra}${op.changed ? '' : '<p class="j6-resource-state">Unchanged interval: submit is an exact no-op. The dialog remains open and no result or token is created.</p>'}</div>`;
   }
   // J12 I-2 B: preserve the original five notes and command buttons, not proxies.
   function j12CompactRescheduleSetup(html) {
@@ -1794,47 +1883,81 @@ const k1Focus = (() => {
     const details = document.createElement('details'); details.id = 'j12tc-evidence'; details.className = 'j12tc-evidence'; details.setAttribute('data-d0-hide', '');
     const summary = document.createElement('summary'); summary.textContent = `Review evidence, boundaries and known defect (${notes.length} notes)`;   // L-18: the visible text is the whole name — no duplicate aria-label
     const content = document.createElement('div'); content.className = 'j12tc-evidence-content'; notes.forEach((note) => content.append(note));
-    const label = document.createElement('p'); label.className = 'j12tc-review-label'; label.textContent = 'Review-only controls'; content.append(label);
-    const controls = document.createElement('div'); controls.className = 'j12tc-review-controls'; controls.innerHTML = j6Button('j6-loading', 'Show availability loading') + j6Button('j6-noop-submit', 'Submit unchanged time'); content.append(controls);
+    
+    
     const boundary = document.createElement('p'); boundary.className = 'j5-workflow-description j12tc-boundary'; boundary.id = 'j12tc-boundary'; boundary.setAttribute('data-d0-hide', ''); boundary.textContent = 'Local review only — nothing is saved; reload resets it.';   // L-18: the dialog's description while this line is the one on screen
     template.content.prepend(boundary); details.append(summary, content); template.content.append(details); return template.innerHTML;
+  }
+  // Step b12, C3: availability appears by itself, as in the existing rescheduling-availability component. The HTTP 400 stop stays.
+  // Stale, permission and error stay in the handler for tests: window.__j6Review.command(name).
+  var j6AutoEnabled = false;
+  function j6AutoMarkup() { return '<p class="j6-auto-availability is-idle" id="j6-auto-availability" role="status" aria-live="polite"></p>'; }
+  function j6AutoConflict(op) {
+    const mins = (v) => { const [h, m] = String(v).split(':').map(Number); return h * 60 + m; };
+    const a = mins(op.start), b = mins(op.end);
+    return EVENTS.find((ev) => ev.asset === 'hall1' && ev.date === op.date && a < ev.end * 60 && b > ev.start * 60);
+  }
+  function j6AutoWire(op) {
+    const stage = $('#j5-workflow-stage');
+    stage.onchange = null; stage.oninput = null;
+    const line = $('#j6-auto-availability'), button = $('[data-j5-command="j6-check"]');
+    if (!line || !button) return;
+    let timer = null;
+    const set = (cls, text, enabled) => { j6AutoEnabled = enabled; line.className = `j6-auto-availability ${cls}`; line.textContent = text; button.disabled = !enabled; };
+    const run = () => {
+      if (timer) window.clearTimeout(timer);
+      j6ReadValues();
+      if (j6ValidationMessage()) { set('is-idle', 'Enter a valid date and time to see availability.', false); return; }
+      if (!op.changed) { set('is-idle', 'This is the current time. Change the date or time to see availability.', false); return; }
+      set('is-checking', 'Checking availability…', false);
+      timer = window.setTimeout(() => {
+        timer = null;
+        if (!line.isConnected || !$('#j5-workflow-dialog')?.open) return;   // closed or re-rendered meanwhile: the result would reach nobody
+        const hit = j6AutoConflict(op);
+        if (hit) set('is-conflict', `Conflict: ${hit.title} ${String(hit.status).split(' · ')[0]}. You can still continue, as in the existing Diary.`, true);
+        else set('is-available', 'Available', true);
+        announceLive(line.textContent);
+      }, 450);
+    };
+    stage.onchange = run; stage.oninput = run;
+    run();
   }
   function j6RenderWorkflow() {
     const op = j5Operation, stage = $('#j5-workflow-stage'), footer = $('#j5-workflow-footer'), title = $('#j5-workflow-title'), description = $('#j5-workflow-description'), announcement = $('#j5-workflow-announcement');
     if (!op || !stage || !footer || !title || !description || !announcement) return;
     const focusBefore = workflowFocusCapture();   // A11Y-INH-02 (rule R2)
     $('#j5-workflow-dialog')?.setAttribute('aria-describedby', 'j5-workflow-description');   // L-18: back to the default description outside the J12 setup stage
-    $('#j5-workflow-kicker').textContent = 'Journey 6 · UJ-07 · local review'; title.textContent = j6ActionTitle(op.action); description.textContent = 'Review fixture only. Every preview is non-writing; no server request is sent; reload resets it.'; announcement.textContent = '';
+    $('#j5-workflow-kicker').textContent = isJ5Journey() ? 'Existing booking' : 'Reschedule'; title.textContent = j6ActionTitle(op.action); description.textContent = 'Nothing is saved; reload restores the sample.'; announcement.textContent = '';
     let html = '', buttons = '';
     if (op.permissionChanged) {
-      html = j6ResultCard('Permission changed during preview', 'Confirmation and restore are unavailable until the local permission fixture is refreshed. The original in-memory state is preserved.', 'j6-blocked'); buttons = j6Button('permission-refresh', 'Refresh permission', 'btn-primary') + j6Button('workflow-cancel', 'Cancel without loss');
+      html = j6ResultCard('Permission changed during preview', 'Confirmation and restore are unavailable until the permission is refreshed. The original is preserved.', 'j6-blocked'); buttons = j6Button('permission-refresh', 'Refresh permission', 'btn-primary') + j6Button('workflow-cancel', 'Cancel without loss');
     } else if (op.result) {
       html = j6ResultCard(op.result.title, op.result.copy, op.result.kind === 'unverified' ? 'j6-unverified' : 'j6-open');
-      if (op.action === 'PublicReschedule' && op.result.kind === 'change' && !op.restored && op.localResultCount < 2) buttons = j6Button('j6-restore', 'Guarded restore to 08:00–19:00', 'btn-primary') + j6Button('j6-permission-change', 'Permission changed');
+      if (op.action === 'PublicReschedule' && op.result.kind === 'change' && !op.restored && op.localResultCount < 2) buttons = j6Button('j6-restore', 'Guarded restore to 08:00–19:00', 'btn-primary');
       buttons += j6Button('workflow-done', 'Done', 'btn-primary');
     } else if (op.action === 'Reallocate') {
-      html = `<div class="j6-stage-card j6-unverified"><span class="j6-workflow-label">UNVERIFIED</span><h3>Proposed before / after preview</h3><p>Resource reallocation is presented as a local proposal only. No save, change-assets persistence or success is shown.</p><div class="j6-indivisible"><strong>DFC + DFCD + Allocation</strong><span>one indivisible displayed row</span></div><p>OWN-ALLOC-01 — OPEN. No backend ownership, atomicity, capacity, rights or rollback decision is implied.</p></div>`;
+      html = `<div class="j6-stage-card j6-unverified"><span class="j6-workflow-label">Not confirmed</span><h3>Proposed before / after preview</h3><p>Resource reallocation is presented as a local proposal only. No save, change-assets persistence or success is shown.</p><div class="j6-indivisible"><strong>DFC + DFCD + Allocation</strong><span>one indivisible displayed row</span></div><p>OWN-ALLOC-01 — OPEN. No backend ownership, atomicity, capacity, rights or rollback decision is implied.</p></div>`;
       buttons = j6Button('workflow-cancel', 'Cancel without loss');
     } else if (op.action === 'AssetDescription') {
       const sub = op.substage || 'summary';
       const crumbs = `<div class="j6-breadcrumb"><span aria-current="${sub === 'summary' ? 'step' : 'false'}">Asset Description</span><span aria-current="${sub === 'resources' ? 'step' : 'false'}">Resources</span><span aria-current="${sub === 'resource-booking' ? 'step' : 'false'}">Resource Booking</span><span aria-current="${sub === 'reschedule' ? 'step' : 'false'}">Reschedule Booking</span></div>`;
-      if (sub === 'summary') { html = `<div class="j6-stage-card j6-unverified">${crumbs}<span class="j6-workflow-label">UNVERIFIED</span><h3>Asset Description</h3><p>Summary and tabs are available for review. Resource and booking actions remain local and non-persistent.</p><p>Tabs: Summary · Resources · Booking context. No pricing amount or save control is shown.</p></div>`; buttons = j6Button('j6-next-resources', 'Resources', 'btn-primary') + j6Button('workflow-cancel', 'Cancel'); }
-      else if (sub === 'resources') { const state = op.resource.listState; html = `<div class="j6-stage-card j6-unverified">${crumbs}<span class="j6-workflow-label">UNVERIFIED</span><h3>Resources</h3><label>Search resources<input id="j6-resource-query" type="search" value="${op.resource.query}" placeholder="Search local fixtures"></label><p class="j6-resource-state">${state === 'loading' ? 'Resource list loading — no request is sent.' : state === 'empty' ? 'No local resource matches. Empty state only.' : state === 'error' ? 'Resource list error. Retry the local fixture.' : state === 'denied' ? 'Permission denied for resource list. No rights matrix is claimed.' : `Loaded local resources page ${op.resource.page}: Studio 4 · Studio 7 · Hall 1. Selection remains a local fixture.`}</p></div>`; buttons = j6Button('j6-resource-loading', 'Loading') + j6Button('j6-resource-empty', 'Empty') + j6Button('j6-resource-error', 'Error + retry') + j6Button('j6-resource-denied', 'Denied') + j6Button('j6-resource-loaded', 'Loaded') + j6Button('j6-resource-page', 'Next page') + j6Button('j6-resource-select', 'Select Studio 4') + j6Button('j6-next-resource-booking', 'Resource Booking', 'btn-primary', state !== 'loaded') + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
-      else if (sub === 'resource-booking') { html = `<div class="j6-stage-card j6-unverified">${crumbs}<span class="j6-workflow-label">UNVERIFIED</span><h3>Resource Booking</h3><p>Selected resource: ${op.resource.selectedId || 'Studio 4 local fixture'}.</p><p>Apply / Cancel are local navigation only. No resource save, availability write or booking persistence is available.</p></div>`; buttons = j6Button('j6-apply-preview', 'Apply to proposed preview', 'btn-primary') + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
-      else { html = j6RenderTimeForm(op, 'Reschedule Booking', '<p class="j6-resource-state">UNVERIFIED proposed before/after preview. A confirmation success is deliberately unavailable.</p>'); buttons = j6Button('j6-proposed-preview', 'Show proposed preview', 'btn-primary') + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
+      if (sub === 'summary') { html = `<div class="j6-stage-card j6-unverified">${crumbs}<span class="j6-workflow-label">Not confirmed</span><h3>Asset Description</h3><p>Summary and tabs are shown for this sample. Nothing is saved.</p><p>Tabs: Summary · Resources · Booking context. No pricing amount or save control is shown.</p>${window.__c14 ? window.__c14.block('hall1') : ''}</div>`; buttons = j6Button('j6-next-resources', 'Resources', 'btn-primary') + j6Button('workflow-cancel', 'Cancel'); }
+      else if (sub === 'resources') { const state = op.resource.listState; html = `<div class="j6-stage-card j6-unverified">${crumbs}<span class="j6-workflow-label">Not confirmed</span><h3>Resources</h3><label>Search resources<input id="j6-resource-query" type="search" value="${op.resource.query}" placeholder="Search sample resources"></label><p class="j6-resource-state">${state === 'loading' ? 'Resource list loading — no request is sent.' : state === 'empty' ? 'No local resource matches. Empty state only.' : state === 'error' ? 'Resource list error. Retry.' : state === 'denied' ? 'Permission denied for resource list.' : `Loaded local resources page ${op.resource.page}: Studio 4 · Studio 7 · Hall 1. Selection remains a local fixture.`}</p></div>`; buttons = j6Button('j6-resource-loading', 'Loading') + j6Button('j6-resource-empty', 'Empty') + j6Button('j6-resource-error', 'Error + retry') + j6Button('j6-resource-denied', 'Denied') + j6Button('j6-resource-loaded', 'Loaded') + j6Button('j6-resource-page', 'Next page') + j6Button('j6-resource-select', 'Select Studio 4') + j6Button('j6-next-resource-booking', 'Resource Booking', 'btn-primary', state !== 'loaded') + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
+      else if (sub === 'resource-booking') { html = `<div class="j6-stage-card j6-unverified">${crumbs}<span class="j6-workflow-label">Not confirmed</span><h3>Resource Booking</h3><p>Selected resource: ${op.resource.selectedId || 'Studio 4'}.</p><p>Apply / Cancel are local navigation only. No resource save, availability write or booking persistence is available.</p></div>`; buttons = j6Button('j6-apply-preview', 'Apply to proposed preview', 'btn-primary') + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
+      else { html = j6RenderTimeForm(op, 'Reschedule Booking', '<p class="j6-resource-state">Proposed before/after preview, not confirmed. Nothing can be saved here.</p>'); buttons = j6Button('j6-proposed-preview', 'Show proposed preview', 'btn-primary') + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
     } else if (op.action === 'MultiReschedule') {
       html = j6RenderTimeForm(op, 'Multiple reschedule', '<p class="j6-resource-state"><strong>Varies</strong> — heterogeneous selection. Duration: 0.00 HRS. Multi-item commit is permanently disabled.</p>'); buttons = j6Button('j6-check', 'Review availability', 'btn-primary', true) + j6Button('workflow-cancel', 'Cancel');
     } else if (op.action === 'BookingReschedule') {
-      if (op.stage === 'setup') { html = j6RenderTimeForm(op, 'Booking reschedule', `<p class="j6-defect-note">${J6_DEFECT_COPY}</p>`); buttons = j6Button('j6-loading', 'Show availability loading') + j6Button('j6-check', 'Check availability', 'btn-primary') + j6Button('j6-noop-submit', 'Submit unchanged time') + j6Button('workflow-cancel', 'Cancel'); }
-      else if (op.stage === 'availability') { html = j6ResultCard('Availability available for review', 'Availability completed in the local fixture. The next Booking preview is deliberately blocked at the observed HTTP 400 defect boundary.', 'j6-safety') + `<p class="j6-defect-note">${J6_DEFECT_COPY}</p>`; buttons = j6Button('j6-check', 'Continue to preview blocker', 'btn-primary') + j6Button('j6-conflict', 'Show conflict') + j6Button('j6-error', 'Show error') + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
-      else { html = j6ResultCard('Preview blocked — HTTP 400 evidence', 'Availability completed in the local fixture, but Booking preview is BLOCKED/DEFECT-AFFECTED. Commit is never enabled and no Booking PATCH success is simulated.', 'j6-blocked') + `<p class="j6-defect-note">${J6_DEFECT_COPY}</p>`; buttons = j6Button('workflow-cancel', 'Cancel without loss'); }
+      if (op.stage === 'setup') { html = j6RenderTimeForm(op, 'Booking reschedule', `${j6AutoMarkup()}<p class="j6-defect-note">${J6_DEFECT_COPY}</p>`); buttons = j6Button('j6-check', 'Continue', 'btn-primary', true) + j6Button('workflow-cancel', 'Cancel'); }
+      else if (op.stage === 'availability') { html = j6ResultCard('Availability available for review', 'Availability completed in this sample. The next Booking preview is blocked at the known HTTP 400 defect.', 'j6-safety') + `<p class="j6-defect-note">${J6_DEFECT_COPY}</p>`; buttons = j6Button('j6-check', 'Continue to preview blocker', 'btn-primary') + j6Button('j6-conflict', 'Show conflict') + j6Button('j6-error', 'Show error') + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
+      else { html = j6ResultCard('Preview blocked — HTTP 400 evidence', 'Availability completed in this sample, but the Booking preview is blocked by a known defect. Saving is never enabled and no success is simulated.', 'j6-blocked') + `<p class="j6-defect-note">${J6_DEFECT_COPY}</p>`; buttons = j6Button('workflow-cancel', 'Cancel without loss'); }
     } else if (op.action === 'PublicReschedule') {
-      if (op.stage === 'setup') { html = `<div class="j6-public-banner">${J6_PUBLIC_BANNER}</div>` + j6RenderTimeForm(op, 'Public timeslot change', `<p class="j6-entry-note">${J6_ENTRY_COPY}</p><p class="j6-defect-note">${J6_DEFECT_COPY}</p>`); buttons = j6Button('j6-loading', 'Show availability loading') + j6Button('j6-check', 'Check availability', 'btn-primary') + j6Button('j6-noop-submit', 'Submit unchanged time') + j6Button('workflow-cancel', 'Cancel'); if (document.body.dataset.journey === '12') { html = j12CompactRescheduleSetup(html); buttons = j6Button('j6-check', 'Check availability', 'btn-primary') + j6Button('workflow-cancel', 'Cancel'); } }
-      else if (op.stage === 'availability') { html = `<div class="j6-public-banner">${J6_PUBLIC_BANNER}</div><div class="j6-stage-card ${op.availability === 'error' ? 'j6-blocked' : 'j6-safety'}"><span class="j6-workflow-label">${op.availability.toUpperCase()}</span><h3>Availability review</h3><p>${op.availability === 'loading' ? 'Availability is loading. No duplicate request is reproduced.' : op.availability === 'error' ? 'The local availability fixture returned an error. Retry without reproducing duplicate work.' : op.availability === 'conflict' ? 'Conflict / unavailable fixture. No override or capacity claim is made.' : 'Availability is ready for a non-writing before/after preview.'}</p><p class="j6-defect-note">${J6_DEFECT_COPY}</p></div>`; buttons = j6Button('j6-check', 'Retry availability', 'btn-primary') + j6Button('j6-conflict', 'Show conflict') + j6Button('j6-error', 'Show error') + j6Button('j6-stale', 'Show stale target') + j6Button('j6-permission-change', 'Permission changed') + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
-      else { html = `<div class="j6-public-banner">${J6_PUBLIC_BANNER}</div><div class="j6-stage-card j6-safety"><span class="j6-workflow-label">RUNTIME-CONFIRMED · LOCAL ONLY</span><h3>Before / after preview</h3><div class="j6-indivisible"><strong>${op.baseline.date} · ${op.baseline.start}–${op.baseline.end}</strong><span>before</span></div><div class="j6-indivisible"><strong>${op.date} · ${op.start}–${op.end}</strong><span>proposed · ${op.duration}</span></div><p>No server request is sent. Confirmation is guarded by stale and permission checks.</p></div>`; buttons = j6Button('j6-confirm', 'Confirm one local change', 'btn-primary', op.stale || !op.changed) + j6Button('j6-stale', 'Show stale target') + j6Button('j6-permission-change', 'Permission changed') + j6Button('j6-refresh', 'Refresh target', 'btn-secondary', !op.stale) + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
+      if (op.stage === 'setup') { html = `<div class="j6-public-banner">${J6_PUBLIC_BANNER}</div>` + j6RenderTimeForm(op, 'Public timeslot change', `${j6AutoMarkup()}<p class="j6-entry-note">${J6_ENTRY_COPY}</p><p class="j6-defect-note">${J6_DEFECT_COPY}</p>`); buttons = j6Button('j6-check', 'Continue', 'btn-primary', true) + j6Button('workflow-cancel', 'Cancel'); if (document.body.dataset.journey === '12') { html = j12CompactRescheduleSetup(html); } }
+      else if (op.stage === 'availability') { html = `<div class="j6-public-banner">${J6_PUBLIC_BANNER}</div><div class="j6-stage-card ${op.availability === 'error' ? 'j6-blocked' : 'j6-safety'}"><span class="j6-workflow-label">${op.availability.toUpperCase()}</span><h3>Availability review</h3><p>${op.availability === 'loading' ? 'Availability is loading.' : op.availability === 'error' ? 'The availability check returned an error. Retry.' : op.availability === 'conflict' ? 'Conflict or unavailable. No override is offered.' : 'Availability is ready for a before/after preview. Nothing is saved.'}</p><p class="j6-defect-note">${J6_DEFECT_COPY}</p></div>`; buttons = j6Button('j6-check', 'Retry availability', 'btn-primary') + j6Button('j6-conflict', 'Show conflict') + j6Button('j6-error', 'Show error') + j6Button('j6-stale', 'Show stale target') + j6Button('j6-permission-change', 'Permission changed') + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
+      else { html = `<div class="j6-public-banner">${J6_PUBLIC_BANNER}</div><div class="j6-stage-card j6-safety"><span class="j6-workflow-label">Confirmed · sample only</span><h3>Before / after preview</h3><div class="j6-indivisible"><strong>${op.baseline.date} · ${op.baseline.start}–${op.baseline.end}</strong><span>before</span></div><div class="j6-indivisible"><strong>${op.date} · ${op.start}–${op.end}</strong><span>proposed · ${op.duration}</span></div><p>No server request is sent. Confirmation is guarded by stale and permission checks.</p></div>`; buttons = j6Button('j6-confirm', 'Confirm one local change', 'btn-primary', op.stale || !op.changed) + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
     }
     if (document.body.dataset.journey === '12' && op.action === 'PublicReschedule') html = '<div class="j12tc-reschedule' + (op.stage === 'setup' ? ' j12tc-setup' : '') + '">' + html + '</div>';
-    stage.innerHTML = html; footer.innerHTML = buttons;
+    stage.innerHTML = html; footer.innerHTML = buttons; j6AutoWire(op);
     // L-18 (27 Oct 2026): in the setup stage the short boundary line is the sentence on screen, so the dialog is
     // described by that line, word for word — not by the long line this stage hides. Where the line is not shown (the
     // product-only customer view hides review commentary) the Master's own description stays in place.
@@ -1855,10 +1978,11 @@ const k1Focus = (() => {
     if (!j6PermissionAllowed()) { op.permissionChanged = true; return j6RenderWorkflow(); }
     if (kind === 'change' && j6ValidationMessage()) { op.stage = 'setup'; return j6RenderWorkflow(); }
     op.commandToken = `J6-LOCAL-${++j5CommandSerial}`; op.localResultCount += 1;
-    if (kind === 'change') { j6PublicInterval = { start: op.start, end: op.end }; op.result = { kind: 'change', title: 'Public timeslot changed locally', copy: `One local review update changed ${op.baseline.start}–${op.baseline.end} to ${op.start}–${op.end}. ${J6_RESULT_SUFFIX}` }; renderCalendar(); }
-    else { j6PublicInterval = { start: op.baseline.start, end: op.baseline.end }; op.restored = true; op.result = { kind: 'restore', title: 'Public timeslot restored locally', copy: `The local review fixture returned to ${op.baseline.start}–${op.baseline.end}. ${J6_RESULT_SUFFIX}` }; renderCalendar(); }
+    if (kind === 'change') { j6PublicInterval = { start: op.start, end: op.end }; op.result = { kind: 'change', title: 'Public timeslot changed locally', copy: `One sample update changed ${op.baseline.start}–${op.baseline.end} to ${op.start}–${op.end}. ${J6_RESULT_SUFFIX}` }; renderCalendar(); }
+    else { j6PublicInterval = { start: op.baseline.start, end: op.baseline.end }; op.restored = true; op.result = { kind: 'restore', title: 'Public timeslot restored locally', copy: `The sample returned to ${op.baseline.start}–${op.baseline.end}. ${J6_RESULT_SUFFIX}` }; renderCalendar(); }
     j6RenderWorkflow(); announceLive(op.result.copy);
   }
+  window.__j6Review = Object.freeze({ command: (name) => { const b = document.createElement('button'); b.dataset.j5Command = name; const f = $('#j5-workflow-footer'); f.append(b); b.click(); b.remove(); } });
   function j6HandleWorkflowCommand(event) {
     const command = event.target.closest('[data-j5-command]')?.dataset.j5Command, op = j5Operation;
     if (!command || !op) return;
@@ -1870,6 +1994,7 @@ const k1Focus = (() => {
       if (j6ValidationMessage()) { op.stage = 'setup'; j6RenderWorkflow(); return; }
     }
     if (command === 'j6-noop-submit') { j6ReadValues(); if (!op.changed) { const a = $('#j5-workflow-announcement'); if (a) a.textContent = `Unchanged time submitted — no transition or result. ${J6_RESULT_SUFFIX}`; announceLive('Unchanged time submitted; no local result was created and the dialog remains open.'); } return; }
+    if (command === 'j6-check' && op.stage === 'setup' && (op.action === 'BookingReschedule' || op.action === 'PublicReschedule')) { j6ReadValues(); op.availability = 'available'; op.stage = op.action === 'BookingReschedule' ? 'blocked' : 'preview'; return j6RenderWorkflow(); }
     if (command === 'j6-loading') { op.availability = 'loading'; op.stage = 'availability'; return j6RenderWorkflow(); }
     if (command === 'j6-check') { j6ReadValues(); if (!op.changed && op.availability !== 'loading') { const a = $('#j5-workflow-announcement'); if (a) a.textContent = `Unchanged time submitted — no transition or result. ${J6_RESULT_SUFFIX}`; announceLive('Unchanged time submitted; no local result was created.'); return; } if (op.availability === 'loading') { op.availability = 'available'; op.stage = 'availability'; return j6RenderWorkflow(); } if (op.action === 'BookingReschedule' && op.stage === 'availability') { op.availability = 'available'; op.stage = 'blocked'; return j6RenderWorkflow(); } op.availability = 'available'; op.stage = op.action === 'BookingReschedule' ? 'availability' : 'preview'; return j6RenderWorkflow(); }
     if (command === 'j6-conflict') { op.availability = 'conflict'; op.stage = 'availability'; return j6RenderWorkflow(); }
@@ -1888,8 +2013,8 @@ const k1Focus = (() => {
     if (command === 'j6-resource-page') { op.resource.page += 1; return j6RenderWorkflow(); }
     if (command === 'j6-resource-select') { op.resource.selectedId = 'Studio 4'; return j6RenderWorkflow(); }
     if (command === 'j6-next-resource-booking') { if (op.resource.listState === 'loaded') { op.resource.selectedId = 'Studio 4'; op.substage = 'resource-booking'; return j6RenderWorkflow(); } return; }
-    if (command === 'j6-next-reschedule' || command === 'j6-apply-preview') { op.substage = 'reschedule'; op.evidenceClass = 'UNVERIFIED'; return j6RenderWorkflow(); }
-    if (command === 'j6-proposed-preview') { op.stage = 'preview'; op.evidenceClass = 'UNVERIFIED'; return j6RenderWorkflow(); }
+    if (command === 'j6-next-reschedule' || command === 'j6-apply-preview') { op.substage = 'reschedule'; op.evidenceClass = 'Not confirmed'; return j6RenderWorkflow(); }
+    if (command === 'j6-proposed-preview') { op.stage = 'preview'; op.evidenceClass = 'Not confirmed'; return j6RenderWorkflow(); }
   }
   function j6ResetBootState() {
     j4ResetBootState();
@@ -1903,8 +2028,8 @@ const k1Focus = (() => {
     if (j6RailToggle) j6RailToggle.setAttribute('aria-expanded', 'false');
     j4ActiveFixtureId = 'public-review'; j4EnabledFilters = new Set(J6_FILTER_ORDER); j6PublicInterval = { start: '08:00', end: '19:00' }; j5ReviewState = 'loaded'; j5LifecycleState = 'ready'; j5Operation = null;
     const overview = $('#j4-overview');
-    if (overview) { overview.hidden = false; overview.inert = false; overview.removeAttribute('aria-hidden'); overview.innerHTML = `<div><span class="j4-kicker">Journey 6 · UJ-07 · Maintenance / Public Events</span><h1 id="j4-overview-title">Reschedule timeslots and reallocate resources</h1></div><div><p class="j6-public-banner">${J6_PUBLIC_BANNER}</p><p class="j6-defect-note">${J6_DEFECT_COPY}</p><p class="j6-entry-note">${J6_ENTRY_COPY}</p><p class="j6-entry-note"><strong>Evidence labels:</strong> RUNTIME-CONFIRMED · PARTIAL · BLOCKED/DEFECT-AFFECTED · UNVERIFIED · REVIEW FIXTURE.</p></div>`; }
-    const caption = $('.calendar-caption'); if (caption) caption.textContent = 'REVIEW FIXTURE — Journey 6 local reschedule/reallocation candidate; no server request sent and reload resets it.'; renderCalendar();
+    if (overview) { overview.hidden = false; overview.inert = false; overview.removeAttribute('aria-hidden'); overview.innerHTML = `<div><span class="j4-kicker">Maintenance and public events</span><h1 id="j4-overview-title">Reschedule timeslots and reallocate resources</h1></div><div><p class="j6-public-banner">${J6_PUBLIC_BANNER}</p><p class="j6-defect-note">${J6_DEFECT_COPY}</p><p class="j6-entry-note">${J6_ENTRY_COPY}</p></div>`; }
+    const caption = $('.calendar-caption'); if (caption) caption.textContent = 'Sample data · nothing is saved'; renderCalendar();
   }
   async function j6RunPlayback(mode) { if (!isJ6Journey() || playJourneyActive) return; playJourneyActive = true; const playBtn = $('#btn-play-journey'), completeBtn = $('#btn-play-complete'); playBtn.disabled = true; completeBtn.disabled = true; try { const trigger = $('#j6-open-public-review') || $('#j6-open-booking'); if (trigger) { j6StartOperation('PublicReschedule', trigger); announceLive(`${mode === 'complete' ? 'Play complete' : 'Play journey'} opened the bounded local review fixture.`); } } finally { playJourneyActive = false; playBtn.disabled = false; completeBtn.disabled = false; } }
   function j6PlayJourney() { return j6RunPlayback('journey'); }
@@ -1915,11 +2040,13 @@ const k1Focus = (() => {
   const J3_FIXTURE_CATALOG = (function buildJ3FixtureCatalog() {
     const fixtures = [];
     const venues = [
-      { key: 'j3v-north', name: 'J3 Review Venue North' },
-      { key: 'j3v-south', name: 'J3 Review Venue South' }
+      { key: 'j3v-north', name: 'Sample Venue North' },
+      { key: 'j3v-south', name: 'Sample Venue South' }
     ];
     const hallNames = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon'];
     const studioNames = ['One', 'Two', 'Three', 'Four', 'Five'];
+    // J3 Gate A candidate: Type is independent of Category (legacy facts 4-5): Conference spans Halls and Studios.
+    const facilityTypes = { Alpha: 'Banquet', Beta: 'Conference', Gamma: 'Theatre', Delta: 'Banquet', Epsilon: 'Conference', One: 'Recording', Two: 'Conference', Three: 'Rehearsal', Four: 'Recording', Five: 'Rehearsal' };
     let seq = 0;
     venues.forEach((venue, vi) => {
       ['Halls', 'Studios'].forEach((category) => {
@@ -1927,7 +2054,7 @@ const k1Focus = (() => {
         names.forEach((label, ni) => {
           seq += 1;
           const id = 'j3-rf-' + pad(seq, 3);
-          const name = (category === 'Halls' ? 'J3 Hall ' : 'J3 Studio ') + label;
+          const name = (category === 'Halls' ? 'Hall ' : 'Studio ') + label;
           const capacity = 40 + seq * 8;
           fixtures.push({
             id,
@@ -1941,9 +2068,35 @@ const k1Focus = (() => {
             lane: true,
             journey: false,
             color: category === 'Halls' ? 'cobalt' : 'teal',
-            haystack: (name + ' ' + category + ' ' + venue.name + ' ' + id + ' capacity ' + capacity).toLowerCase()
+            assetClass: 'facility',
+            assetType: facilityTypes[label],
+            haystack: (name + ' ' + category + ' ' + venue.name + ' ' + id + ' capacity ' + capacity + ' facility facilities ' + facilityTypes[label]).toLowerCase()
           });
         });
+      });
+    });
+    [
+      ['resource', 'Projector One', 'AV equipment', 'Projector', 0, 20],
+      ['resource', 'Sound Desk', 'AV equipment', 'Sound system', 0, 40],
+      ['resource', 'Stage Deck', 'Staging and furniture', 'Staging', 0, 60],
+      ['resource', 'Projector Two', 'AV equipment', 'Projector', 1, 20],
+      ['resource', 'Banquet Chairs', 'Staging and furniture', 'Seating', 1, 100],
+      ['resource', 'Riser Set', 'Staging and furniture', 'Staging', 1, 30],
+      ['accommodation', 'Garden Room', 'Hotel rooms', 'Standard', 0, 2],
+      ['accommodation', 'Garden Suite', 'Hotel rooms', 'Suite', 0, 4],
+      ['accommodation', 'City Room', 'Hotel rooms', 'Standard', 1, 2],
+      ['accommodation', 'City Apartment', 'Serviced apartments', 'Suite', 1, 6]
+    ].forEach(([assetClass, name, category, assetType, vi, capacity]) => {
+      seq += 1;
+      const id = 'j3-rf-' + pad(seq, 3);
+      const venue = venues[vi];
+      const words = assetClass === 'resource' ? 'resource resources' : 'accommodation';
+      fixtures.push({
+        id, name, category, venue: venue.name, venueKey: venue.key,
+        catKey: venue.key + '-' + category.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        venueIdx: vi + 1, capacity, lane: true, journey: false, color: assetClass === 'resource' ? 'teal' : 'cobalt',
+        assetClass, assetType,
+        haystack: (name + ' ' + category + ' ' + venue.name + ' ' + id + ' capacity ' + capacity + ' ' + words + ' ' + assetType).toLowerCase()
       });
     });
     return fixtures;
@@ -1958,12 +2111,524 @@ const k1Focus = (() => {
   let j3ExplorerKeydownBound = false;
   let j3FilterStatusLoading = false;
 
+  /* ===== J3 Gate A candidate — grouped filters (Supervisor #24, 2 Nov 2026). Journey 3 only. Legacy fact numbers: J3-LEGACY-VERIFIED-FINDINGS.md ===== */
+  const J3_CLASSES = [
+    { key: 'facility', label: 'Facility', plural: 'Facilities' },
+    { key: 'resource', label: 'Resource', plural: 'Resources' },
+    { key: 'accommodation', label: 'Accommodation', plural: 'Accommodation' }
+  ];
+  // Sample public events, in the shape of the existing interface (fact 19). The Public team owns public events; J3 only reads them.
+  const J3_EVENT_NOW = new Date(2026, 7, 29, 12, 0);
+  const J3_PUBLIC_EVENTS = [
+    { id: 'j3-ev-1', name: 'Harvest Festival', type: 'publicEvent', eventStartDate: '2026-08-28T09:00:00', eventEndDate: '2026-08-31T18:00:00', venueId: 'j3v-north', venueName: 'Sample Venue North', assetIds: ['j3-rf-001', 'j3-rf-002', 'j3-rf-006', 'j3-rf-021'] },
+    { id: 'j3-ev-2', name: 'Autumn Concert', type: 'publicEvent', eventStartDate: '2026-09-05T18:00:00', eventEndDate: '2026-09-05T22:00:00', venueId: 'j3v-south', venueName: 'Sample Venue South', assetIds: ['j3-rf-011', 'j3-rf-012', 'j3-rf-024'] },
+    { id: 'j3-ev-3', name: 'Trade Fair', type: 'publicEvent', eventStartDate: '2026-09-12T09:00:00', eventEndDate: '2026-09-14T17:00:00', venueId: 'j3v-north', venueName: 'Sample Venue North', assetIds: ['j3-rf-003', 'j3-rf-004', 'j3-rf-005', 'j3-rf-023', 'j3-rf-027'] },
+    { id: 'j3-ev-4', name: 'Morning Run', type: 'publicEvent', eventStartDate: '2026-08-29T06:00:00', eventEndDate: '2026-08-29T10:00:00', venueId: 'j3v-south', venueName: 'Sample Venue South', assetIds: ['j3-rf-016'] },
+    { id: 'j3-ev-5', name: 'Summer Gala', type: 'publicEvent', eventStartDate: '2026-08-15T18:00:00', eventEndDate: '2026-08-15T23:00:00', venueId: 'j3v-north', venueName: 'Sample Venue North', assetIds: ['j3-rf-001', 'j3-rf-005'] },
+    { id: 'j3-ev-6', name: 'Spring Expo', type: 'publicEvent', eventStartDate: '2026-04-20T09:00:00', eventEndDate: '2026-04-22T18:00:00', venueId: 'j3v-south', venueName: 'Sample Venue South', assetIds: ['j3-rf-013', 'j3-rf-014', 'j3-rf-015'] }
+  ];
+  let j3ClassOn = { facility: true, resource: true, accommodation: false };   // legacy defaults (fact 2)
+  let j3PickedTypes = new Set();
+  let j3PickedCats = new Set();
+  let j3PickedEvents = new Set();
+  let j3EventWhen = 'upcoming';
+  let j3OpenPicker = null;
+  let j3ChipSignature = null;
+
+  function j3ClassLabel(a) {
+    return (J3_CLASSES.find((c) => c.key === a.assetClass) || {}).label || '';
+  }
+
+  function j3RowNameHtml(a) {
+    if (!a.assetClass) return '<span class="tree-name">' + a.name + '</span>';
+    return '<span class="j3-asset-text"><span class="tree-name">' + a.name + '</span><span class="j3-asset-sub">' + j3ClassLabel(a) + ' · ' + a.assetType + '</span></span>';
+  }
+
+  function j3CapacityApplies() {
+    return j3ClassOn.facility && j3PickedEvents.size === 0;   // legacy facts 22, 27
+  }
+
+  function j3ActiveKeys(set) {
+    return new Set(Array.from(set).filter((k) => j3ClassOn[k.split('|')[0]]));   // an off class stops counting, its values stay (fact 11)
+  }
+
+  function j3LinkedAssetIds() {
+    if (!j3PickedEvents.size) return null;
+    const ids = new Set();
+    jxEvents().filter((e) => j3PickedEvents.has(e.id)).forEach((e) => e.assetIds.forEach((id) => ids.add(id)));
+    return ids;
+  }
+
+  function j3EventsForWhen() {
+    const now = J3_EVENT_NOW.getTime();
+    return jxEvents().filter((e) => {
+      const end = new Date(e.eventEndDate).getTime();
+      return j3EventWhen === 'past' ? end < now : end > now;   // the existing rule: only the end decides (fact 14), so ongoing is Upcoming (fact 15)
+    }).sort((x, y) => x.name.localeCompare(y.name));
+  }
+
+  function j3EventIsOngoing(e) {
+    const now = J3_EVENT_NOW.getTime();
+    return new Date(e.eventStartDate).getTime() <= now && new Date(e.eventEndDate).getTime() > now;
+  }
+
+  function j3EventRange(e) {
+    const s = new Date(e.eventStartDate);
+    const f = new Date(e.eventEndDate);
+    const day = (d) => d.getDate() + ' ' + d.toLocaleString('en-GB', { month: 'short' });
+    const time = (d) => pad(d.getHours(), 2) + ':' + pad(d.getMinutes(), 2);
+    if (s.toDateString() === f.toDateString()) return day(s) + ' ' + s.getFullYear() + ', ' + time(s) + '–' + time(f);
+    return day(s) + ' – ' + day(f) + ' ' + f.getFullYear();
+  }
+
+  function j3ActiveFilterChips() {
+    const chips = [];
+    jxClasses().forEach((c) => {
+      if (c.key !== 'accommodation' && !j3ClassOn[c.key]) chips.push({ key: 'class|' + c.key, text: c.plural + ' off' });
+    });
+    const named = (set, kind, word) => j3ActiveKeys(set).forEach((k) => {
+      const [cls, value] = k.split('|');
+      chips.push({ key: kind + '|' + k, text: (J3_CLASSES.find((c) => c.key === cls) || {}).label + ' ' + word + ': ' + value });
+    });
+    named(j3PickedTypes, 'type', 'type');
+    named(j3PickedCats, 'cat', 'category');
+    jxEvents().filter((e) => j3PickedEvents.has(e.id)).forEach((e) => chips.push({ key: 'event|' + e.id, text: 'Public event: ' + e.name }));
+    const caps = j3ReadCapacityInputs();
+    if (j3CapacityApplies() && (caps.fromRaw !== '' || caps.toRaw !== '') && !(caps.fromRaw !== '' && caps.toRaw !== '' && caps.from > caps.to)) {
+      chips.push({ key: 'capacity', text: caps.fromRaw !== '' && caps.toRaw !== '' ? 'Capacity ' + caps.from + '–' + caps.to : (caps.fromRaw !== '' ? 'Capacity from ' + caps.from : 'Capacity to ' + caps.to) });
+    }
+    return chips;
+  }
+
+  function j3RenderActiveFilters() {
+    const box = $('#j3-active-filters');
+    if (!box) return;
+    const chips = j3ActiveFilterChips();
+    const countEl = $('#j3-filters-count');
+    const toggle = $('#j3-filters-toggle');
+    if (countEl) {
+      countEl.hidden = chips.length === 0;
+      countEl.textContent = chips.length ? String(chips.length) : '';
+    }
+    if (toggle) {
+      if (chips.length) toggle.setAttribute('aria-label', 'Filters, ' + chips.length + ' active');
+      else toggle.removeAttribute('aria-label');
+    }
+    const signature = JSON.stringify(chips);
+    if (signature === j3ChipSignature) return;   // a redraw would drop the keyboard focus from a chip
+    j3ChipSignature = signature;
+    box.hidden = chips.length === 0;
+    box.innerHTML = chips.map((c) => '<button type="button" class="j3-chip" data-chip="' + escapeHtml(c.key) + '" aria-label="Remove filter: ' + escapeHtml(c.text) + '"><span class="j3-chip-text">' + escapeHtml(c.text) + '</span><span class="j3-chip-x" aria-hidden="true">×</span></button>').join('');
+  }
+
+  function j3OffClassHint() {
+    const off = jxClasses().filter((c) => !j3ClassOn[c.key]).map((c) => c.plural);
+    const classesOf = (set) => new Set(Array.from(j3ActiveKeys(set)).map((k) => k.split('|')[0]));
+    const typeClasses = classesOf(j3PickedTypes);
+    const catClasses = classesOf(j3PickedCats);
+    // Rule 1, the existing system's rule (legacy facts 8, 10): a Type and a Category must match the same asset; the message says why a mixed-class choice finds nothing
+    const mixed = typeClasses.size && catClasses.size && !Array.from(typeClasses).some((k) => catClasses.has(k));
+    return (mixed ? ' A Type and a Category must match the same asset, so a Type from one class with a Category from another finds nothing.' : '')
+      + (off.length ? ' ' + off.join(' and ') + (off.length > 1 ? ' are' : ' is') + ' switched off in Filters.' : '');
+  }
+
+  function j3SyncCapacityState() {
+    const applies = j3CapacityApplies();
+    const fromEl = $('#j3-capacity-from');
+    const toEl = $('#j3-capacity-to');
+    if (fromEl) fromEl.disabled = !applies;
+    if (toEl) toEl.disabled = !applies;
+    const hint = $('#j3-capacity-hint');
+    if (hint) {
+      hint.hidden = applies;
+      hint.textContent = applies ? '' : (j3PickedEvents.size ? 'Capacity does not apply while a public event is selected.' : 'Capacity applies when Facilities is on.');
+    }
+  }
+
+  function j3RenderTypesList() {
+    const list = $('#j3-types-list');
+    if (!list) return;
+    const q = ($('#j3-types-find')?.value || '').trim().toLowerCase();
+    let html = '';
+    jxClasses().filter((c) => j3ClassOn[c.key]).forEach((c) => {
+      const assets = jxCatalog().filter((a) => a.assetClass === c.key);
+      const group = (kind, word, values, set) => {
+        const shown = Array.from(new Set(values)).sort().filter((v) => !q || (c.plural + ' ' + c.label + ' ' + word + ' ' + v).toLowerCase().indexOf(q) !== -1);
+        if (!shown.length) return '';
+        return '<div class="j3-opt-group" role="group" aria-label="' + c.label + ' ' + word.toLowerCase() + '"><div class="j3-opt-group-title">' + word + '</div><div class="j3-opt-grid">' + shown.map((v) => {
+          const key = c.key + '|' + v;
+          return '<label class="j3-opt"><input type="checkbox" data-pick="' + kind + '" data-key="' + escapeHtml(key) + '"' + (set.has(key) ? ' checked' : '') + '><span>' + escapeHtml(v) + '</span></label>';
+        }).join('') + '</div></div>';
+      };
+      const inner = group('type', 'Type', assets.map((a) => a.assetType), j3PickedTypes) + group('cat', 'Category', assets.map((a) => a.category), j3PickedCats);
+      if (inner) html += '<div class="j3-opt-class"><div class="j3-opt-class-title">' + c.plural + '</div>' + inner + '</div>';
+    });
+    list.innerHTML = html || '<p class="j3-opt-empty">No type or category matches.</p>';
+  }
+
+  function j3RenderEventsList() {
+    const list = $('#j3-events-list');
+    if (!list) return;
+    const q = ($('#j3-events-find')?.value || '').trim().toLowerCase();
+    const shown = j3EventsForWhen().filter((e) => !q || e.name.toLowerCase().indexOf(q) !== -1);
+    list.innerHTML = shown.length ? shown.map((e) => '<label class="j3-opt j3-opt-event"><input type="checkbox" data-pick="event" data-key="' + e.id + '"' + (j3PickedEvents.has(e.id) ? ' checked' : '') + '><span class="j3-opt-text"><span class="j3-opt-name">' + escapeHtml(e.name) + (j3EventIsOngoing(e) ? ' <span class="j3-event-tag">Ongoing</span>' : '') + '</span><span class="j3-opt-sub">' + j3EventRange(e) + ' · ' + escapeHtml(e.venueName) + '</span></span></label>').join('') : '<p class="j3-opt-empty">No public events to list.</p>';
+    const up = $('#j3-events-upcoming');
+    const past = $('#j3-events-past');
+    if (up) up.setAttribute('aria-pressed', j3EventWhen === 'upcoming' ? 'true' : 'false');
+    if (past) past.setAttribute('aria-pressed', j3EventWhen === 'past' ? 'true' : 'false');
+  }
+
+  function j3SyncPickerValues() {
+    const typesEl = $('#j3-types-value');
+    const eventsEl = $('#j3-events-value');
+    const n = j3ActiveKeys(j3PickedTypes).size + j3ActiveKeys(j3PickedCats).size;
+    if (typesEl) {
+      typesEl.textContent = n ? n + ' selected' : 'All';
+      typesEl.classList.toggle('is-set', n > 0);
+    }
+    if (eventsEl) {
+      eventsEl.textContent = j3PickedEvents.size ? j3PickedEvents.size + ' selected' : 'Any';
+      eventsEl.classList.toggle('is-set', j3PickedEvents.size > 0);
+    }
+  }
+
+  function j3SetOpenPicker(key, returnFocus) {
+    const previous = j3OpenPicker;
+    j3OpenPicker = key;
+    ['types', 'events'].forEach((k) => {
+      const btn = $('#j3-' + k + '-btn');
+      const panel = $('#j3-' + k + '-panel');
+      const open = k === key;
+      if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (panel) panel.hidden = !open;
+      if (!open) {
+        const find = $('#j3-' + k + '-find');
+        if (find && find.value) { find.value = ''; if (k === 'types') j3RenderTypesList(); else j3RenderEventsList(); }
+      }
+    });
+    if (key) {
+      const btn = $('#j3-' + key + '-btn');
+      const fieldset = $('#j3-capacity-fieldset');
+      if (btn && fieldset) fieldset.scrollTop = Math.max(0, btn.offsetTop - fieldset.offsetTop - 4);
+    }
+    if (returnFocus && previous) $('#j3-' + previous + '-btn')?.focus();
+  }
+
+  function j3AfterFilterChange(focusClass) {
+    if (exOn()) { exAfterFilterChange(focusClass); return; }
+    if (!isJ3Journey()) return;
+    const active = j3ActiveFilterChips().length > 0;
+    if (!active) j3ExpandedNodes = j3DefaultExpandedNodes();
+    const eligible = j3GetEligibleAssets();
+    const reveal = (a) => { j3ExpandedNodes.add(a.venueKey); j3ExpandedNodes.add(a.catKey); };
+    if (active) eligible.forEach(reveal);
+    if (j3ClassOn.accommodation) eligible.filter((a) => a.assetClass === 'accommodation').forEach(reveal);
+    assetActive = 0;
+    assetScroll = 0;
+    const treeEl = $('#asset-tree');
+    if (treeEl) treeEl.scrollTop = 0;
+    j3SyncCapacityState();
+    j3SyncPickerValues();
+    renderAssetTree();
+    if (focusClass && treeEl && !assetQuery.trim()) {
+      const idx = getJ3BrowseRows().findIndex((r) => r.kind === 'resource' && r.asset.assetClass === focusClass);
+      if (idx > 2) { treeEl.scrollTop = (idx - 2) * J3_TREE_H; assetScroll = treeEl.scrollTop; renderAssetTree(); }
+    }
+    renderCalendar();
+  }
+
+  function j3ResetRefineState() {
+    j3ClassOn = { facility: true, resource: true, accommodation: false };
+    j3PickedTypes = new Set();
+    j3PickedCats = new Set();
+    j3PickedEvents = new Set();
+    j3EventWhen = 'upcoming';
+    J3_CLASSES.forEach((c) => {
+      const box = $('#j3-class-' + c.key);
+      if (box) box.checked = j3ClassOn[c.key];
+    });
+    j3SetOpenPicker(null, false);
+    const treeEl = $('#asset-tree');
+    if (treeEl) treeEl.scrollTop = 0;
+    j3RenderTypesList();
+    j3RenderEventsList();
+    j3SyncCapacityState();
+    j3SyncPickerValues();
+  }
+
+  function j3RemoveChip(key) {
+    const [kind, ...rest] = key.split('|');
+    const value = rest.join('|');
+    if (kind === 'class') {
+      j3ClassOn[value] = true;
+      const box = $('#j3-class-' + value);
+      if (box) box.checked = true;
+      j3RenderTypesList();
+    } else if (kind === 'type') {
+      j3PickedTypes.delete(value);
+      j3RenderTypesList();
+    } else if (kind === 'cat') {
+      j3PickedCats.delete(value);
+      j3RenderTypesList();
+    } else if (kind === 'event') {
+      j3PickedEvents.delete(value);
+      j3RenderEventsList();
+    } else if (kind === 'capacity') {
+      const fromEl = $('#j3-capacity-from');
+      const toEl = $('#j3-capacity-to');
+      if (fromEl) fromEl.value = '';
+      if (toEl) toEl.value = '';
+      j3ValidateCapacityBounds();
+    }
+    j3AfterFilterChange();
+  }
+
+  function j3BindRefine() {
+    const refine = $('#j3-refine');
+    if (!refine) return;
+    refine.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      if (j3OpenPicker) { e.preventDefault(); j3SetOpenPicker(null, true); return; }
+      if (j3FiltersExpanded) { e.preventDefault(); j3ToggleFilters(true); }
+    });
+    refine.addEventListener('change', (e) => {
+      const t = e.target;
+      if (t.dataset.class) {
+        j3ClassOn[t.dataset.class] = t.checked;
+        j3RenderTypesList();
+        j3AfterFilterChange(t.checked ? t.dataset.class : null);
+        return;
+      }
+      if (!t.dataset.pick) return;
+      const set = t.dataset.pick === 'type' ? j3PickedTypes : (t.dataset.pick === 'cat' ? j3PickedCats : j3PickedEvents);
+      if (t.checked) set.add(t.dataset.key); else set.delete(t.dataset.key);
+      j3AfterFilterChange();
+    });
+    [['types', j3RenderTypesList], ['events', j3RenderEventsList]].forEach(([k, render]) => {
+      $('#j3-' + k + '-btn')?.addEventListener('click', () => j3SetOpenPicker(j3OpenPicker === k ? null : k, false));
+      $('#j3-' + k + '-find')?.addEventListener('input', render);
+      $('#j3-' + k + '-all')?.addEventListener('click', () => {
+        $$('#j3-' + k + '-list input[type="checkbox"]').forEach((box) => {
+          box.checked = true;
+          (box.dataset.pick === 'type' ? j3PickedTypes : (box.dataset.pick === 'cat' ? j3PickedCats : j3PickedEvents)).add(box.dataset.key);
+        });
+        j3AfterFilterChange();
+      });
+      $('#j3-' + k + '-clear')?.addEventListener('click', () => {
+        if (k === 'types') { j3PickedTypes = new Set(); j3PickedCats = new Set(); } else { j3PickedEvents = new Set(); }
+        render();
+        j3AfterFilterChange();
+      });
+    });
+    const switchWhen = (when) => {
+      if (j3EventWhen === when) return;
+      j3EventWhen = when;
+      j3PickedEvents = new Set();   // the existing behaviour: switching clears the selected events (fact 17)
+      j3RenderEventsList();
+      j3AfterFilterChange();
+      announceLive(when === 'past' ? 'Listing past public events.' : 'Listing upcoming public events, including ongoing ones.');
+    };
+    $('#j3-events-upcoming')?.addEventListener('click', () => switchWhen('upcoming'));
+    $('#j3-events-past')?.addEventListener('click', () => switchWhen('past'));
+    const chipBox = $('#j3-active-filters');
+    if (chipBox) {
+      chipBox.addEventListener('click', (e) => {
+        const chip = e.target.closest('.j3-chip');
+        if (!chip) return;
+        const chips = Array.from(chipBox.querySelectorAll('.j3-chip'));
+        const at = chips.indexOf(chip);
+        j3RemoveChip(chip.dataset.chip);
+        const left = Array.from(chipBox.querySelectorAll('.j3-chip'));
+        const next = left[at] || left[at - 1] || $('#j3-filters-toggle');   // the keyboard focus stays inside the Explorer
+        if (next) next.focus();
+      });
+    }
+    j3RenderTypesList();
+    j3RenderEventsList();
+    j3SyncCapacityState();
+    j3SyncPickerValues();
+  }
+  /* ===== end of the J3 Gate A candidate block ===== */
+
+  /* ===== Shared Asset Explorer candidate (Supervisor #24, 2 Nov 2026; the Director's decision of 9:31 PM). Journey 3's accepted filter code above, opened to the other
+     journeys that show the Explorer, on a small sample catalogue of their own. Journey 3's catalogue and behaviour stay as accepted. Journey 10 offers Facilities and
+     Resources only (J10-MAINTENANCE-VERIFIED-FINDINGS.md). Sample data only: nothing here reads a live system, and the rights of the existing system are not modelled. ===== */
+  const EX_JOURNEYS = ['1', '4', '5', '6', '7', '8', '9', '10', '11', '12'];   // 14, 15 and 16 open Journey 12's screen
+  const EX_VENUE = 'Northside Leisure Centre';
+  const EX_CLASS_WORDS = { facility: 'facility facilities', resource: 'resource resources', accommodation: 'accommodation' };
+  const EX_CATALOG = [
+    ['hall1', 'Hall 1', 'facility', 'Halls', 'Banquet', 180],   // Hall 1's 180 is Journey 13's own sample capacity
+    ['hall2', 'Hall 2', 'facility', 'Halls', 'Conference', 120],
+    ['studio1', 'Studio 1', 'facility', 'Studios', 'Recording', 40],
+    ['studio2', 'Studio 2', 'facility', 'Studios', 'Conference', 30],
+    ['ex-res-1', 'Projector One', 'resource', 'AV equipment', 'Projector', 20],
+    ['ex-res-2', 'Sound Desk', 'resource', 'AV equipment', 'Sound system', 40],
+    ['ex-res-3', 'Stage Deck', 'resource', 'Staging and furniture', 'Staging', 60],
+    ['ex-res-4', 'Banquet Chairs', 'resource', 'Staging and furniture', 'Seating', 100],
+    ['ex-acc-1', 'Garden Room', 'accommodation', 'Hotel rooms', 'Standard', 2],
+    ['ex-acc-2', 'Garden Suite', 'accommodation', 'Hotel rooms', 'Suite', 4],
+    ['ex-acc-3', 'City Apartment', 'accommodation', 'Serviced apartments', 'Suite', 6]
+  ].map(([id, name, assetClass, category, assetType, capacity]) => {
+    const fixture = ASSETS.find((x) => x.id === id);
+    return {
+      id, name, assetClass, category, assetType, capacity, venue: EX_VENUE,
+      catKey: { Halls: 'halls', Studios: 'studios' }[category] || 'ex-cat-' + category.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      journey: !!fixture, lane: !!fixture, color: fixture ? fixture.tint : (assetClass === 'resource' ? 'teal' : 'cobalt'),   // no lane for the sample rows, as for the generated fixtures
+      haystack: (name + ' ' + category + ' ' + EX_VENUE + ' ' + id + ' capacity ' + capacity + ' ' + EX_CLASS_WORDS[assetClass] + ' ' + assetType).toLowerCase()
+    };
+  });
+  // Sample public events in the shape Journey 3 reads (legacy fact 19); the Public team owns public events. Community Open Day is Journey 12's own sample event.
+  const EX_EVENTS = [
+    { id: 'ex-ev-1', name: 'Harvest Festival', eventStartDate: '2026-08-28T09:00:00', eventEndDate: '2026-08-31T18:00:00', venueName: EX_VENUE, assetIds: ['hall1', 'hall2', 'ex-res-1'] },
+    { id: 'ex-ev-2', name: 'Autumn Concert', eventStartDate: '2026-09-05T18:00:00', eventEndDate: '2026-09-05T22:00:00', venueName: EX_VENUE, assetIds: ['studio1', 'ex-res-2'] },
+    { id: 'ex-ev-3', name: 'Trade Fair', eventStartDate: '2026-09-12T09:00:00', eventEndDate: '2026-09-14T17:00:00', venueName: EX_VENUE, assetIds: ['hall2', 'ex-res-3', 'ex-acc-1'] },
+    { id: 'ex-ev-4', name: 'Morning Run', eventStartDate: '2026-08-29T06:00:00', eventEndDate: '2026-08-29T10:00:00', venueName: EX_VENUE, assetIds: ['studio2'] },
+    { id: 'ex-ev-5', name: 'Community Open Day', eventStartDate: '2026-08-26T10:00:00', eventEndDate: '2026-08-26T12:00:00', venueName: EX_VENUE, assetIds: ['hall1'] },
+    { id: 'ex-ev-6', name: 'Spring Expo', eventStartDate: '2026-04-20T09:00:00', eventEndDate: '2026-04-22T18:00:00', venueName: EX_VENUE, assetIds: ['studio2', 'ex-res-4'] }
+  ];
+  let exJ10Opener = null;
+  let exJ10Bound = false;
+
+  function exOn() { return EX_JOURNEYS.includes(document.body.dataset.journey); }
+  function jxOn() { return isJ3Journey() || exOn(); }
+  function exIsJ10() { return document.body.dataset.journey === '10'; }
+  function jxCatalog() {
+    if (isJ3Journey()) return J3_FIXTURE_CATALOG;
+    return exIsJ10() ? EX_CATALOG.filter((a) => a.assetClass !== 'accommodation') : EX_CATALOG;
+  }
+  function jxEvents() { return isJ3Journey() ? J3_PUBLIC_EVENTS : EX_EVENTS; }
+  function jxClasses() { return exIsJ10() ? J3_CLASSES.filter((c) => c.key !== 'accommodation') : J3_CLASSES; }
+  function exFindAsset(id) { return EX_CATALOG.find((x) => x.id === id && !x.journey); }
+
+  function exAfterFilterChange(focusClass) {
+    const active = j3ActiveFilterChips().length > 0;
+    if (!active) expandedNodes = new Set(['venue', 'halls', 'studios']);
+    const eligible = j3GetEligibleAssets();
+    const reveal = (a) => { expandedNodes.add('venue'); expandedNodes.add(a.catKey); };
+    if (active) eligible.forEach(reveal);
+    if (j3ClassOn.accommodation) eligible.filter((a) => a.assetClass === 'accommodation').forEach(reveal);
+    assetActive = 0;
+    assetScroll = 0;
+    const treeEl = $('#asset-tree');
+    if (treeEl) treeEl.scrollTop = 0;
+    j3SyncCapacityState();
+    j3SyncPickerValues();
+    renderAssetTree();
+    if (focusClass && treeEl && !assetQuery.trim()) {
+      const idx = exBrowseRows().findIndex((r) => r.kind === 'resource' && r.asset.assetClass === focusClass);
+      if (idx > 2) { treeEl.scrollTop = (idx - 2) * TREE_H; assetScroll = treeEl.scrollTop; renderAssetTree(); }
+    }
+  }
+
+  function exBrowseRows() {
+    const catalog = jxCatalog();
+    const eligibleIds = new Set(j3GetEligibleAssets().map((a) => a.id));
+    const invalidCapacity = !j3ValidateCapacityBounds();
+    const cats = [];
+    catalog.forEach((a) => {
+      if (j3ClassOn[a.assetClass] && !cats.some((c) => c.key === a.catKey) && (invalidCapacity || catalog.some((b) => b.catKey === a.catKey && eligibleIds.has(b.id)))) cats.push({ key: a.catKey, name: a.category });
+    });
+    const rows = [];
+    if (cats.length) {   // a branch with nothing to show is left out
+      rows.push({ kind: 'venue', key: 'venue', name: EX_VENUE, level: 1, expanded: expandedNodes.has('venue'), journey: true, meta: 'Venue · Journey fixtures' });
+      if (expandedNodes.has('venue')) {
+        cats.forEach((cat) => {
+          const open = expandedNodes.has(cat.key);
+          rows.push({ kind: 'category', key: cat.key, name: cat.name, level: 2, expanded: open, meta: 'Category' });
+          if (open) catalog.filter((a) => a.catKey === cat.key && eligibleIds.has(a.id)).forEach((asset) => rows.push({ kind: 'resource', key: asset.id, asset, level: 3, meta: j3ClassLabel(asset) + ' · ' + asset.assetType }));
+        });
+      }
+    }
+    if (j3ActiveFilterChips().length) return rows;   // the generated fixtures have no class or Type, so they sit out while a filter is on
+    return exAppendFixtureRows(rows);
+  }
+
+  function exSearchRows(q) {
+    const lq = q.toLowerCase().trim();
+    const rows = j3GetEligibleAssets().filter((a) => a.haystack.indexOf(lq) !== -1).map((a) => ({ kind: 'resource', key: a.id, asset: a, level: 1, meta: a.venue, search: true }));
+    if (j3ActiveFilterChips().length) return rows;
+    return rows.concat(reviewAssets.filter((a) => !a.journey && a.haystack.indexOf(lq) !== -1).map((a) => ({ kind: 'resource', key: a.id, asset: a, level: 1, meta: a.venue + ' · ' + a.category, search: true })));
+  }
+
+  function exSyncSurface() {
+    const searchEl = $('#asset-search');
+    if (searchEl) {
+      searchEl.placeholder = 'Search assets, types, venues';
+      searchEl.setAttribute('aria-label', 'Search assets, types, venues');
+    }
+    const note = $('#ex-sample-note');
+    if (note) note.hidden = false;
+    const accommodation = $('#j3-class-accommodation')?.closest('label');
+    if (accommodation) accommodation.hidden = exIsJ10();
+    j3SyncFiltersPanel();
+    j3ValidateCapacityBounds();
+    j3RenderTypesList();
+    j3RenderEventsList();
+    j3SyncCapacityState();
+    j3SyncPickerValues();
+    if (exIsJ10()) exJ10Bind();
+  }
+
+  // Journey 10: the same Explorer, as a drawer over the calendar. It only chooses which assets to look at; how a Block is made is unchanged.
+  function exJ10IsOpen() { return exIsJ10() && document.body.dataset.exJ10Open === 'true'; }
+
+  function exJ10Sync() {
+    const open = exJ10IsOpen();
+    const panel = $('#assets-panel');
+    [$('#j3-explorer-scrim'), $('#j3-explorer-close')].forEach((el) => {
+      if (!el) return;
+      el.hidden = !open;
+      el.inert = !open;
+      if (open) el.removeAttribute('aria-hidden'); else el.setAttribute('aria-hidden', 'true');
+    });
+    if (panel) {
+      if (open) { panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true'); }
+      else { panel.removeAttribute('role'); panel.removeAttribute('aria-modal'); }
+    }
+    const btn = $('#j10-open-assets');
+    if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function exJ10Open(opener) {
+    exJ10Opener = opener || $('#j10-open-assets');
+    document.body.dataset.exJ10Open = 'true';
+    exJ10Sync();
+    renderAssetTree();
+    $('#asset-search')?.focus();
+  }
+
+  function exJ10Close() {
+    if (!exJ10IsOpen()) return;
+    document.body.dataset.exJ10Open = 'false';
+    exJ10Sync();
+    if (exJ10Opener && document.body.contains(exJ10Opener)) exJ10Opener.focus();
+  }
+
+  function exJ10Bind() {
+    if (exJ10Bound) return;
+    exJ10Bound = true;
+    $('#j10-open-assets')?.addEventListener('click', (e) => exJ10Open(e.currentTarget));
+    $('#j3-explorer-close')?.addEventListener('click', exJ10Close);
+    $('#j3-explorer-scrim')?.addEventListener('click', exJ10Close);
+    document.addEventListener('keydown', (e) => {
+      if (!exJ10IsOpen()) return;
+      if (e.key === 'Escape') { e.preventDefault(); exJ10Close(); return; }
+      if (e.key !== 'Tab') return;
+      const nodes = j3ExplorerFocusables();
+      if (!nodes.length) return;
+      if (e.shiftKey && document.activeElement === nodes[0]) { e.preventDefault(); nodes[nodes.length - 1].focus(); }
+      else if (!e.shiftKey && document.activeElement === nodes[nodes.length - 1]) { e.preventDefault(); nodes[0].focus(); }
+    });
+  }
+  /* ===== end of the shared Asset Explorer candidate block ===== */
+
   function j3SyncFilterStatus(visibleCount) {
-    if (!isJ3Journey() || j3FilterStatusLoading) return;
+    if (!jxOn() || j3FilterStatusLoading) return;
     const statusEl = $('#j3-filter-status');
     if (!statusEl) return;
     statusEl.hidden = false;
-    statusEl.textContent = 'Showing ' + visibleCount + ' of ' + J3_FIXTURE_CATALOG.length + ' resources';
+    statusEl.textContent = 'Showing ' + visibleCount + ' of ' + jxCatalog().length + (exOn() ? ' sample assets' : ' assets');
   }
 
   function j3GetTreeRowHeight() {
@@ -1983,6 +2648,7 @@ const k1Focus = (() => {
     const toggle = $('#j3-filters-toggle');
     if (fieldset) fieldset.hidden = !j3FiltersExpanded;
     if (toggle) toggle.setAttribute('aria-expanded', j3FiltersExpanded ? 'true' : 'false');
+    if (exOn()) document.body.dataset.exFiltersOpen = j3FiltersExpanded ? 'true' : 'false';
   }
 
   function j3ExpandFilters() {
@@ -2011,7 +2677,7 @@ const k1Focus = (() => {
       const a = findJ3Asset(id);
       if (a) names.push(a.name);
     });
-    const summary = names.length ? names.slice(0, 3).join(', ') + (names.length > 3 ? '…' : '') : 'No resources selected';
+    const summary = names.length ? names.slice(0, 3).join(', ') + (names.length > 3 ? '…' : '') : 'No assets selected';
     if (namesEl) namesEl.textContent = summary;
   }
 
@@ -2069,7 +2735,7 @@ const k1Focus = (() => {
     const idEl = $('#j3-vis-card-id');
     const selEl = $('#j3-vis-card-sel');
     if (nameEl) nameEl.textContent = asset.name;
-    if (subEl) subEl.textContent = asset.venue + ' · ' + asset.category;
+    if (subEl) subEl.textContent = asset.venue + ' · ' + j3ClassLabel(asset) + ' · ' + asset.assetType + ' · ' + asset.category;
     if (capEl) capEl.textContent = String(asset.capacity);
     if (idEl) idEl.textContent = asset.id;
     if (selEl) selEl.textContent = selectedAssets.has(asset.id) ? 'Selected' : 'Not selected';
@@ -2094,6 +2760,11 @@ const k1Focus = (() => {
 
   function j3SyncExplorerChrome() {
     if (!isJ3Journey()) return;
+    const searchWording = $('#asset-search');
+    if (searchWording) {
+      searchWording.placeholder = 'Search assets, types, venues';
+      searchWording.setAttribute('aria-label', 'Search assets, types, venues');
+    }
     const open = j3IsExplorerOpen();
     const scrim = $('#j3-explorer-scrim');
     const panel = $('#assets-panel');
@@ -2228,10 +2899,17 @@ const k1Focus = (() => {
 
   function j3ValidateCapacityBounds() {
     const errEl = $('#j3-filter-error');
+    if (!j3CapacityApplies()) {   // disabled means ignored: the fields disable as in legacy fact 22, but unlike legacy fact 23 a value typed earlier does not filter (a declared difference)
+      if (errEl) {
+        errEl.hidden = true;
+        errEl.textContent = '';
+      }
+      return true;
+    }
     const caps = j3ReadCapacityInputs();
     if (caps.fromRaw !== '' && caps.toRaw !== '' && caps.from !== null && caps.to !== null && caps.from > caps.to) {
       if (errEl) {
-        errEl.textContent = 'Capacity From must not exceed To (local prototype validation — not server HTTP 400).';
+        errEl.textContent = 'Capacity From must not exceed To (checked in this sample — not server HTTP 400).';
         errEl.hidden = false;
       }
       announceLive('Capacity From must not exceed To.');
@@ -2246,31 +2924,45 @@ const k1Focus = (() => {
 
   function j3GetEligibleAssets() {
     if (!j3ValidateCapacityBounds()) return [];
+    const useCapacity = j3CapacityApplies();
     const caps = j3ReadCapacityInputs();
-    return J3_FIXTURE_CATALOG.filter((a) => {
-      if (caps.from !== null && caps.fromRaw !== '' && a.capacity < caps.from) return false;
-      if (caps.to !== null && caps.toRaw !== '' && a.capacity > caps.to) return false;
+    const types = j3ActiveKeys(j3PickedTypes);
+    const cats = j3ActiveKeys(j3PickedCats);
+    const linked = j3LinkedAssetIds();
+    return jxCatalog().filter((a) => {
+      if (!j3ClassOn[a.assetClass]) return false;
+      if (types.size && !types.has(a.assetClass + '|' + a.assetType)) return false;   // OR inside Type, AND with Category (legacy fact 8)
+      if (cats.size && !cats.has(a.assetClass + '|' + a.category)) return false;
+      if (linked && !linked.has(a.id)) return false;   // legacy fact 19
+      if (useCapacity && caps.from !== null && caps.fromRaw !== '' && a.capacity < caps.from) return false;
+      if (useCapacity && caps.to !== null && caps.toRaw !== '' && a.capacity > caps.to) return false;
       return true;
     });
   }
 
   function getJ3BrowseRows() {
     const eligibleIds = new Set(j3GetEligibleAssets().map((a) => a.id));
+    const invalidCapacity = !j3ValidateCapacityBounds();
     const rows = [];
     const venues = [
-      { key: 'j3v-north', name: 'J3 Review Venue North' },
-      { key: 'j3v-south', name: 'J3 Review Venue South' }
+      { key: 'j3v-north', name: 'Sample Venue North' },
+      { key: 'j3v-south', name: 'Sample Venue South' }
     ];
     venues.forEach((venue) => {
+      const venueCats = [];
+      J3_FIXTURE_CATALOG.forEach((a) => {
+        if (a.venueKey === venue.key && j3ClassOn[a.assetClass] && !venueCats.some((c) => c.key === a.catKey) && (invalidCapacity || J3_FIXTURE_CATALOG.some((b) => b.catKey === a.catKey && eligibleIds.has(b.id)))) venueCats.push({ key: a.catKey, name: a.category });
+      });
+      if (!venueCats.length) return;   // a branch with nothing to show is left out
       const venueExpanded = j3ExpandedNodes.has(venue.key);
       rows.push({
         kind: 'venue', key: venue.key, name: venue.name, level: 1,
-        expanded: venueExpanded, journey: false, meta: 'Venue · REVIEW FIXTURE'
+        expanded: venueExpanded, journey: false, meta: 'Venue · sample'
       });
       if (!venueExpanded) return;
-      ['halls', 'studios'].forEach((kind) => {
-        const catName = kind === 'halls' ? 'Halls' : 'Studios';
-        const catKey = venue.key + '-' + kind;
+      venueCats.forEach((venueCat) => {
+        const catName = venueCat.name;
+        const catKey = venueCat.key;
         const catExpanded = j3ExpandedNodes.has(catKey);
         rows.push({
           kind: 'category', key: catKey, name: catName, level: 2,
@@ -2282,7 +2974,7 @@ const k1Focus = (() => {
           .forEach((asset) => {
             rows.push({
               kind: 'resource', key: asset.id, asset, level: 3,
-              meta: 'Resource · capacity ' + asset.capacity + ' · REVIEW FIXTURE'
+              meta: 'Resource · capacity ' + asset.capacity + ' · sample'
             });
           });
       });
@@ -2297,7 +2989,7 @@ const k1Focus = (() => {
       .sort((a, b) => a.id.localeCompare(b.id))
       .map((a) => ({
         kind: 'resource', key: a.id, asset: a, level: 1,
-        meta: a.venue + ' · capacity ' + a.capacity + ' · REVIEW FIXTURE', search: true
+        meta: a.venue + ' · capacity ' + a.capacity + ' · sample', search: true
       }));
   }
 
@@ -2310,17 +3002,19 @@ const k1Focus = (() => {
     if (fromEl) fromEl.value = '';
     if (toEl) toEl.value = '';
     j3ExpandedNodes = j3DefaultExpandedNodes();
+    if (exOn()) expandedNodes = new Set(['venue', 'halls', 'studios']);
     assetActive = 0;
     assetScroll = 0;
+    j3ResetRefineState();
     j3ValidateCapacityBounds();
     j3FilterStatusLoading = false;
-    announceLive('Filters reset. Default eligible fixture list restored.');
+    announceLive('Filters reset. The full sample list is back.');
     renderAssetTree();
-    renderCalendar();
+    if (isJ3Journey()) renderCalendar();
   }
 
   function j3ApplyCapacityFilters(showLoading) {
-    if (!isJ3Journey()) return;
+    if (!jxOn()) return;
     if (!j3ValidateCapacityBounds()) {
       renderAssetTree();
       return;
@@ -2329,12 +3023,11 @@ const k1Focus = (() => {
     if (showLoading && statusEl) {
       j3FilterStatusLoading = true;
       statusEl.hidden = false;
-      statusEl.textContent = 'Applying local filters (prototype loading — not network).';
+      statusEl.textContent = 'Applying filters…';
     }
     debounce('j3filter', () => {
       j3FilterStatusLoading = false;
-      renderAssetTree();
-      renderCalendar();
+      j3AfterFilterChange();
     }, 120);
   }
 
@@ -2352,6 +3045,7 @@ const k1Focus = (() => {
     const toEl = $('#j3-capacity-to');
     if (fromEl) fromEl.value = '';
     if (toEl) toEl.value = '';
+    j3ResetRefineState();
     j3ValidateCapacityBounds();
     document.body.dataset.surface = 'week';
     j3FiltersExpanded = false;
@@ -2360,15 +3054,11 @@ const k1Focus = (() => {
     renderCalendar();
   }
 
-  function setupJ3ExplorerEvents() {
+  function j3BindFilterControls() {
     const fromEl = $('#j3-capacity-from');
     const toEl = $('#j3-capacity-to');
     const resetBtn = $('#j3-reset-filters');
     const filtersToggle = $('#j3-filters-toggle');
-    const closeBtn = $('#j3-explorer-close');
-    const doneBtn = $('#j3-explorer-done');
-    const scrim = $('#j3-explorer-scrim');
-    const launcherBtn = $('#j3-launcher-btn');
     if (fromEl) {
       fromEl.addEventListener('input', () => j3ApplyCapacityFilters(true));
       fromEl.addEventListener('change', () => j3ApplyCapacityFilters(false));
@@ -2399,6 +3089,15 @@ const k1Focus = (() => {
       });
     }
     if (filtersToggle) filtersToggle.addEventListener('click', () => j3ToggleFilters(false));
+    j3BindRefine();
+  }
+
+  function setupJ3ExplorerEvents() {
+    const closeBtn = $('#j3-explorer-close');
+    const doneBtn = $('#j3-explorer-done');
+    const scrim = $('#j3-explorer-scrim');
+    const launcherBtn = $('#j3-launcher-btn');
+    j3BindFilterControls();
     if (closeBtn) closeBtn.addEventListener('click', () => j3CloseExplorer());
     if (doneBtn) doneBtn.addEventListener('click', () => j3CloseExplorer());
     if (scrim) scrim.addEventListener('click', () => j3CloseExplorer());
@@ -2457,7 +3156,7 @@ const k1Focus = (() => {
     const completeBtn = $('#btn-play-complete');
     playBtn.disabled = true;
     completeBtn.disabled = true;
-    const total = 16;
+    const total = 21;
     let step = 0;
     j3ResetBootState();
     beginGuidedReview('journey', total);
@@ -2466,7 +3165,7 @@ const k1Focus = (() => {
       await guidedReviewStep(playBtn, 'Open the Journey 3 asset explorer — review rail only, not Product navigation.', ++step, total, () => j3OpenExplorer(playBtn), REVIEW_PLAY_STEP_MS);
       await guidedReviewStep('#assets-panel', 'One explorer: keyword search, hierarchy and capacity filters inside #assets-panel.', ++step, total);
       await guidedReviewStep('#asset-search', 'Filter locally by keyword — no network search.', ++step, total, (el) => {
-        el.value = 'J3 Hall Alpha';
+        el.value = 'Hall Alpha';
         el.dispatchEvent(new Event('input', { bubbles: true }));
       });
       await guidedReviewStep('#asset-search', 'Clear keyword with Escape recovery path.', ++step, total, (el) => {
@@ -2491,6 +3190,11 @@ const k1Focus = (() => {
         el.dispatchEvent(new Event('input', { bubbles: true }));
       });
       await guidedReviewStep('#j3-reset-filters', 'Reset restores the deterministic default eligible list once.', ++step, total);
+      await guidedReviewStep('#j3-types-btn', 'One grouped list holds Type and Category for each class.', ++step, total);
+      await guidedReviewStep(() => { const box = $('#j3-types-list input[data-key="facility|Conference"]'); if (box) box.scrollIntoView({ block: 'nearest' }); return box; }, 'Tick a Facility Type: only those facilities remain, in both venues.', ++step, total);
+      await guidedReviewStep('#j3-events-btn', 'Public events: Upcoming lists every event not yet ended, including ongoing ones.', ++step, total);
+      await guidedReviewStep('#j3-events-past', 'Past lists the public events that have ended.', ++step, total);
+      await guidedReviewStep('#j3-reset-filters', 'Reset clears the new filters too.', ++step, total);
       await guidedReviewStep(() => $('#asset-tree .tree-check[data-res="j3-rf-001"]'), 'Select one REVIEW FIXTURE — calendar shows exactly one lane.', ++step, total, (el) => {
         j3SelectFixtures(['j3-rf-001']);
         if (!el.checked) activateGuidedClickable(el);
@@ -2505,7 +3209,7 @@ const k1Focus = (() => {
         j3SelectFixtures(['j3-rf-001', 'j3-rf-002', 'j3-rf-003', 'j3-rf-004', 'j3-rf-005']);
       });
       await guidedReviewStep('#asset-search', 'Select all twenty REVIEW FIXTURE lanes deterministically.', ++step, total, () => {
-        j3SelectFixtures(J3_FIXTURE_CATALOG.map((a) => a.id));
+        j3SelectFixtures(J3_FIXTURE_CATALOG.filter((a) => a.assetClass === 'facility').map((a) => a.id));
       });
       showToast('Journey 3 guided review finished — Booking/Cart/Book and J2 Demo settings were not exposed.');
     } catch (error) {
@@ -2534,7 +3238,7 @@ const k1Focus = (() => {
       await guidedReviewStep(completeBtn, 'Short Journey 3 path: search, hierarchy, capacity and selection.', ++step, total, () => j3OpenExplorer(completeBtn), REVIEW_COMPLETE_STEP_MS);
       await guidedReviewStep(() => $('#asset-tree [data-toggle="j3v-south"]'), 'Venue/category hierarchy expand.', ++step, total, null, REVIEW_COMPLETE_STEP_MS);
       await guidedReviewStep('#asset-search', 'Keyword filter on the shared explorer.', ++step, total, (el) => {
-        el.value = 'J3 Studio';
+        el.value = 'Studio';
         el.dispatchEvent(new Event('input', { bubbles: true }));
       }, REVIEW_COMPLETE_STEP_MS);
       j3ExpandFilters();
@@ -3210,7 +3914,7 @@ const k1Focus = (() => {
   function j2RenderAdvancedWeekView(grid) {
     const caption = document.createElement('p');
     caption.className = 'advanced-week-caption';
-    caption.textContent = 'Advanced Week — hosted-QA evidence; deployment variance retained — review fixture';
+    caption.textContent = 'Advanced Week · sample';
     grid.appendChild(caption);
     const days = [];
     const start = j2StartOfWeekMonday(j2State.selectedDate);
@@ -3426,7 +4130,7 @@ const k1Focus = (() => {
     list.innerHTML = '';
     J2_ASSETS.forEach((asset) => {
       const li = document.createElement('li');
-      li.innerHTML = `<span class="asset-name">${asset.name}</span><span class="asset-venue">${asset.venue} · Review fixture</span>`;
+      li.innerHTML = `<span class="asset-name">${asset.name}</span><span class="asset-venue">${asset.venue} · Sample</span>`;
       list.appendChild(li);
     });
   }
@@ -3779,7 +4483,7 @@ const k1Focus = (() => {
       includedItems: ['community-hall', 'studio-lighting']
     },
     'covers-hire': {
-      label: 'Covers Hire — review fixture', type: 'quantity', min: 1, max: 20,
+      label: 'Covers Hire', type: 'quantity', min: 1, max: 20,
       includedItems: ['community-hall']
     },
     'none': { label: 'None — item only', type: 'none', includedItems: [] }
@@ -3793,9 +4497,9 @@ const k1Focus = (() => {
   };
 
   const CONFIGURATION_LABELS = {
-    theatre: 'Theatre — review fixture',
-    banquet: 'Banquet — review fixture',
-    studio: 'Studio — review fixture'
+    theatre: 'Theatre',
+    banquet: 'Banquet',
+    studio: 'Studio'
   };
 
   const ROW_H = 36;
@@ -3851,7 +4555,7 @@ const k1Focus = (() => {
   let stagedSelection = null;
   let currentSelectionDetailsExpanded = false;
   let editingLineId = null;
-  let removeTargetId = null;
+  let removeTargetId = null; let j9PendingRemoval = null;
   let dragState = null;
   let hoverCrosshair = null;
   let lastDialogTrigger = null;
@@ -3931,7 +4635,7 @@ const k1Focus = (() => {
     const countEl = $('#j3-launcher-count');
     const namesEl = $('#j3-launcher-names');
     const selected = Array.from(selectedAssets).map((id) =>
-      ASSETS.find((asset) => asset.id === id) || reviewAssets.find((asset) => asset.id === id)
+      ASSETS.find((asset) => asset.id === id) || reviewAssets.find((asset) => asset.id === id) || exFindAsset(id)
     ).filter(Boolean);
     if (countEl) countEl.textContent = `${selected.length} selected`;
     if (namesEl) namesEl.textContent = selected.length
@@ -4194,10 +4898,10 @@ const k1Focus = (() => {
     }));
     for (let i = 4; i < n; i++) {
       const venueIdx = Math.floor((i - 4) / 24) + 2;
-      const venue = 'Review venue ' + pad(venueIdx, 3) + ' — review fixture';
+      const venue = 'Sample venue ' + pad(venueIdx, 3);
       const odd = i % 2 === 1;
       const cat = odd ? 'Halls' : 'Studios';
-      const name = (odd ? 'Review Hall ' : 'Review Studio ') + pad(i + 1, 4);
+      const name = (odd ? 'Sample Hall ' : 'Sample Studio ') + pad(i + 1, 4);
       const id = 'rf-asset-' + pad(i + 1, 5);
       arr.push({
         id, name, category: cat, venue, journey: false, lane: false,
@@ -4215,8 +4919,8 @@ const k1Focus = (() => {
     ];
     for (let i = 2; i < n; i++) {
       const id = 'rf-itm-' + pad(i + 1, 5);
-      const name = 'Review item ' + pad(i + 1, 5) + ' — review fixture';
-      const cat = 'Review category ' + ((i % 8) + 1);
+      const name = 'Sample item ' + pad(i + 1, 5);
+      const cat = 'Sample category ' + ((i % 8) + 1);
       arr.push({ id, name, category: cat, journey: false, haystack: (name + ' ' + cat + ' ' + id).toLowerCase() });
     }
     return arr;
@@ -4225,26 +4929,26 @@ const k1Focus = (() => {
   function generateReviewPackages() {
     const arr = [
       { id: 'private-day', name: 'Private Day Hire', journey: true, haystack: 'private day hire attendees private-day' },
-      { id: 'covers-hire', name: 'Covers Hire — review fixture', journey: true, haystack: 'covers hire quantity covers-hire' },
+      { id: 'covers-hire', name: 'Covers Hire', journey: true, haystack: 'covers hire quantity covers-hire' },
       { id: 'none', name: 'None — item only', journey: true, haystack: 'none item only none' }
     ];
     for (let k = 4; k <= 64; k++) {
       arr.push({
         id: 'rf-pkg-' + pad(k, 5),
-        name: 'Review package ' + pad(k, 5) + ' — review fixture',
+        name: 'Sample package ' + pad(k, 5),
         journey: false,
-        haystack: ('review package ' + pad(k, 5)).toLowerCase()
+        haystack: ('sample package ' + pad(k, 5)).toLowerCase()
       });
     }
     return arr;
   }
 
   function generateReviewConcessions() {
-    const arr = [{ id: 'review-fixture', name: 'Review fixture', journey: true, haystack: 'review fixture review-fixture' }];
+    const arr = [{ id: 'review-fixture', name: 'Sample concession', journey: true, haystack: 'sample concession review-fixture' }];
     for (let k = 2; k <= 32; k++) {
       arr.push({
         id: 'rf-cnc-' + pad(k, 5),
-        name: 'Review concession ' + pad(k, 4) + ' — review fixture',
+        name: 'Sample concession ' + pad(k, 4),
         journey: false,
         haystack: ('review concession ' + pad(k, 4)).toLowerCase()
       });
@@ -4272,7 +4976,7 @@ const k1Focus = (() => {
     }
     const rows = getAssetDisplayRows();
     const k = Math.min(48, rows.length);
-    announceLive(fmt(scale) + ' review fixture resources ready. Showing 1–' + k + '.');
+    announceLive(fmt(scale) + ' sample resources ready. Showing 1–' + k + '.');
   }
 
   function getItemRecord(id) {
@@ -4342,7 +5046,7 @@ const k1Focus = (() => {
   function setCommitted(field, id, opts) {
     const notify = !opts || opts.notify !== false;
     if (isJourney7Route() && notify && !j7AllowedCatalogValue(field, id)) {
-      j7BlockReview(`Journey 7 keeps the ${field} choice inside the accepted local fixture.`);
+      j7BlockReview(`The ${field} choice stays as the sample shows it.`);
       return;
     }
     const host = $(FIELD_HOSTS[field]);
@@ -4571,7 +5275,7 @@ const k1Focus = (() => {
     if (!rec || !pickerType) return;
     if (isJourney7Route() && !j7AllowedCatalogValue(pickerType, rec.id)) {
       closePicker({ restore: true, refocus: true });
-      j7BlockReview(`Journey 7 cannot apply this ${pickerType} review choice.`);
+      j7BlockReview(`This ${pickerType} choice cannot be applied here.`);
       return;
     }
     const context = pickerContext;
@@ -4695,6 +5399,7 @@ const k1Focus = (() => {
 
   function getBrowseRows() {
     if (isJ3Journey()) return getJ3BrowseRows();
+    if (exOn()) return exBrowseRows();
     const rows = [];
     rows.push({ kind: 'venue', key: 'venue', name: 'Northside Leisure Centre', level: 1, expanded: expandedNodes.has('venue'), journey: true, meta: 'Venue · Journey fixtures' });
     if (expandedNodes.has('venue')) {
@@ -4713,12 +5418,16 @@ const k1Focus = (() => {
         });
       }
     }
+    return exAppendFixtureRows(rows);
+  }
+
+  function exAppendFixtureRows(rows) {
     const fixtureCount = getScalabilityFixtureCount();
     rows.push({
       kind: 'fixture-group', key: 'scalability-review-fixtures',
-      name: `Scalability review fixtures (${fmt(fixtureCount)})`, level: 1,
+      name: `Generated sample assets (${fmt(fixtureCount)})`, level: 1,
       expanded: scalabilityFixturesExpanded, journey: false,
-      meta: scalabilityFixturesExpanded ? 'Generated fixture hierarchy expanded' : 'Generated fixture hierarchy collapsed',
+      meta: scalabilityFixturesExpanded ? 'Generated sample list expanded' : 'Generated sample list collapsed',
       fixtureCount
     });
     if (!scalabilityFixturesExpanded) return rows;
@@ -4750,6 +5459,7 @@ const k1Focus = (() => {
 
   function getSearchAssetRows(q) {
     if (isJ3Journey()) return getJ3SearchRows(q);
+    if (exOn()) return exSearchRows(q);
     const lq = q.toLowerCase().trim();
     return reviewAssets.filter((a) => a.haystack.indexOf(lq) !== -1).map((a) => ({
       kind: 'resource', key: a.id, asset: a, level: 1,
@@ -4811,7 +5521,7 @@ const k1Focus = (() => {
     if (!strip) return;
     strip.innerHTML = '';
     selectedAssets.forEach((id) => {
-      const a = findJ3Asset(id) || reviewAssets.find((x) => x.id === id) || ASSETS.find((x) => x.id === id);
+      const a = findJ3Asset(id) || exFindAsset(id) || reviewAssets.find((x) => x.id === id) || ASSETS.find((x) => x.id === id);
       if (!a) return;
       const cls = a.color || a.tint || 'violet';
       const label = a.name + (isJ3Journey() || a.journey || a.lane ? '' : ' RF');
@@ -4841,7 +5551,7 @@ const k1Focus = (() => {
     const box = document.activeElement && document.activeElement.closest ? document.activeElement.closest('#asset-tree-viewport .tree-check') : null;
     if (checked) selectedAssets.add(id);
     else selectedAssets.delete(id);
-    const a = findJ3Asset(id) || reviewAssets.find((x) => x.id === id) || ASSETS.find((x) => x.id === id);
+    const a = findJ3Asset(id) || exFindAsset(id) || reviewAssets.find((x) => x.id === id) || ASSETS.find((x) => x.id === id);
     if (a) announceLive(a.name + (checked ? ' selected.' : ' removed.'));
     renderAssetTree();
     renderCalendar();
@@ -4935,6 +5645,13 @@ const k1Focus = (() => {
       renderAssetTree();
     });
     $('#asset-tree-viewport').addEventListener('click', handleAssetTreeClick);
+    $('#asset-info-close')?.addEventListener('click', () => $('#asset-info-dialog').close());
+    $('#asset-info-dialog')?.addEventListener('keydown', (e) => { if (e.key === 'Escape') e.stopPropagation(); });   // Esc closes this dialog only, not the Explorer drawer behind it
+    $('#asset-info-dialog')?.addEventListener('close', () => {   // D4: back to the row's button; it may have been drawn again while the dialog was open
+      const back = assetInfoId && $('#asset-tree-viewport .tree-info[data-info="' + CSS.escape(assetInfoId) + '"]');
+      assetInfoId = null;
+      (back || $('#asset-tree')).focus({ preventScroll: true });
+    });
     // L-63: a venue box that takes the KEYBOARD focus becomes the active row (a pointer focus is left as before; a key pressed on it does it).
     $('#asset-tree-viewport').addEventListener('focusin', (e) => { if (!treeRefocus && e.target.matches('.tree-check:focus-visible')) treeActivateBox(e.target); });
     $('#asset-tree').addEventListener('keydown', handleAssetTreeKeys);
@@ -4950,12 +5667,26 @@ const k1Focus = (() => {
       if (document.body.dataset.journey === '4') k1Focus.move(nextChip || $('#asset-search'), btn);
     });
     if (isJ3Journey()) setupJ3ExplorerEvents();
+    else j3BindFilterControls();
   }
 
   function handleAssetSearchKeys(e) {
     if (e.key === 'Escape') {
       const searchEl = $('#asset-search');
       const hasValue = !!(searchEl && searchEl.value.trim()) || !!assetQuery.trim();
+      if (exJ10IsOpen()) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (hasValue) {
+          assetQuery = '';
+          if (searchEl) searchEl.value = '';
+          assetActive = 0;
+          renderAssetTree();
+          return;
+        }
+        exJ10Close();
+        return;
+      }
       if (isJ3Journey() && j3IsExplorerOpen()) {
         e.preventDefault();
         e.stopPropagation();
@@ -4994,12 +5725,15 @@ const k1Focus = (() => {
   }
 
   function handleAssetTreeKeys(e) {
+    const infoKey = e.target.closest ? e.target.closest('.tree-info') : null;
+    if (infoKey && !['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
     if (assetQuery.trim()) return;
     const rows = flatAssetRows;
     const n = rows.length;
     if (!n) return;
     // L-63: a key pressed on a venue box works on that box's row; the arrows, Home and End then take the focus with the active row.
-    const box = e.target !== e.currentTarget && e.target.matches('#asset-tree-viewport .tree-check') ? e.target : null;
+    if (infoKey) { treeRefocus = true; infoKey.parentElement.querySelector('.tree-check').focus({ preventScroll: true }); treeRefocus = false; }
+    const box = infoKey ? infoKey.parentElement.querySelector('.tree-check') : (e.target !== e.currentTarget && e.target.matches('#asset-tree-viewport .tree-check') ? e.target : null);
     const moves = ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key);
     if (box && (moves || ['ArrowRight', 'ArrowLeft', ' ', 'Spacebar', 'Enter'].includes(e.key))) treeActivateBox(box);
     if (e.key === 'ArrowDown') { e.preventDefault(); assetActive = Math.min(n - 1, assetActive + 1); renderAssetTree(); scrollTreeActive(); }
@@ -5056,6 +5790,7 @@ const k1Focus = (() => {
     if (key === 'venue') expandedNodes.add('venue');
     else if (key === 'halls') expandedNodes.add('halls');
     else if (key === 'studios') expandedNodes.add('studios');
+    else if (String(key).startsWith('ex-cat-')) expandedNodes.add(key);
     else if (key === 'scalability-review-fixtures') scalabilityFixturesExpanded = true;
     else genVenueExpanded[key] = true;
   }
@@ -5068,6 +5803,7 @@ const k1Focus = (() => {
     if (key === 'venue') expandedNodes.delete('venue');
     else if (key === 'halls') expandedNodes.delete('halls');
     else if (key === 'studios') expandedNodes.delete('studios');
+    else if (String(key).startsWith('ex-cat-')) expandedNodes.delete(key);
     else if (key === 'scalability-review-fixtures') scalabilityFixturesExpanded = false;
     else genVenueExpanded[key] = false;
   }
@@ -5080,11 +5816,30 @@ const k1Focus = (() => {
     }
     if (key === 'scalability-review-fixtures') scalabilityFixturesExpanded = !scalabilityFixturesExpanded;
     else if (expandedNodes.has(key)) expandedNodes.delete(key);
-    else if (key === 'venue' || key === 'halls' || key === 'studios') expandedNodes.add(key);
+    else if (key === 'venue' || key === 'halls' || key === 'studios' || String(key).startsWith('ex-cat-')) expandedNodes.add(key);
     else genVenueExpanded[key] = !genVenueExpanded[key];
   }
 
+  // Step b13, D4: read-only information on one resource. Same finder as toggleResourcePin. Only rows that hold the sample's documents show the Documents list (C4's rule).
+  let assetInfoId = null;
+  function openAssetInfo(id) {
+    const dialog = $('#asset-info-dialog');
+    if (!dialog || dialog.open) return;
+    const a = findJ3Asset(id) || exFindAsset(id) || reviewAssets.find((x) => x.id === id) || ASSETS.find((x) => x.id === id);
+    if (!a) return;
+    assetInfoId = id;
+    $('#asset-info-title').textContent = a.name;
+    const rows = [['Venue', a.venue], ['Category', a.category]];
+    if (a.assetClass) rows.push(['Type', j3ClassLabel(a) + ' · ' + a.assetType]);
+    if (a.capacity != null) rows.push(['Capacity', a.capacity]);
+    $('#asset-info-list').innerHTML = rows.filter((x) => x[1] != null && x[1] !== '').map((x) => '<div><dt>' + x[0] + '</dt><dd>' + escapeHtml(String(x[1])) + '</dd></div>').join('');
+    $('#asset-info-docs').innerHTML = (window.__c14 ? window.__c14.block(id) : '').replace(/<(\/?)h4/g, '<$1h3');
+    dialog.showModal();
+  }
+
   function handleAssetTreeClick(e) {
+    const info = e.target.closest('.tree-info');
+    if (info) { openAssetInfo(info.dataset.info); return; }   // D4: never selects the row
     const row = e.target.closest('[data-toggle]');
     if (row) {
       toggleAssetExpand(row.dataset.toggle);
@@ -5336,7 +6091,7 @@ const k1Focus = (() => {
 
   function j1DailyDescription(selection) {
     const hours = (slotRangeForSelection(selection).endSlot - slotRangeForSelection(selection).startSlot) * j1DayCount(selection) / 2;
-    return `${j1DailyDateSpan(selection)} · ${formatSelectionTime(selection.startH, selection.startM)}–${formatSelectionTime(selection.endH, selection.endM)} daily · ${j1DayCount(selection)} days · ${hours} hour${hours === 1 ? '' : 's'} · local review fixture`;
+    return `${j1DailyDateSpan(selection)} · ${formatSelectionTime(selection.startH, selection.startM)}–${formatSelectionTime(selection.endH, selection.endM)} daily · ${j1DayCount(selection)} days · ${hours} hour${hours === 1 ? '' : 's'} · sample`;
   }
 
   function j1VisualSelection(assetId) {
@@ -5643,12 +6398,7 @@ const k1Focus = (() => {
   }
 
   function isInCart(assetId, dk, slot) {
-    for (const line of cartLines) {
-      if (line.asset !== assetId || !j1SelectionIncludesDate(line, dk)) continue;
-      const range = slotRangeForSelection(line);
-      if (slot >= range.startSlot && slot < range.endSlot) return true;
-    }
-    return false;
+    return !!cartLineAt(assetId, dk, slot);
   }
 
   function isCreatedSlot(assetId, dk, slot) {
@@ -5695,7 +6445,7 @@ const k1Focus = (() => {
 
   function showToast(msg, duration) {
     const region = $('#toast-region');
-    if (cartNotice(msg, duration) || (msg === 'Checkpoint fixtures are in 24–30 Aug 2026. Today returns to that week.' && offWeekNoticeShown())) {   // L-05 (b) option A
+    if (cartNotice(msg, duration) || (msg === 'The sample bookings are in 24–30 Aug 2026. Today returns to that week.' && offWeekNoticeShown())) {   // L-05 (b) option A
       clearTimeout(toastTimer); [...region.querySelectorAll('.toast')].forEach((el) => el.remove()); placeToastRegion(region, true);
       announceLive(msg);   // once, through the live region present since page load
       return;
@@ -5883,7 +6633,11 @@ const k1Focus = (() => {
       return interval.start < other.end && interval.end > other.start;
     });
     if (cartConflict) return { ok: false, kind: 'availability', message: `Unavailable — overlaps another staged ${asset.name} Cart line.` };
-    return { ok: true, kind: 'available', message: `Available — ${asset.name} review fixture. Pricing will be recalculated before confirmation.` };
+    if (stagedSelection && !editingLineId && keepContinueRoute() && !ignoredIds.has(STAGED_SELECTION_EDITOR_ID) && stagedSelection.asset === candidate.asset) {
+      const current = lineInterval(stagedSelection);
+      if (interval.start < current.end && interval.end > current.start) return { ok: false, kind: 'availability', message: `Unavailable — overlaps your current ${asset.name} selection.` };
+    }
+    return { ok: true, kind: 'available', message: `Available — ${asset.name}. Pricing will be recalculated before confirmation.` };
   }
 
   function renderCallerContext() {
@@ -5958,7 +6712,7 @@ const k1Focus = (() => {
     if (showErrors && !valid && input) {
       input.setAttribute('aria-invalid', 'true');
       input.focus();
-      announceAlert(`${meta.type === 'quantity' ? 'Quantity' : 'Attendees'} must be between ${meta.min} and ${meta.max} for the selected review Package.`);
+      announceAlert(`${meta.type === 'quantity' ? 'Quantity' : 'Attendees'} must be between ${meta.min} and ${meta.max} for the selected Package.`);
     }
     return { valid, quantity, attendees, includedItems };
   }
@@ -6043,7 +6797,7 @@ const k1Focus = (() => {
         allocationSelected: false,
         amountPending: n > 1,
         amount: 2750,
-        priceStatus: n > 1 ? 'Pending · review fixture' : 'Calculated · review fixture',
+        priceStatus: n > 1 ? 'Pending · sample' : 'Calculated · sample',
         pricingOption: 'standard',
         priceMode: 'default',
         priceType: 'standard-rate',
@@ -6082,12 +6836,12 @@ const k1Focus = (() => {
       if (icon) { while (icon.nextSibling) icon.nextSibling.remove(); icon.after(document.createTextNode(copy)); }
     }
     if (successQuiet) {
-      successQuiet.textContent = 'Local prototype fixture — nothing was saved to a server.';
+      successQuiet.textContent = 'Sample — nothing was saved.';
       let accounting = $('#f1-success-accounting');
       if (createdItems.length > 1) {
         if (!accounting) { accounting = document.createElement('p'); accounting.id = 'f1-success-accounting'; accounting.className = 'success-quiet'; successQuiet.after(accounting); }
         accounting.textContent = draft.created.pendingCount
-          ? `Priced subtotal AU$ ${draft.created.pricedSubtotal.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · ${draft.created.pendingCount} price(s) pending; no combined total is claimed.`
+          ? `Priced subtotal AU$ ${draft.created.pricedSubtotal.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · ${draft.created.pendingCount} price(s) pending; no combined total yet.`
           : `Priced total AU$ ${draft.created.total.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`;
       } else accounting?.remove();
     }
@@ -6104,7 +6858,7 @@ const k1Focus = (() => {
     const saveStatus = $('#cart-save-status');
     const sheetStatus = $('#sheet-status');
     if (draft.created) {
-      saveStatus.textContent = 'Created — local fixture';
+      saveStatus.textContent = 'Created — sample';
       saveStatus.classList.add('is-created');
       sheetStatus.textContent = 'Created';
       document.body.dataset.created = 'true';
@@ -6117,6 +6871,7 @@ const k1Focus = (() => {
   }
 
   function updateCartUI() {
+    renderCartLineMarks();
     const projection = projectCartRuntime();
     const count = projection.count;
     selectedLineIds = new Set(Array.from(selectedLineIds).filter((id) => projection.lines.some((line) => line.id === id)));
@@ -6133,7 +6888,7 @@ const k1Focus = (() => {
     document.body.dataset.editing = isEditing ? 'true' : 'false';
     document.body.dataset.stress = draft.stressCount === count ? String(count) : '';
 
-    $('#cart-count').textContent = isJourney9Route() ? (hasSelection ? '1 staged selection' : 'No staged selection') : projection.itemLabel;
+    $('#cart-count').textContent = isJourney9Route() ? (j9SeriesLabel || (hasSelection ? '1 staged selection' : 'No staged selection')) : projection.itemLabel;
     $('#sheet-count').textContent = isJourney9Route() ? (hasSelection ? '1' : '0') : String(count);
     const cartToolbar = $('#cart-toolbar');
     const confirmBookBtn = $('#confirm-booking-btn');
@@ -6240,7 +6995,7 @@ const k1Focus = (() => {
     if (summaryBlocks) summaryBlocks.hidden = false;
     if (columnHead) columnHead.hidden = false;
 
-    el.innerHTML = '<p>Fixture values · total policy open (DEC-PRC-005).</p>';
+    el.innerHTML = '<p>Sample values.</p>';
   }
 
   function compactCardLabel(value) {
@@ -6260,7 +7015,7 @@ const k1Focus = (() => {
     const endDateSuffix = endDate !== line.date ? ` ${formatShortDate(new Date(endDate + 'T12:00:00'))}` : '';
     const timeStr = daily ? `${formatSelectionTime(line.startH, line.startM)}–${formatSelectionTime(line.endH, line.endM)} daily`
       : `${formatSelectionTime(line.startH, line.startM)}–${endDateSuffix}${formatSelectionTime(line.endH, line.endM)}`;
-    const durationStr = daily ? `${j1DayCount(line)} days · ${formatLineDuration(line)} total · local review fixture` : formatLineDuration(line);
+    const durationStr = daily ? `${j1DayCount(line)} days · ${formatLineDuration(line)} total · sample` : formatLineDuration(line);
     const amountPending = line.amountPending;
     const amount = Number.isFinite(line.amount) ? line.amount : 2750;
     const readyState = /recalculated/i.test(line.priceStatus || '')
@@ -6268,7 +7023,7 @@ const k1Focus = (() => {
       : (/pricing choices applied/i.test(line.priceStatus || '') ? 'Updated' : 'Ready');
     const stateMarkup = amountPending
       ? '<span class="cart-line-status is-pending" title="Price pending — review required">Attention</span>'
-      : `<span class="cart-line-status is-ready" title="${escapeHtml(line.priceStatus || 'Calculated · review fixture')}">${readyState}</span>`;
+      : `<span class="cart-line-status is-ready" title="${escapeHtml(line.priceStatus || 'Calculated · sample')}">${readyState}</span>`;
     const priceMarkup = amountPending
       ? '<span class="cart-line-price-pending" role="status" aria-label="Price pending" title="Price pending"><span aria-hidden="true">＄◷</span></span>'
       : `<b>AU$ ${amount.toLocaleString('en-AU', { minimumFractionDigits: 2 })}</b>`;
@@ -6364,7 +7119,7 @@ const k1Focus = (() => {
         const gh = document.createElement('li');
         const groupOpen = expandedGroups.has(currentGroup);
         gh.className = 'group-head';
-        gh.innerHTML = `<button type="button" data-group-toggle="${currentGroup}" aria-expanded="${groupOpen}" aria-label="${groupOpen ? 'Collapse' : 'Expand'} related selection cards in Review group ${GROUP_DEFS[currentGroup][0]}">${groupOpen ? '▾' : '▸'} Related selections · Review group ${GROUP_DEFS[currentGroup][0]} · ${GROUP_DEFS[currentGroup][1]}</button><span>review fixture</span>`;
+        gh.innerHTML = `<button type="button" data-group-toggle="${currentGroup}" aria-expanded="${groupOpen}" aria-label="${groupOpen ? 'Collapse' : 'Expand'} related selection cards in group ${GROUP_DEFS[currentGroup][0]}">${groupOpen ? '▾' : '▸'} Related selections · Group ${GROUP_DEFS[currentGroup][0]} · ${GROUP_DEFS[currentGroup][1]}</button><span>sample</span>`;
         list.appendChild(gh);
       }
 
@@ -6520,27 +7275,27 @@ const k1Focus = (() => {
     const pkg = getPackageRecord(line.package);
     const allocation = line.allocationMode === 'all' ? 'All assets' : (line.allocationMode === 'multiple' ? 'Multiple assets' : 'Single asset');
     const allocationIcon = line.allocationMode === 'all' ? '▦' : (line.allocationMode === 'multiple' ? '▥' : '●');
-    const allocationAssets = line.allocationMode === 'all' ? '<details class="allocation-assets"><summary>Show allocated assets</summary><span>Hall 1 · Studio 2 — review fixture</span></details>' : '';
+    const allocationAssets = line.allocationMode === 'all' ? '<details class="allocation-assets"><summary>Show allocated assets</summary><span>Hall 1 · Studio 2</span></details>' : '';
     const included = (line.includedItems || []).map((id) => getItemRecord(id).label).join(', ') || 'None';
     const packageValue = line.packageQuantity != null
       ? `Quantity ${line.packageQuantity}`
       : (line.packageAttendees != null ? `${line.packageAttendees} attendees` : 'No conditional value');
     const moreTimeslots = line.hasMoreTimeslots
-      ? `<div class="detail-field detail-wide"><label>Grouped timeslots</label><button type="button" class="btn-ghost btn-sm" data-show-timeslots="${line.id}">${line.timeslotsRevealed ? 'Show fewer' : 'Show more'}</button>${line.timeslotsRevealed ? '<b>Additional review timeslot · grouping policy not inferred</b>' : ''}</div>`
+      ? `<div class="detail-field detail-wide"><label>Grouped timeslots</label><button type="button" class="btn-ghost btn-sm" data-show-timeslots="${line.id}">${line.timeslotsRevealed ? 'Show fewer' : 'Show more'}</button>${line.timeslotsRevealed ? '<b>Additional timeslot</b>' : ''}</div>`
       : '';
     const allocationBoundary = line.isUnallocated
       ? `<div class="detail-field detail-wide allocation-boundary"><label>Unallocated Standard Item</label><b>${line.allocationSelected ? 'Selected for allocation' : 'Not selected for allocation'}</b><button type="button" class="btn-secondary btn-sm" data-allocation-select="${line.id}" aria-pressed="${!!line.allocationSelected}">${line.allocationSelected ? 'Deselect allocation card' : 'Select for allocation'}</button><small>Proven select/deselect boundary only; resource-allocation policy is not inferred.</small></div>`
       : '';
     const fields = `
-      ${j1MultiDay(line) ? `<div class="detail-field detail-wide j1-daily-detail"><label>Daily selection · local review only</label><b>${escapeHtml(j1DailyDescription(line))}</b><small>Not a continuous overnight booking; no production price or creation policy is claimed.</small></div>` : ''}
+      ${j1MultiDay(line) ? `<div class="detail-field detail-wide j1-daily-detail"><label>Daily selection · sample</label><b>${escapeHtml(j1DailyDescription(line))}</b><small>Not a continuous overnight booking.</small></div>` : ''}
       <div class="detail-field"><label>Item</label><b>${escapeHtml(item.label)}</b><button type="button" class="inline-picker-btn" data-inline-picker="${line.id}" data-field="item">Change Item</button></div>
       <div class="detail-field"><label>Package</label><b>${escapeHtml(pkg.label)} · ${escapeHtml(packageValue)}</b><button type="button" class="btn-ghost btn-sm" data-package="${line.id}">Contents &amp; change</button></div>
       <div class="detail-field"><label>Included Package Items</label><b>${escapeHtml(included)}</b></div>
       <div class="detail-field"><label>Configuration</label><b>${escapeHtml(configurationLabel(line.configuration))}</b></div>
       <div class="detail-field"><label>Item allocation</label><b class="allocation-mode-badge"><span aria-hidden="true">${allocationIcon}</span>${allocation}</b>${allocationAssets}</div>
       <div class="detail-field"><label>Concession</label><b>${escapeHtml(getConcessionRecord(line.concession).label)}</b></div>
-      <div class="detail-field"><label>Pricing status</label><b>${escapeHtml(line.priceStatus || (line.amountPending ? 'Pending · review required' : 'Calculated · review fixture'))}</b></div>
-      <div class="detail-field"><label>Availability</label><b>Available at staged time · review fixture</b></div>
+      <div class="detail-field"><label>Pricing status</label><b>${escapeHtml(line.priceStatus || (line.amountPending ? 'Pending · review required' : 'Calculated · sample'))}</b></div>
+      <div class="detail-field"><label>Availability</label><b>Available at staged time · sample</b></div>
       <div class="detail-field"><label>Grouping context</label><b>Review group ${GROUP_DEFS[line.groupIndex || 0][0]} · presentation only</b></div>
       ${moreTimeslots}${allocationBoundary}`;
     if (editing && !String(line.id).startsWith('line-stress-')) {
@@ -6734,7 +7489,142 @@ const k1Focus = (() => {
     renderCalendar();
   }
 
+  // J4 Gate A (the Director, 3 Nov 2026, 9:03 AM): Keep and Continue. A current selection is never lost with no message.
+  // Only where a person selects time and sees the Cart's Current Selection: Journeys 1, 4 and 7. Journey 3 draws no lanes, Journey 9 cannot add to the Cart, and Journeys 5, 8 and 12 do not show it: they keep their behaviour.
+  // Journey 7 keeps only an accepted selection, because its accepted fixture is one exact interval.
+  function keepContinueRoute() {
+    return ['1', '4', '7'].includes(document.body.dataset.journey);
+  }
+
+  function selectionLabel(s) {
+    const asset = ASSETS.find((a) => a.id === s.asset);
+    return `${asset ? asset.name : s.asset} · ${formatShortDate(new Date(`${s.date}T12:00:00`))} · ${formatTime(s.startH, s.startM)}–${formatTime(s.endH, s.endM)}`;
+  }
+
+  function currentSelectionCanMove() {
+    if (!stagedSelection || !keepContinueRoute()) return true;
+    if (editingLineId) { showToast('Update this item first.'); return false; }
+    if (isJourney7Route()) return true;
+    const item = getCommitted('item');
+    const pkg = getCommitted('package');
+    if (isCompatible(item, pkg) && isJourneyItem(item) && isJourneyPackage(pkg) && getStagedPackageState(false).valid) return true;
+    showToast('Finish this selection first: open Edit details.');
+    getStagedPackageState(true);
+    return false;
+  }
+
+  function keepCurrentSelection() {
+    if (!stagedSelection || editingLineId || !keepContinueRoute()) return null;
+    if (isJourney7Route() && !j7IsAcceptedGraph(stagedSelection).ok) return null;
+    return addToCart(true) || null;
+  }
+
+  function rangeOverlaps(s, assetId, dk, startSlot, endSlotExclusive, endDate) {
+    if (!s || s.asset !== assetId) return false;
+    const t = selectionFromSlots(assetId, dk, startSlot, endSlotExclusive);
+    const at = (h, m) => h * 60 + (m || 0);
+    return dk <= (s.endDate || s.date) && endDate >= s.date && at(t.startH, t.startM) < at(s.endH, s.endM) && at(t.endH, t.endM) > at(s.startH, s.startM);
+  }
+
+  function overlapsCurrentSelection(assetId, dk, startSlot, endSlotExclusive, endDate) {
+    return rangeOverlaps(stagedSelection, assetId, dk, startSlot, endSlotExclusive, endDate);
+  }
+
+  function overlapsCartLine(assetId, dk, startSlot, endSlotExclusive, endDate) {
+    return cartLines.some((line) => line.id !== editingLineId && rangeOverlaps(line, assetId, dk, startSlot, endSlotExclusive, endDate));
+  }
+
+  // The Director's Q2: the first Cart line's Package, only when compatible. Only a new selection takes it, so no Cart line and no later choice of the person is touched.
+  function reuseFirstLinePackage() {
+    if (!stagedSelection || !keepContinueRoute() || isJourney7Route()) return '';
+    const first = cartLines[0];
+    if (!first || first.package === 'none' || !isJourneyPackage(first.package)) return '';
+    if (!isCompatible(getCommitted('item'), first.package)) return ' The Package of item 01 does not fit, so it was not reused.';
+    stagedSelection.packageQuantity = first.packageQuantity;
+    stagedSelection.packageAttendees = first.packageAttendees;
+    stagedSelection.includedItems = Array.from(first.includedItems || []);
+    setCommitted('package', first.package, { notify: false });
+    updateCartUI();
+    return ' Package from item 01.';
+  }
+
+  function selectNewTime(assetId, dk, startSlot, endSlotExclusive, endDate = dk) {
+    if (!keepContinueRoute()) {
+      createSelection(assetId, dk, startSlot, endSlotExclusive, endDate);
+      return true;
+    }
+    if (overlapsCartLine(assetId, dk, startSlot, endSlotExclusive, endDate)) {
+      showToast('That time is already in the Cart.');
+      return false;
+    }
+    if (stagedSelection && !editingLineId && overlapsCurrentSelection(assetId, dk, startSlot, endSlotExclusive, endDate)) {
+      const before = selectionLabel(stagedSelection);
+      const next = selectionFromSlots(assetId, dk, startSlot, endSlotExclusive);
+      Object.assign(stagedSelection, { date: next.date, endDate: next.endDate, startH: next.startH, startM: next.startM, endH: next.endH, endM: next.endM });
+      updateCartUI();
+      renderCalendar();
+      showToast(selectionLabel(stagedSelection) === before ? 'That time is already your selection.' : `Selection changed: ${selectionLabel(stagedSelection)}. Your choices are kept.`);
+      return true;
+    }
+    let kept = null;
+    if (stagedSelection) {
+      if (!currentSelectionCanMove()) return false;
+      kept = keepCurrentSelection();
+    }
+    createSelection(assetId, dk, startSlot, endSlotExclusive, endDate);
+    const reused = reuseFirstLinePackage();
+    if (kept) showToast(`Added to cart: ${selectionLabel(kept)}.${reused}`);
+    else if (reused) showToast(reused.trim());
+    return true;
+  }
+
+  // The Director's Q3: Cart lines numbered on the calendar, in Cart order, in the In Cart colours the Stack layout already uses.
+  function cartLineNumber(line) {
+    return String(line.lineNumber || cartLines.indexOf(line) + 1).padStart(2, '0');
+  }
+
+  function cartLineAt(assetId, dk, slot) {
+    return cartLines.find((line) => {
+      if (line.asset !== assetId || !j1SelectionIncludesDate(line, dk)) return false;
+      const range = slotRangeForSelection(line);
+      return slot >= range.startSlot && slot < range.endSlot;
+    });
+  }
+
+  function renderCartLineMarks() {
+    const grid = $('#calendar-grid');
+    if (!grid) return;
+    grid.querySelectorAll('.cart-line-mark').forEach((mark) => mark.remove());
+    if (slotLayout !== 'column' || cartLines.length > 99 || !keepContinueRoute()) return;
+    const slotH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--slot-h') || '10');
+    cartLines.forEach((line) => {
+      if (line.id === editingLineId) return;
+      const range = slotRangeForSelection(line);
+      grid.querySelectorAll(`.cal-day-col[data-asset="${line.asset}"]`).forEach((col) => {
+        if (!j1SelectionIncludesDate(line, col.dataset.date)) return;
+        const mark = document.createElement('div');
+        mark.className = 'cart-line-mark';
+        mark.setAttribute('aria-hidden', 'true');
+        mark.style.top = `${range.startSlot * slotH}px`;
+        mark.style.height = `${(range.endSlot - range.startSlot) * slotH}px`;
+        const number = document.createElement('span');
+        number.className = 'cart-line-mark-no';
+        number.textContent = cartLineNumber(line);
+        mark.appendChild(number);
+        col.appendChild(mark);
+      });
+    });
+  }
+
   function selectUnavailable(assetId, dk, ev) {
+    if (stagedSelection && keepContinueRoute()) {   // a press on taken time leaves the current selection as it is
+      showToast('That time is unavailable. Your selection is kept.');
+      return;
+    }
+    showUnavailable(assetId, dk, ev);
+  }
+
+  function showUnavailable(assetId, dk, ev) {
     stagedSelection = null;
     editingLineId = null;
     draft.unavailableSelection = {
@@ -6749,11 +7639,11 @@ const k1Focus = (() => {
     renderCalendar();
   }
 
-  function addToCart() {
-    if (isJourney9Route()) { j9BlockReview('Journey 9 cannot add a staged selection to the Booking Cart; only recurring review is actionable.'); return; }
+  function addToCart(keepForNext) {
+    if (isJourney9Route()) { j9BlockReview('This screen cannot add a selection to the Booking Cart; use Recurring.'); return; }
     if (!stagedSelection) return;
     if (isJourney7Route() && !j7IsAcceptedGraph(stagedSelection).ok) {
-      j7BlockReview('Journey 7 cannot stage an incomplete or stale accepted graph.');
+      j7BlockReview('This selection cannot be added to the Cart yet.');
       j7SyncRouteState();
       return;
     }
@@ -6774,7 +7664,7 @@ const k1Focus = (() => {
       allocationMode: 'single',
       amountPending: j1MultiDay(stagedSelection) || (cartLines.length >= 1 && !editingLineId),
       amount: j1MultiDay(stagedSelection) ? null : 2750,
-      priceStatus: j1MultiDay(stagedSelection) ? 'Multi-day local review fixture · pricing policy unconfirmed' : 'Calculated · review fixture',
+      priceStatus: j1MultiDay(stagedSelection) ? 'Multi-day sample · pricing not confirmed' : 'Calculated · sample',
       pricingOption: 'standard',
       priceMode: 'default',
       priceType: 'standard-rate',
@@ -6789,6 +7679,7 @@ const k1Focus = (() => {
     }
     stagedSelection = null;
     currentSelectionDetailsExpanded = false;
+    if (keepForNext === true) return line;   // J4 Gate A: the next selection redraws; its caller gives the one notice
     setPhase('cart');
     setStage(cartLines.length >= 2 ? 'l' : 'h');
     showToast(wasEdit ? 'Cart item updated — booking is not saved' : 'Added to cart — booking is not saved');
@@ -6823,7 +7714,7 @@ const k1Focus = (() => {
   }
 
   function confirmRemove() {
-    if (isJourney9Route()) { j9BlockReview('Journey 9 item removal is unavailable.'); return; }
+    if (isJourney9Route()) { const run = j9PendingRemoval; j9PendingRemoval = null; if (run) { $('#remove-dialog').close(); lastDialogTrigger = null; run(); return; } j9BlockReview('Item removal is unavailable here.'); return; }
     cartLines = cartLines.filter((l) => l.id !== removeTargetId);
     selectedLineIds.delete(removeTargetId);
     if (editingLineId === removeTargetId) {
@@ -6887,8 +7778,8 @@ const k1Focus = (() => {
     });
     const description = $('#pricing-desc');
     if (description) description.textContent = stagedTarget
-      ? 'Review the existing staged Concession fixture. Cart-line pricing controls are not available for a new selection.'
-      : 'The control structure is Diary-proven. All option names, amounts and formulas are local review fixtures.';
+      ? 'The staged Concession. Cart-line pricing controls are not available for a new selection.'
+      : 'Sample prices — the real price list is not in the sample.';
     const title = $('#pricing-title');
     if (title) title.textContent = stagedTarget ? 'Concession review' : 'Change pricing';
     const apply = $('#pricing-apply');
@@ -6940,9 +7831,9 @@ const k1Focus = (() => {
     }
     if (note) {
       note.hidden = !daily;
-      if (daily) note.textContent = `${j1DailyDescription(selection)}. Time editing is unavailable for this local rectangular review fixture; use the calendar handle before adding to Cart.`;
+      if (daily) note.textContent = `${j1DailyDescription(selection)}. Time editing is unavailable for this daily selection; use the calendar handle before adding to Cart.`;
     }
-    if (daily) $('#time-desc').textContent = 'Daily rectangle · local review only. Other Item, configuration, Package and pricing controls remain available.';
+    if (daily) $('#time-desc').textContent = 'Daily selection · sample. Other Item, configuration, Package and pricing controls remain available.';
   }
 
   function updateEditorTabLabels(lineId) {
@@ -7168,7 +8059,7 @@ const k1Focus = (() => {
     $('#pricing-unit').value = line.pricingUnit || 'hour';
     $('#changed-price-fields').hidden = mode !== 'change';
     const amount = Number.isFinite(line.amount) ? line.amount : 2750;
-    $('#pricing-amount').textContent = j1MultiDay(line) ? 'Quote pending · multi-day review fixture'
+    $('#pricing-amount').textContent = j1MultiDay(line) ? 'Quote pending · multi-day sample'
       : `AU$ ${amount.toLocaleString('en-AU', { minimumFractionDigits: 2 })}`;
     return true;
   }
@@ -7227,7 +8118,7 @@ const k1Focus = (() => {
   }
 
   function openCartItemEditor(tab, idsOrId, trigger) {
-    if (isJourney9Route()) { j9BlockReview('Journey 9 item and pricing editors are unavailable.'); return; }
+    if (isJourney9Route()) { j9BlockReview('Item and pricing editors are unavailable here.'); return; }
     const ids = (Array.isArray(idsOrId) ? idsOrId : [idsOrId]).filter((id) => cartLines.some((line) => line.id === id));
     if (!ids.length) return;
     const dialog = getCartItemEditorDialog();
@@ -7376,7 +8267,7 @@ const k1Focus = (() => {
     const draftTarget = timeEditor.target === 'staged-selection';
     let verdict = { ok: false, kind: 'validation', message: draftTarget ? 'Current selection time is required.' : 'Select at least one staged Cart line.' };
     if (ids.length) {
-      verdict = { ok: true, kind: 'available', message: draftTarget ? 'Current selection draft is available in this review fixture.' : `${ids.length} staged ${ids.length === 1 ? 'line is' : 'lines are'} available in this review fixture.` };
+      verdict = { ok: true, kind: 'available', message: draftTarget ? 'Current selection draft is available in this sample.' : `${ids.length} staged ${ids.length === 1 ? 'line is' : 'lines are'} available in this sample.` };
       for (const id of ids) {
         const candidateVerdict = checkCandidateAvailability(candidates[id], new Set(timeEditor.ids));
         if (!candidateVerdict.ok) { verdict = candidateVerdict; break; }
@@ -7430,12 +8321,12 @@ const k1Focus = (() => {
         endH: candidate.endH,
         endM: candidate.endM,
         amountPending: false,
-        priceStatus: 'Recalculated · local review fixture; formula open'
+        priceStatus: 'Recalculated · sample'
       };
     });
     const count = Object.keys(timeEditor.candidates).length;
     closeCartItemEditor();
-    showToast(`${count} staged ${count === 1 ? 'time' : 'times'} updated · pricing recalculated as review fixtures`);
+    showToast(`${count} staged ${count === 1 ? 'time' : 'times'} updated · pricing recalculated as samples`);
     updateCartUI();
     renderCalendar();
   }
@@ -7481,14 +8372,14 @@ const k1Focus = (() => {
     });
     $('#configuration-select-all').checked = compatibleIds.length > 0 && compatibleIds.every((id) => configurationEditor.selected.has(id));
     $('#configuration-status').className = 'availability-result is-available';
-    $('#configuration-status').textContent = `${compatibleCount} of ${configurationEditor.ids.length} selected facilities support this review Configuration.`;
+    $('#configuration-status').textContent = `${compatibleCount} of ${configurationEditor.ids.length} selected facilities support this Configuration.`;
     $('#configuration-apply').disabled = configurationEditor.selected.size === 0;
   }
 
   function applyConfigurationUpdate() {
     if (!configurationEditor || !configurationEditor.selected.size) return;
     if (isJourney7Route() && configurationEditor.configuration !== 'theatre') {
-      j7BlockReview('Journey 7 can apply only the accepted Theatre configuration.');
+      j7BlockReview('Only the sample Theatre configuration can be applied here.');
       return;
     }
     if (cartItemEditorTargetsStagedSelection()) {
@@ -7512,7 +8403,7 @@ const k1Focus = (() => {
     });
     const count = configurationEditor.selected.size;
     closeCartItemEditor();
-    showToast(`${count} ${count === 1 ? 'facility' : 'facilities'} updated · review Configuration`);
+    showToast(`${count} ${count === 1 ? 'facility' : 'facilities'} updated · Configuration`);
     updateCartUI();
   }
 
@@ -7527,9 +8418,9 @@ const k1Focus = (() => {
     $('#package-picker-btn').textContent = compactOptionLabel(rec.label);
     let conditional = '';
     if (meta.type === 'quantity') {
-      conditional = `<label class="dialog-field">Quantity<input type="number" id="package-value" min="${meta.min}" max="${meta.max}" value="${escapeHtml(packageEditor.quantity)}" placeholder="${meta.min}–${meta.max}"><small>Quantity ${meta.min}–${meta.max} for this review Package fixture.</small></label>`;
+      conditional = `<label class="dialog-field">Quantity<input type="number" id="package-value" min="${meta.min}" max="${meta.max}" value="${escapeHtml(packageEditor.quantity)}" placeholder="${meta.min}–${meta.max}"><small>Quantity ${meta.min}–${meta.max} for this Package.</small></label>`;
     } else if (meta.type === 'attendees') {
-      conditional = `<label class="dialog-field">Attendees<input type="number" id="package-value" min="${meta.min}" max="${meta.max}" value="${escapeHtml(packageEditor.attendees)}" placeholder="${meta.min}–${meta.max}"><small>Attendees ${meta.min}–${meta.max} for this review Package fixture.</small></label>`;
+      conditional = `<label class="dialog-field">Attendees<input type="number" id="package-value" min="${meta.min}" max="${meta.max}" value="${escapeHtml(packageEditor.attendees)}" placeholder="${meta.min}–${meta.max}"><small>Attendees ${meta.min}–${meta.max} for this Package.</small></label>`;
     }
     const included = (meta.includedItems || []).map((itemId) => `<label><input type="checkbox" data-package-included="${itemId}" ${packageEditor.includedItems.has(itemId) ? 'checked' : ''}> ${escapeHtml(getItemRecord(itemId).label)}</label>`).join('');
     $('#package-editor-fields').innerHTML = `${conditional}${included ? `<fieldset class="included-items"><legend>Included Package Items</legend><label class="select-all-included"><input type="checkbox" id="package-select-all"> Select all</label>${included}</fieldset>` : '<p class="empty-package">Item-only booking — no Package contents.</p>'}`;
@@ -7562,7 +8453,7 @@ const k1Focus = (() => {
     if (!validatePackageEditor()) return;
     if (cartItemEditorTargetsStagedSelection()) {
       if (isJourney7Route() && packageEditor.package !== 'private-day') {
-        j7BlockReview('Journey 7 can apply only the accepted Private Day Hire package.');
+        j7BlockReview('Only the sample Private Day Hire package can be applied here.');
         return;
       }
       const meta = packageMeta(packageEditor.package);
@@ -7591,7 +8482,7 @@ const k1Focus = (() => {
     const line = getEditorTargetRecord(packageEditor.lineId);
     if (!line) return;
     if (isJourney7Route() && packageEditor.package !== 'private-day') {
-      j7BlockReview('Journey 7 can apply only the accepted Private Day Hire package.');
+      j7BlockReview('Only the sample Private Day Hire package can be applied here.');
       return;
     }
     const meta = packageMeta(packageEditor.package);
@@ -7599,7 +8490,7 @@ const k1Focus = (() => {
     line.packageQuantity = meta.type === 'quantity' ? packageEditor.quantity : null;
     line.packageAttendees = meta.type === 'attendees' ? packageEditor.attendees : null;
     line.includedItems = Array.from($$('[data-package-included]:checked')).map((input) => input.dataset.packageIncluded);
-    line.priceStatus = 'Recalculated after Package change · review fixture';
+    line.priceStatus = 'Recalculated after Package change · sample';
     closeCartItemEditor();
     showToast('Package and included Items updated · booking is not saved');
     updateCartUI();
@@ -7659,16 +8550,16 @@ const k1Focus = (() => {
   }
 
   function openPricingEditor(id, trigger) {
-    if (isJourney9Route()) { j9BlockReview('Journey 9 pricing and item editors are outside the local recurrence review.'); return; }
+    if (isJourney9Route()) { j9BlockReview('Pricing and item editors are unavailable here.'); return; }
     if (isJourney7Route()) {
-      j7BlockReview('Journey 7 alternate pricing/editor choices are unavailable; the accepted local pricing fixture is read-only.');
+      j7BlockReview('Other pricing choices are unavailable; the sample pricing is read-only.');
       return;
     }
     openCartItemEditor('pricing', id, trigger);
   }
 
   function applyPricingUpdate() {
-    if (isJourney9Route()) { j9BlockReview('Journey 9 pricing updates are unavailable.'); return; }
+    if (isJourney9Route()) { j9BlockReview('Pricing updates are unavailable here.'); return; }
     if (!pricingEditor) return;
     if (cartItemEditorTargetsStagedSelection()) {
       const concession = $('#pricing-concession').value;
@@ -7687,7 +8578,7 @@ const k1Focus = (() => {
     const priceType = mode === 'change' ? $('#pricing-type').value : 'default';
     const pricingUnit = mode === 'change' ? $('#pricing-unit').value : null;
     if (isJourney7Route() && (mode !== 'default' || pricingOption !== 'standard' || concession !== 'review-fixture' || priceType !== 'default' || pricingUnit !== null)) {
-      j7BlockReview('Journey 7 cannot apply alternate pricing type, unit, Item option or concession choices.');
+      j7BlockReview('This screen cannot apply other pricing type, unit, Item option or concession choices.');
       return;
     }
     line.configuration = $('#pricing-configuration').value;
@@ -7698,8 +8589,8 @@ const k1Focus = (() => {
     line.pricingUnit = pricingUnit;
     line.amountPending = j1MultiDay(line);
     line.priceStatus = j1MultiDay(line)
-      ? 'Pricing choices recorded · multi-day local review; total policy unconfirmed'
-      : 'Pricing choices applied · local review fixture; formula open';
+      ? 'Pricing choices recorded · multi-day sample; total not confirmed'
+      : 'Pricing choices applied · sample';
     closeCartItemEditor();
     showToast('Pricing choices applied · booking is not saved');
     updateCartUI();
@@ -7746,12 +8637,12 @@ const k1Focus = (() => {
 
   function confirmBooking() {
     if (document.body.dataset.journey === '1' && cartLines.some(j1MultiDay)) {
-      announceAlert('Multi-day selection is a local review fixture only. Booking creation is unavailable.');
+      announceAlert('Multi-day selection is a sample only. Booking creation is unavailable.');
       return;
     }
-    if (isJourney9Route()) { j9BlockReview('Journey 9 cannot create a Booking or show a Booking-created success state.'); return; }
+    if (isJourney9Route()) { j9BlockReview('This screen cannot create a Booking.'); return; }
     if (isJourney7Route()) {
-      j7BlockReview('Journey 7 cannot create a Booking or open an external handoff.');
+      j7BlockReview('This screen cannot create a Booking or open an external handoff.');
       j7SyncRouteState();
       return;
     }
@@ -7790,12 +8681,13 @@ const k1Focus = (() => {
     // scroll that changes the drawn rows redraws them — so the focus fell to the page and Tab cycled inside a long list. Keep the KEYBOARD focus
     // (:focus-visible; a pointer focus is left as before) on the box's replacement when it is still drawn, without scrolling.
     const kbBox = document.activeElement && document.activeElement.matches && document.activeElement.matches('#asset-tree-viewport .tree-check:focus-visible') ? document.activeElement.dataset.res : null;
+    const kbInfo = document.activeElement && document.activeElement.matches && document.activeElement.matches('#asset-tree-viewport .tree-info:focus-visible') ? document.activeElement.dataset.info : null;
     const total = rows.length;
     const rowH = j3GetTreeRowHeight();
     const win = computeWindow(assetScroll, scrollEl.clientHeight || 300, rowH, total);
     // L-64 (28 Oct 2026): a mouse wheel or the scrollbar can move the box with the keyboard focus out of the drawn rows; its row is then drawn
     // as well, in its place in the list, so the focus stays on it (out of view, as in any long list).
-    const kbIdx = kbBox ? rows.findIndex((r) => r.kind === 'resource' && r.asset.id === kbBox) : -1;
+    const kbIdx = kbBox || kbInfo ? rows.findIndex((r) => r.kind === 'resource' && r.asset.id === (kbBox || kbInfo)) : -1;
     const kept = kbIdx >= 0 && (kbIdx < win.start || kbIdx >= win.end) ? kbIdx : -1;
     const drawIdx = [];
     for (let i = win.start; i < win.end; i++) drawIdx.push(i);
@@ -7812,27 +8704,29 @@ const k1Focus = (() => {
         const a = r.asset;
         const checked = selectedAssets.has(a.id) ? ' checked' : '';
         const te = (a.color || a.tint) === 'teal' ? ' teal' : '';
-        const generated = !isJ3Journey() && (r.meta === 'Resource · generated' || (r.search && a.journey === false));
+        const generated = !isJ3Journey() && !a.assetClass && (r.meta === 'Resource · generated' || (r.search && a.journey === false));
         const rowClass = generated ? ' generated-fixture-resource' : '';
         const rowLabel = generated
-          ? ' aria-label="' + escapeHtml(a.name) + ', generated review fixture resource, ' + escapeHtml(a.venue) + ', ' + escapeHtml(a.category) + '"'
+          ? ' aria-label="' + escapeHtml(a.name) + ', generated sample resource, ' + escapeHtml(a.venue) + ', ' + escapeHtml(a.category) + '"'
           : (!isJ3Journey()
-            ? ' aria-label="' + escapeHtml(a.name) + ', Journey resource, ' + escapeHtml(a.venue) + ', ' + escapeHtml(a.category) + '"'
+            ? ' aria-label="' + escapeHtml(a.name) + (a.assetClass ? ', ' + j3ClassLabel(a) + ', ' + escapeHtml(a.assetType) : ', Resource') + ', ' + escapeHtml(a.venue) + ', ' + escapeHtml(a.category) + '"'
             : '');
         const metaHtml = isJ3Journey()
           ? '<span class="j3-capacity-badge">' + a.capacity + '</span>'
-          : (generated ? '' : '<span class="tree-meta">' + r.meta + '</span>');
-        html += '<div class="tree-row' + rowClass + active + '" id="' + rowId + '" role="treeitem" aria-level="' + r.level + '"' + rowLabel + ' data-idx="' + i + '" data-res="' + a.id + '" style="top:' + top + 'px;padding-left:' + (8 + ind) + 'px"><input type="checkbox" class="tree-check' + te + '" data-res="' + a.id + '" aria-label="Select ' + a.name + '"' + checked + '><span class="tree-name">' + a.name + '</span>' + metaHtml + '</div>';
+          : (generated || a.assetClass ? '' : '<span class="tree-meta">' + r.meta + '</span>');
+        const infoName = escapeHtml(a.name);
+        const infoHtml = !$('#asset-info-dialog') ? '' : '<button type="button" class="tree-info" data-info="' + a.id + '" aria-label="About ' + infoName + '" title="About ' + infoName + '"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"/></svg></button>';
+        html += '<div class="tree-row' + rowClass + active + '" id="' + rowId + '" role="treeitem" aria-level="' + r.level + '"' + rowLabel + ' data-idx="' + i + '" data-res="' + a.id + '" style="top:' + top + 'px;padding-left:' + (8 + ind) + 'px"><input type="checkbox" class="tree-check' + te + '" data-res="' + a.id + '" aria-label="Select ' + a.name + (a.assetClass ? ', ' + j3ClassLabel(a) + ', ' + a.assetType : '') + '"' + checked + '>' + j3RowNameHtml(a) + metaHtml + infoHtml + '</div>';
       } else {
         const exp = r.expanded ? '▾' : '▸';
         const fixtureClass = r.kind === 'fixture-group' ? ' scalability-fixture-group' : '';
         const fixtureAttrs = r.kind === 'fixture-group'
-          ? ' data-scalability-fixtures="true" data-fixture-count="' + r.fixtureCount + '" aria-label="Scalability review fixtures, ' + r.fixtureCount + ' resources, ' + (r.expanded ? 'expanded' : 'collapsed') + '"'
+          ? ' data-scalability-fixtures="true" data-fixture-count="' + r.fixtureCount + '" aria-label="Generated sample assets, ' + r.fixtureCount + ' resources, ' + (r.expanded ? 'expanded' : 'collapsed') + '"'
           : '';
         const generatedNode = !isJ3Journey() && (r.meta.includes('generated') || String(r.key).startsWith('gv-'));
         const nodeType = generatedNode
-          ? 'generated review fixture ' + (r.kind === 'venue' ? 'venue' : 'category')
-          : (r.kind === 'venue' ? 'Journey fixture venue' : 'Journey resource category');
+          ? 'generated sample ' + (r.kind === 'venue' ? 'venue' : 'category')
+          : (r.kind === 'venue' ? 'Venue' : 'Resource category');
         const nodeLabel = !isJ3Journey() && r.kind !== 'fixture-group'
           ? ' aria-label="' + escapeHtml(r.name) + ', ' + nodeType + ', ' + (r.expanded ? 'expanded' : 'collapsed') + '"'
           : '';
@@ -7841,27 +8735,45 @@ const k1Focus = (() => {
     }
     vp.innerHTML = html;
     assetTreeDrawn = { rows, start: win.start, end: win.end, kept: kept >= 0 };   // L-61: what is drawn now (L-64: and whether a row is kept)
+    if (kbInfo) { const nb = vp.querySelector('.tree-info[data-info="' + CSS.escape(kbInfo) + '"]'); if (nb) { treeRefocus = true; nb.focus({ preventScroll: true }); treeRefocus = false; } }
     if (kbBox) { const nb = vp.querySelector('.tree-check[data-res="' + CSS.escape(kbBox) + '"]'); if (nb) { treeRefocus = true; nb.focus({ preventScroll: true }); treeRefocus = false; } }   // L-62: the keyboard focus kept (L-63: the active row not moved)
     syncTreeAria(rows);
     const selCount = selectedAssets.size;
     if (isJ3Journey()) {
       const eligible = j3GetEligibleAssets().length;
-      $('#asset-count-chip').textContent = J3_FIXTURE_CATALOG.length + ' REVIEW FIXTURE resources';
+      $('#asset-count-chip').textContent = J3_FIXTURE_CATALOG.length + ' sample assets';
       const showStart = total ? win.start + 1 : 0;
       const showEnd = total ? win.end : 0;
       const copyEl = $('#asset-window-copy');
       if (total === 0) {
         if (copyEl) {
-          copyEl.innerHTML = 'No matches for current filters (prototype behaviour — exact live wording <span class="badge badge-scope">UNCONFIRMED</span>). Use <b>Reset filters</b> to restore the default eligible list.';
+          copyEl.innerHTML = 'No matches for current filters. Use <b>Reset filters</b> to restore the full list.' + j3OffClassHint();
           copyEl.classList.remove('visually-hidden');
         }
       } else {
         if (copyEl) {
-          copyEl.innerHTML = fmt(J3_FIXTURE_CATALOG.length) + ' REVIEW FIXTURE resources · ' + fmt(eligible) + ' eligible · showing <b>' + showStart + '–' + showEnd + '</b> of ' + fmt(total) + ' visible rows · not a tenant catalogue';
+          copyEl.innerHTML = fmt(J3_FIXTURE_CATALOG.length) + ' sample assets · ' + fmt(eligible) + ' eligible · showing <b>' + showStart + '–' + showEnd + '</b> of ' + fmt(total) + ' visible rows · sample data';
           copyEl.classList.add('visually-hidden');
         }
       }
-      j3SyncFilterStatus(rows.filter((row) => row.kind === 'resource').length);
+      j3SyncFilterStatus(assetQuery.trim() ? rows.length : eligible);   // the true count, collapsed branches included
+      j3RenderActiveFilters();
+    } else if (exOn()) {
+      $('#asset-count-chip').textContent = fmt(reviewScale) + ' resources · ' + selCount + ' selected';
+      const copyEl = $('#asset-window-copy');
+      if (copyEl) {
+        if (total === 0) {
+          copyEl.innerHTML = 'No matches for current filters. Use <b>Reset filters</b> to restore the full list.' + j3OffClassHint();
+          copyEl.classList.remove('visually-hidden');
+        } else if (j3ActiveFilterChips().length) {
+          copyEl.classList.add('visually-hidden');
+        } else {
+          copyEl.classList.remove('visually-hidden');
+          copyEl.innerHTML = fmt(reviewScale) + ' resources · showing <b>' + (win.start + 1) + '–' + win.end + '</b> of ' + fmt(total) + ' · Sample data';
+        }
+      }
+      j3SyncFilterStatus(assetQuery.trim() ? rows.filter((r) => r.kind === 'resource' && r.asset.assetClass).length : j3GetEligibleAssets().length);   // the true count, collapsed branches included
+      j3RenderActiveFilters();
     } else {
       $('#asset-count-chip').textContent = fmt(reviewScale) + ' resources · ' + selCount + ' selected';
       const showStart = total ? win.start + 1 : 0;
@@ -7869,7 +8781,7 @@ const k1Focus = (() => {
       const copyEl = $('#asset-window-copy');
       if (copyEl) {
         copyEl.classList.remove('visually-hidden');
-        copyEl.innerHTML = fmt(reviewScale) + ' resources · showing <b>' + showStart + '–' + showEnd + '</b> of ' + fmt(total) + ' · Review fixture data';
+        copyEl.innerHTML = fmt(reviewScale) + ' resources · showing <b>' + showStart + '–' + showEnd + '</b> of ' + fmt(total) + ' · Sample data';
       }
     }
     renderSelectedStrip();
@@ -8025,7 +8937,7 @@ const k1Focus = (() => {
       const empty = document.createElement('div');
       empty.className = 'stack-empty';
       empty.textContent = '—';
-      empty.setAttribute('aria-label', 'No fixture slots');
+      empty.setAttribute('aria-label', 'No timeslots');
       col.appendChild(empty);
       return;
     }
@@ -8091,7 +9003,7 @@ const k1Focus = (() => {
 
       const line = item.source;
       const card = document.createElement('div');
-      const state = item.kind === 'created' ? 'Created · Confirmed' : (item.kind === 'staged' ? 'Staged selection' : 'In Cart');
+      const state = item.kind === 'created' ? 'Created · Confirmed' : (item.kind === 'staged' ? 'Staged selection' : keepContinueRoute() ? `In Cart · ${cartLineNumber(line)}` : 'In Cart');
       const title = item.kind === 'created' ? 'BK-LOCAL-001' : getItemRecord(line.item || 'community-hall').label;
       card.className = `stack-card stack-booking ${item.kind === 'created' ? 'created-event' : item.kind === 'staged' ? 'staged' : 'in-cart'}`;
       if (item.kind === 'created') card.id = createdBookingItems().length === 1 ? 'created-event' : `created-event-${line.bookingItemId}`;
@@ -8106,6 +9018,12 @@ const k1Focus = (() => {
   }
 
   function renderCalendar() {
+    renderCalendarGrid();
+    renderCartLineMarks();
+    if (j9PaintSeries) j9PaintSeries();
+  }
+
+  function renderCalendarGrid() {
     clearColumnCrosshair();
     if (document.body.dataset.journey === '2') { j2RenderCalendar(); return; }
     // One Calendar candidate: Journeys 4–6 draw their timeslots in the Journey 12 calendar (j4RenderCalendar card board retired).
@@ -8133,7 +9051,7 @@ const k1Focus = (() => {
       if (!offWeekBanner) {
         offWeekBanner = document.createElement('p');
         offWeekBanner.className = 'off-week-banner';
-        offWeekBanner.textContent = 'Checkpoint fixtures are in 24–30 Aug 2026. Today returns to that week.';
+        offWeekBanner.textContent = 'The sample bookings are in 24–30 Aug 2026. Today returns to that week.';
         // Batch B2 / L-56 (27 Oct 2026, candidate): the notice sits inside the calendar's own scroll box, above the grid, so it scrolls with the
         // calendar instead of taking its height. It used to sit in the calendar column, whose height is fixed: "Next week" squeezed the calendar
         // by 32–88 px — to 0 px on a portrait tablet's review view (Journeys 12, 14, 16). The same words; the toast on navigation is unchanged.
@@ -8238,6 +9156,7 @@ const k1Focus = (() => {
           let label = `${lane.name} ${dk} ${formatTime(h, m)}`;
           if (isFreeSlot(lane.id, dk, slot)) label += ' — Available';
           else if (isOccupiedEvent(ev)) label += ` — ${ev.status}`;
+          else if (keepContinueRoute() && cartLineAt(lane.id, dk, slot)) label += ` — In Cart, item ${cartLineNumber(cartLineAt(lane.id, dk, slot))}`;
           slotEl.setAttribute('aria-label', label);
 
           slotEl.addEventListener('mousedown', (e) => onSlotMouseDown(e, lane.id, dk, slot));
@@ -8295,8 +9214,8 @@ const k1Focus = (() => {
           const height = (timeToSlot(c.endH, c.endM || 0) - timeToSlot(c.startH, c.startM || 0)) * slotH;
           evEl.style.top = `${top}px`;
           evEl.style.height = `${height}px`;
-          evEl.innerHTML = '<strong>BK-LOCAL-001</strong> <span class="event-status">Created — local fixture · Confirmed ✓</span>';
-          evEl.setAttribute('aria-label', 'Created booking BK-LOCAL-001 — local fixture.');
+          evEl.innerHTML = '<strong>BK-LOCAL-001</strong> <span class="event-status">Created — sample · Confirmed ✓</span>';
+          evEl.setAttribute('aria-label', 'Created booking BK-LOCAL-001 — sample.');
           col.appendChild(evEl);
         });
 
@@ -8338,7 +9257,7 @@ const k1Focus = (() => {
         return;
       }
       if (isFreeSlot(assetId, dk, slot) && !oneCalendarSelectionBlocked()) {
-        createSelection(assetId, dk, slot, slot + 1);
+        if (!selectNewTime(assetId, dk, slot, slot + 1)) return;
         if (document.body.dataset.journey === '1') k1Focus.move($('.j1-selection-band.is-primary .j1-selection-handle.is-br'), e.target);
       }
       return;
@@ -8400,6 +9319,7 @@ const k1Focus = (() => {
     const startSlot = state.kind === 'resize' ? state.anchorSlot : Math.min(slot, state.anchorSlot);
     const endSlot = state.kind === 'resize' ? slot : Math.max(slot, state.anchorSlot);
     if (!j1RectangleIsFree(state.asset, startDate, endDate, startSlot, endSlot + 1)) return;
+    if (state.kind !== 'resize' && keepContinueRoute() && overlapsCurrentSelection(state.asset, startDate, startSlot, endSlot + 1, endDate)) return;
     if (state.startDate === startDate && state.endDate === endDate && state.startSlot === startSlot && state.endSlot === endSlot) return;
     Object.assign(state, { startDate, endDate, startSlot, endSlot });
     applyColumnCrosshair(state.asset, date, slot);
@@ -8416,6 +9336,7 @@ const k1Focus = (() => {
       if (isOccupiedEvent(occupied)) selectUnavailable(assetId, dk, occupied);
       return;
     }
+    if (!resize && !currentSelectionCanMove()) return;
     event.preventDefault();
     event.stopPropagation();
     const previous = resize ? stagedSelection : null;
@@ -8466,7 +9387,7 @@ const k1Focus = (() => {
         updateCartUI();
         renderCalendar();
       } else {
-        createSelection(assetId, final.startDate, final.startSlot, final.endSlot + 1, final.endDate);
+        selectNewTime(assetId, final.startDate, final.startSlot, final.endSlot + 1, final.endDate);
       }
     };
     const cancel = (e) => {
@@ -8494,7 +9415,7 @@ const k1Focus = (() => {
     const nextIndex = endIndex + (event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0);
     const nextSlot = range.endSlot - 1 + (event.key === 'ArrowDown' ? 1 : event.key === 'ArrowUp' ? -1 : 0);
     if (nextIndex < dates.indexOf(stagedSelection.date) || nextIndex >= dates.length || nextSlot < range.startSlot || !j1RectangleIsFree(stagedSelection.asset, stagedSelection.date, dates[nextIndex], range.startSlot, nextSlot + 1)) {
-      announceLive('That daily rectangle includes an unavailable review-fixture cell; selection unchanged.');
+      announceLive('That daily selection includes an unavailable cell; selection unchanged.');
       return;
     }
     const end = slotToTime(nextSlot + 1);
@@ -8513,6 +9434,7 @@ const k1Focus = (() => {
       return;
     }
     if (!isFreeSlot(assetId, dk, slot)) return;
+    if (!currentSelectionCanMove()) return;
     e.preventDefault();
     dragState = { asset: assetId, date: dk, startSlot: slot, endSlot: slot };
     applyColumnCrosshair(assetId, dk, slot);
@@ -8524,7 +9446,7 @@ const k1Focus = (() => {
       const maxS = Math.max(dragState.startSlot, dragState.endSlot);
       dragState = null;
       clearColumnCrosshair();
-      createSelection(assetId, dk, minS, maxS + 1);
+      selectNewTime(assetId, dk, minS, maxS + 1);
     };
     document.addEventListener('mouseup', onUp);
   }
@@ -8644,7 +9566,7 @@ const k1Focus = (() => {
   function applyStageTarget(target) {
     if (isJourney9Route()) { j9BlockReview('Journey 9 stage playback is unavailable; use the recurring review entry.'); return; }
     if (isJourney7Route()) {
-      j7BlockReview('Journey 7 stage controls are review-only and unavailable on this route.');
+      j7BlockReview('These controls are not available on this route.');
       return;
     }
     if (target === 'a') {
@@ -8704,7 +9626,7 @@ const k1Focus = (() => {
         setCommitted('package', 'private-day', { notify: true });
         break;
       case 'm':
-        selectUnavailable('hall1', '2026-08-27', EVENTS.find((e) => e.id === 'BK-10501'));
+        showUnavailable('hall1', '2026-08-27', EVENTS.find((e) => e.id === 'BK-10501'));
         break;
       case 'n':
         ensureCompatibleCartLine();
@@ -8877,11 +9799,23 @@ const k1Focus = (() => {
     if (s.act === 'slot') { activateGuidedCalendarSlot(el); return; }
     activateGuidedClickable(el);
   }
+  const J9_PLAY = [
+    { at: '#j9-open-review', say: 'Open Recurring for the selected time' },
+    { at: 'input[name="j9-pattern"][value="weekly"]', say: 'Choose a weekly repeat pattern' },
+    { at: 'input[name="j9-weekday"][value="6"]', act: 'check', say: 'Repeat on Saturdays' },
+    { at: '#j9-weekly-n', act: 'fill', value: '2', say: 'Repeat every second week' },
+    { at: 'input[name="j9-range"][value="by"]', say: 'Switch the end rule from occurrences to an end date' },
+    { at: '#j9-end-date', act: 'fill', value: '2026-10-31', say: 'Set the end date to 31 October 2026' },
+    { at: '#j9-apply', say: 'Apply: availability is checked for each date by itself', wait: 1200 },
+    { at: '#j9-series-title', say: 'One series card in the Cart: not booked, and no price in this review' },
+    { at: '[data-j9-act="clear"]', say: 'Remove series asks first' },
+    { at: '#remove-keep', say: 'Keep it: nothing changes' }
+  ];
   async function playUnifiedScript(key, mode) {
     const steps = (window.UNIFIED_SCRIPTS || {})[key]; if (!steps || playJourneyActive) return false;
     playJourneyActive = true; const playBtn = $('#btn-play-journey'), completeBtn = $('#btn-play-complete');
     if (playBtn) playBtn.disabled = true; if (completeBtn) completeBtn.disabled = true;
-    const list = steps.filter((s) => mode === 'complete' || !s.completeOnly); const total = list.length; let n = 0;
+    /* C3: availability appears by itself on J6; J9's own list follows its new flow */ const list = (String(key) === '9' ? J9_PLAY : steps).filter((s) => (mode === 'complete' || !s.completeOnly) && !(String(key) === '6' && /^Check availability/.test(s.say))); const total = list.length; let n = 0;
     beginGuidedReview(mode, total);
     try {
       for (const s of list) {
@@ -8949,7 +9883,7 @@ const k1Focus = (() => {
     }
     const back = document.activeElement, keep = d.querySelector('#unified-confirm-keep'), go = d.querySelector('#unified-confirm-go');
     const keptFrom = !cartLines.length && parked ? ` kept from Journey ${parked.home}` : '';   // slice 10: the Cart kept while in another workspace
-    d.querySelector('#unified-confirm-text').textContent = `Your Booking Cart${keptFrom} has ${n} ${n === 1 ? 'item' : 'items'} (local review data — nothing is saved). ${reason}, so this Cart will be cleared.`;
+    d.querySelector('#unified-confirm-text').textContent = `Your Booking Cart${keptFrom} has ${n} ${n === 1 ? 'item' : 'items'} (sample data — nothing is saved). ${reason}, so this Cart will be cleared.`;
     go.textContent = goLabel;
     const onKey = (e) => {
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(false); }
@@ -9010,10 +9944,10 @@ const k1Focus = (() => {
       + `<div class="unified-journey-menu" id="unified-journey-menu" hidden><nav aria-label="Journeys"><ol class="uj-list">${items}</ol></nav>`
       + '<div class="uj-actions" role="group" aria-label="Demonstration"><button type="button" class="uj-act" id="unified-play-this">▶ Play this journey</button>'
       + '<button type="button" class="uj-act is-primary" id="unified-play-all">▶▶ Play all 16 journeys</button></div>'
-      + '<p class="uj-note">Simulated review data — nothing is saved.</p></div>';
+      + '<p class="uj-note">Simulated data — nothing is saved.</p></div>';
     host.insertBefore(wrap, host.querySelector(j13 ? '.user' : '.user-identity'));
     const sim = document.createElement('span'); sim.className = 'unified-sim'; sim.id = 'unified-sim'; sim.textContent = 'Simulated data · no server';
-    sim.title = 'Simulated review data — no server request; nothing is saved'; wrap.after(sim);   // Gate A AT-SIM
+    sim.title = 'Simulated data — nothing is saved'; wrap.after(sim);   // Gate A AT-SIM
     const btn = wrap.querySelector('#unified-journey-btn'), menu = wrap.querySelector('#unified-journey-menu');
     btn.addEventListener('click', () => { if (menu.hidden) unifiedMenuOpen(); else unifiedMenuClose(true); });
     wrap.addEventListener('keydown', (e) => {
@@ -9031,8 +9965,8 @@ const k1Focus = (() => {
       if (unifiedAllRead()) unifiedAllWrite(null);   // the person takes over: Play all ends
       const parked = cartLines.length ? null : unifiedParkedCart();   // slice 10 (R1): a Booking Cart kept while in another workspace
       if (parked && k === parked.home) { e.preventDefault(); unifiedMenuClose(false); unifiedSwitchWorkspace('booking'); return; }   // carried back, as the Booking button does
-      if (parked && UNIFIED_BOOKING_JOURNEYS.includes(k)) { e.preventDefault(); unifiedMenuClose(false); unifiedGuardCart(`Opening Journey ${k} shows that journey's own review data`, `Open Journey ${k}`, () => location.assign(a.href), parked); return; }
-      if (cartLines.length) { e.preventDefault(); unifiedMenuClose(false); unifiedGuardCart(`Opening Journey ${k} shows that journey's own review data`, `Open Journey ${k}`, () => location.assign(a.href)); }
+      if (parked && UNIFIED_BOOKING_JOURNEYS.includes(k)) { e.preventDefault(); unifiedMenuClose(false); unifiedGuardCart(`Opening Journey ${k} shows that journey's own sample data`, `Open Journey ${k}`, () => location.assign(a.href), parked); return; }
+      if (cartLines.length) { e.preventDefault(); unifiedMenuClose(false); unifiedGuardCart(`Opening Journey ${k} shows that journey's own sample data`, `Open Journey ${k}`, () => location.assign(a.href)); }
     }));
     wrap.querySelector('#unified-play-this').addEventListener('click', () => { unifiedMenuClose(false); unifiedPlayThis(); });
     wrap.querySelector('#unified-play-all').addEventListener('click', () => {
@@ -9284,9 +10218,9 @@ const k1Focus = (() => {
   }
 
   function applyStressCount(count) {
-    if (isJourney9Route()) { j9BlockReview('Journey 9 stress fixtures are unavailable.'); return; }
+    if (isJourney9Route()) { j9BlockReview('Not available here.'); return; }
     if (isJourney7Route()) {
-      j7BlockReview('Journey 7 generated Cart stress fixtures are unavailable; only the accepted local graph is reviewable.');
+      j7BlockReview('Not available here.');
       return;
     }
     const prevPhase = draft.phase;
@@ -9348,7 +10282,7 @@ const k1Focus = (() => {
     return document.body.dataset.journey === '9';
   }
 
-  function j9BlockReview(message = 'Journey 9 is limited to the local recurring-availability review; this action is unavailable.') {
+  function j9BlockReview(message = 'This action is unavailable here.') {
     if (!isJourney9Route()) return;
     announceAlert(message);
     showToast(message);
@@ -9372,7 +10306,7 @@ const k1Focus = (() => {
     const concession = lineMode ? s.concession : getCommitted('concession');
     const configuration = lineMode ? s.configuration : $('#cfg-configuration')?.value;
     const attendees = lineMode ? Number(s.packageAttendees) : getStagedPackageState(false).attendees;
-    if (!isJourney7Route()) failures.push('Journey 7 route');
+    if (!isJourney7Route()) failures.push('this route');
     if (s.asset !== 'hall1') failures.push('asset Hall 1');
     if (s.date !== '2026-08-29') failures.push('date 2026-08-29');
     if (s.endDate && s.endDate !== s.date) failures.push('same-day interval');
@@ -9380,13 +10314,13 @@ const k1Focus = (() => {
     if (configuration !== 'theatre') failures.push('Theatre configuration');
     if (item !== 'community-hall') failures.push('Community Hall Hire Item');
     if (pkg !== 'private-day') failures.push('Private Day Hire package');
-    if (concession !== 'review-fixture') failures.push('Review fixture concession');
+    if (concession !== 'review-fixture') failures.push('Sample concession');
     if (attendees !== 25) failures.push('25 attendees');
     const packageValid = lineMode
       ? pkg === 'private-day' && Number.isFinite(attendees) && attendees >= 5 && attendees <= 500
       : getStagedPackageState(false).valid;
     if (!packageValid) failures.push('valid Package state');
-    if (J7_SALES_CHANNEL_CONTEXT !== 'accepted-local' || $('#j7-sales-channel')?.dataset.j7SalesChannel !== J7_SALES_CHANNEL_CONTEXT) failures.push('accepted local sales-channel context');
+    if (J7_SALES_CHANNEL_CONTEXT !== 'accepted-local' || $('#j7-sales-channel')?.dataset.j7SalesChannel !== J7_SALES_CHANNEL_CONTEXT) failures.push('sample sales channel');
     return { ok: failures.length === 0, failures, item, pkg, concession, configuration, attendees };
   }
 
@@ -9429,20 +10363,20 @@ const k1Focus = (() => {
     const amount = $('#amount-region');
     if (amount) amount.hidden = !staged.ok;
     const graphReady = staged.ok || (handoff && controlsReady);
-    const itemStatus = graphReady ? 'Complete · accepted Item graph' : `Blocked · ${staged.failures.find((x) => /Item|asset|date|interval|configuration/.test(x)) || 'accepted graph dependency'}`;
-    const packageStatus = graphReady ? 'Complete · accepted Package graph' : `Blocked · ${staged.failures.find((x) => /Package|attendees|concession/.test(x)) || 'accepted graph dependency'}`;
+    const itemStatus = graphReady ? 'Complete' : `Blocked · ${staged.failures.find((x) => /Item|asset|date|interval|configuration/.test(x)) || 'a required item'}`;
+    const packageStatus = graphReady ? 'Complete' : `Blocked · ${staged.failures.find((x) => /Package|attendees|concession/.test(x)) || 'a required item'}`;
     j7WriteStatus('#j7-item-status', itemStatus);
     j7WriteStatus('#j7-package-status', packageStatus);
     const note = handoff
-      ? 'Valid accepted graph is staged in the existing Booking Cart. Ready for Journey 1 Booking-creation handoff; Journey 7 does not create a Booking.'
+      ? 'The selection is in the Booking Cart. This screen does not create a Booking.'
       : staged.ok
-        ? 'Accepted graph is ready to stage through the existing Cart action. Journey 7 stops before Booking creation.'
-        : `Journey 7 blocked: ${staged.failures.join('; ')}. No Total, Cart staging or Booking handoff is actionable.`;
+        ? 'Ready to add to the Cart. This screen stops before the booking is created.'
+        : `Blocked: ${staged.failures.join('; ')}. Total and Cart are not available.`;
     j7WriteStatus('#j7-route-note', note);
     const book = $('#confirm-booking-btn');
     if (book) { book.hidden = true; book.disabled = true; book.inert = true; book.setAttribute('aria-hidden', 'true'); }
     const helper = $('#confirm-helper');
-    if (helper) { helper.hidden = false; helper.textContent = 'Journey 7 stops at the accepted Journey 1 Booking-creation handoff; no Booking is created here.'; }
+    if (helper) { helper.hidden = false; helper.textContent = 'This screen stops before the booking is created.'; }
     const primary = $('#cart-primary-action');
     if (primary && !staged.ok) primary.disabled = true;
   }
@@ -9486,177 +10420,251 @@ const k1Focus = (() => {
     j7RenderRouteStatus();
   }
 
+  // Step b12, C1 and C2 (3 Nov 2026): recurring, availability by itself on Apply, one series in the Cart; no Booking, no price.
+  // The rules follow the existing recurring dialog (recurring-booking-modal, recurring-menu, new-selection); the dates and the check are sample logic.
+  var j9SeriesLabel = '';
+  var j9PaintSeries = null;
   function initJ9() {
-    const dialog = $('#j9-dialog');
-    const form = $('#j9-form');
-    const openButton = $('#j9-open-review');
-    const closeButton = $('#j9-close');
-    const cancelButton = $('#j9-cancel');
-    const checkButton = $('#j9-check');
-    const errors = $('#j9-errors');
-    const dialogResult = $('#j9-dialog-result');
-    const panelTitle = $('#j9-panel-title');
-    const panelCopy = $('#j9-panel-copy');
-    const panelResult = $('#j9-result');
-    const statusPill = $('#j9-status-pill');
-    const state = { outcome: 'available', timer: null, hasResult: false, operation: 0 };
-    const patternInputs = Array.from(document.querySelectorAll('input[name="j9-pattern"]'));
-    const rangeInputs = Array.from(document.querySelectorAll('input[name="j9-range"]'));
-    const pattern = () => document.querySelector('input[name="j9-pattern"]:checked')?.value || 'daily';
-    const range = () => document.querySelector('input[name="j9-range"]:checked')?.value || 'after';
-    const readyText = 'Ready to check local availability.';
-    const changedText = 'Configuration changed — check local availability again.';
-    const setReadySurfaces = () => {
-      errors.textContent = '';
-      dialogResult.className = 'j9-dialog-result';
-      dialogResult.textContent = readyText;
-      panelTitle.textContent = readyText;
-      panelCopy.textContent = 'Configure the recurrence, then check the deterministic local availability fixture.';
-      panelResult.textContent = 'No availability result has been checked.';
-      statusPill.textContent = 'Ready to check';
+    const dialog = $('#j9-dialog'), form = $('#j9-form'), openButton = $('#j9-open-review'), closeButton = $('#j9-close'), cancelButton = $('#j9-cancel'), applyButton = $('#j9-apply');
+    const errors = $('#j9-errors'), summaryEl = $('#j9-summary'), seriesEl = $('#j9-series'), contextEl = $('#j9-dialog-description');
+    const MAX_DATES = 52;
+    const DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const ORD = { 1: 'First', 2: 'Second', 3: 'Third', 4: 'Fourth', 5: 'Last' };
+    // Sample bookings after 29 Aug, J9 only, so the check has something real to find.
+    EVENTS.push(
+      { id: 'BK-10513', asset: 'hall1', date: '2026-08-31', start: 9, end: 12, type: 'quotation', title: 'BK-10513', status: 'Quotation · Occupied' },
+      { id: 'BK-10512', asset: 'hall1', date: '2026-09-12', start: 9, end: 11, type: 'confirmed', title: 'BK-10512', status: 'Confirmed · Occupied' },
+      { id: 'BK-10514', asset: 'hall1', date: '2026-09-29', start: 9, end: 13, type: 'confirmed', title: 'BK-10514', status: 'Confirmed · Occupied' }
+    );
+    let series = null, timer = null;
+    const pad = (n) => String(n).padStart(2, '0');
+    const num = (sel) => Number($(sel).value);
+    const radio = (name) => document.querySelector(`input[name="${name}"]:checked`)?.value;
+    const parse = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d, 12); };
+    const shortDate = (k) => { const d = parse(k); return `${DOW[d.getDay()].slice(0, 3)} ${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear()}`; };
+    const noYear = (k) => { const d = parse(k); return `${d.getDate()} ${MON[d.getMonth()]}`; };
+    const lastDay = (y, m) => new Date(y, m + 1, 0).getDate();
+    const nthDow = (y, m, ord, dow) => {
+      if (ord === 5) { const last = lastDay(y, m), diff = (new Date(y, m, last, 12).getDay() - dow + 7) % 7; return new Date(y, m, last - diff, 12); }
+      const diff = (dow - new Date(y, m, 1, 12).getDay() + 7) % 7, day = 1 + diff + (ord - 1) * 7;
+      return day <= lastDay(y, m) ? new Date(y, m, day, 12) : null;
     };
-    const invalidateReview = () => {
-      if (state.timer) window.clearTimeout(state.timer);
-      state.timer = null;
-      state.hasResult = false;
-      checkButton.disabled = false;
-      errors.textContent = '';
-      dialogResult.className = 'j9-dialog-result';
-      dialogResult.textContent = changedText;
-      panelTitle.textContent = 'Configuration changed';
-      panelCopy.textContent = changedText;
-      panelResult.textContent = changedText;
-      statusPill.textContent = 'Needs recheck';
-    };
-    const syncConditionalFields = ({ invalidate = true } = {}) => {
-      const value = pattern();
-      $('#j9-weekly-fields').hidden = value !== 'weekly';
-      $('#j9-monthly-fields').hidden = value !== 'monthly';
-      $('#j9-yearly-fields').hidden = value !== 'yearly';
-      $('#j9-after-field').hidden = range() !== 'after';
-      $('#j9-by-field').hidden = range() !== 'by';
-      if (invalidate) invalidateReview();
-      else if (!state.hasResult) setReadySurfaces();
-    };
-    const validate = () => {
+    const assetInfo = () => ({ name: 'Hall 1', venue: 'Northside Leisure Centre' });
+    const timeText = () => { const s = stagedSelection; return `${pad(s.startH)}:${pad(s.startM)}–${pad(s.endH)}:${pad(s.endM)}`; };
+    const readConfig = () => ({
+      pattern: radio('j9-pattern'), daily: radio('j9-daily'), dailyN: num('#j9-daily-n'), weeklyN: num('#j9-weekly-n'),
+      days: Array.from(document.querySelectorAll('input[name="j9-weekday"]:checked')).map((x) => Number(x.value)),
+      monthly: radio('j9-monthly'), monthDay: num('#j9-month-day'), monthN1: num('#j9-month-n1'), monthOrd: num('#j9-month-ord'), monthDow: num('#j9-month-dow'), monthN2: num('#j9-month-n2'),
+      yearN: num('#j9-year-n'), yearly: radio('j9-yearly'), yearMonth: num('#j9-year-month'), yearDay: num('#j9-year-day'), yearOrd: num('#j9-year-ord'), yearDow: num('#j9-year-dow'), yearMonth2: num('#j9-year-month2'),
+      start: $('#j9-start-date').value, range: radio('j9-range'), count: num('#j9-occurrences'), end: $('#j9-end-date').value,
+    });
+    const whole = (v) => Number.isInteger(v) && v >= 1;
+    const validate = (c) => {
       const issues = [];
-      const interval = Number($('#j9-interval').value);
-      const start = $('#j9-start-date').value;
-      if (!Number.isInteger(interval) || interval < 1) issues.push('Interval must be a positive whole number.');
-      if (!start) issues.push('Start date is required.');
-      if (pattern() === 'weekly' && !document.querySelector('input[name="j9-weekday"]:checked')) issues.push('Choose at least one weekday for a weekly pattern.');
-      if (pattern() === 'monthly') {
-        const day = Number($('#j9-month-day').value);
-        if (!Number.isInteger(day) || day < 1 || day > 31) issues.push('Monthly day must be between 1 and 31.');
-      }
-      if (pattern() === 'yearly') {
-        const month = Number($('#j9-year-month').value);
-        const day = Number($('#j9-year-day').value);
-        if (!Number.isInteger(day) || day < 1 || day > 31) issues.push('Yearly day must be between 1 and 31.');
-        else if (Number.isInteger(month) && day > new Date(2000, month, 0).getDate()) issues.push('Yearly day is not valid for the selected month.');
-      }
-      if (range() === 'after') {
-        const occurrences = Number($('#j9-occurrences').value);
-        if (!Number.isInteger(occurrences) || occurrences < 1) issues.push('End-after occurrences must be a positive whole number.');
-      } else if (!$('#j9-end-date').value || ($('#j9-start-date').value && $('#j9-end-date').value < $('#j9-start-date').value)) {
-        issues.push('End-by date must be on or after the start date.');
-      }
+      if (!c.start) issues.push('Choose a start date.');
+      if (c.pattern === 'daily' && c.daily === 'every' && !whole(c.dailyN)) issues.push('Enter a whole number of days.');
+      if (c.pattern === 'weekly') { if (!whole(c.weeklyN)) issues.push('Enter a whole number of weeks.'); if (!c.days.length) issues.push('Choose at least one day.'); }
+      if (c.pattern === 'monthly' && c.monthly === 'day') { if (!whole(c.monthDay) || c.monthDay > 31) issues.push('Day must be between 1 and 31.'); if (!whole(c.monthN1)) issues.push('Enter a whole number of months.'); }
+      if (c.pattern === 'monthly' && c.monthly === 'ordinal' && !whole(c.monthN2)) issues.push('Enter a whole number of months.');
+      if (c.pattern === 'yearly') { if (!whole(c.yearN)) issues.push('Enter a whole number of years.'); if (c.yearly === 'date' && (!whole(c.yearDay) || c.yearDay > lastDay(2000, c.yearMonth))) issues.push('That day is not in the chosen month.'); }
+      if (c.range === 'after' && (!whole(c.count) || c.count > MAX_DATES)) issues.push(`End after must be between 1 and ${MAX_DATES} occurrences in this sample.`);
+      if (c.range === 'by' && (!c.end || (c.start && c.end < c.start))) issues.push('End by must be on or after the start date.');
       return issues;
     };
-    const setOutcome = (outcome) => {
-      state.outcome = outcome;
-      invalidateReview();
-      document.querySelectorAll('[data-j9-outcome]').forEach((button) => {
-        const active = button.dataset.j9Outcome === outcome;
-        button.classList.toggle('is-active', active);
-        button.setAttribute('aria-pressed', String(active));
+    const generate = (c) => {
+      const out = [], start = parse(c.start);
+      const push = (d) => { if (!d) return true; const k = dateKey(d); if (k < c.start) return true; if (c.range === 'by' && k > c.end) return false; out.push(k); return out.length < (c.range === 'after' ? c.count : MAX_DATES); };
+      const y0 = start.getFullYear(), m0 = start.getMonth();
+      for (let i = 0, guard = 0; guard < 2000; guard++, i++) {
+        if (c.pattern === 'daily' && c.daily === 'every') { if (!push(addDays(start, i * c.dailyN))) break; }
+        else if (c.pattern === 'daily') { const d = addDays(start, i); if (d.getDay() % 6 !== 0 && !push(d)) break; }
+        else if (c.pattern === 'weekly') {
+          const monday = addDays(start, -((start.getDay() + 6) % 7)); let go = true;
+          for (const dow of c.days.slice().sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7))) { if (!push(addDays(monday, i * c.weeklyN * 7 + ((dow + 6) % 7)))) { go = false; break; } }
+          if (!go) break;
+        } else if (c.pattern === 'monthly' && c.monthly === 'day') { const m = m0 + i * c.monthN1, y = y0 + Math.floor(m / 12), mm = ((m % 12) + 12) % 12; if (!push(new Date(y, mm, Math.min(c.monthDay, lastDay(y, mm)), 12))) break; }
+        else if (c.pattern === 'monthly') { const m = m0 + i * c.monthN2, y = y0 + Math.floor(m / 12), mm = ((m % 12) + 12) % 12; if (!push(nthDow(y, mm, c.monthOrd, c.monthDow))) break; }
+        else if (c.yearly === 'date') { const y = y0 + i * c.yearN; if (!push(new Date(y, c.yearMonth, Math.min(c.yearDay, lastDay(y, c.yearMonth)), 12))) break; }
+        else { const y = y0 + i * c.yearN; if (!push(nthDow(y, c.yearMonth2, c.yearOrd, c.yearDow))) break; }
+      }
+      return out;
+    };
+    const describe = (c, dates) => {
+      const plural = (n, word) => (n === 1 ? `Every ${word}` : `Every ${n} ${word}s`);
+      let rule = '';
+      if (c.pattern === 'daily') rule = c.daily === 'weekday' ? 'Every weekday' : plural(c.dailyN, 'day');
+      if (c.pattern === 'weekly') rule = `${plural(c.weeklyN, 'week')} on ${c.days.slice().sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map((d) => DOW[d].slice(0, 3)).join(', ')}`;
+      if (c.pattern === 'monthly') rule = c.monthly === 'day' ? `Day ${c.monthDay} of ${c.monthN1 === 1 ? 'every month' : `every ${c.monthN1} months`}` : `The ${ORD[c.monthOrd]} ${DOW[c.monthDow]} of ${c.monthN2 === 1 ? 'every month' : `every ${c.monthN2} months`}`;
+      if (c.pattern === 'yearly') rule = `${c.yearN === 1 ? 'Every year' : `Every ${c.yearN} years`} on ${c.yearly === 'date' ? `${c.yearDay} ${MONTHS[c.yearMonth]}` : `the ${ORD[c.yearOrd]} ${DOW[c.yearDow]} of ${MONTHS[c.yearMonth2]}`}`;
+      if (!dates.length) return `${rule}. No dates match.`;
+      const first = dates[0], last = dates[dates.length - 1];
+      return `${rule}, ${dates.length === 1 ? 'once' : `${dates.length} times`}, ${noYear(first)} to ${noYear(last)} ${last.slice(0, 4)}`;
+    };
+    const checkDate = (k) => {
+      const s = stagedSelection, a = s.startH * 60 + s.startM, b = s.endH * 60 + s.endM;
+      const hit = EVENTS.find((ev) => ev.asset === s.asset && ev.date === k && (ev.allDay || (a < ev.end * 60 && b > ev.start * 60)));
+      if (!hit) return { date: k, status: 'available', text: 'Available' };
+      const word = String(hit.status).split(' · ')[0];
+      return hit.type === 'quotation' ? { date: k, status: 'provisional', text: `Provisional conflict: ${hit.title} ${word}` } : { date: k, status: 'conflict', text: `Conflict: ${hit.title} ${word}` };
+    };
+    const sync = () => {
+      const p = radio('j9-pattern');
+      ['daily', 'weekly', 'monthly', 'yearly'].forEach((x) => { $(`#j9-rule-${x}`).hidden = p !== x; });
+      const range = radio('j9-range');
+      $('#j9-occurrences').disabled = range !== 'after'; $('#j9-end-date').disabled = range !== 'by';
+      errors.textContent = '';
+      const c = readConfig(), issues = validate(c);
+      if (issues.length) { summaryEl.textContent = issues[0]; summaryEl.classList.add('is-invalid'); return; }
+      summaryEl.classList.remove('is-invalid');
+      const dates = generate(c);
+      if (range === 'after' && dates.length) $('#j9-end-date').value = dates[dates.length - 1];   // End after and End by stay in step, as in the existing dialog
+      if (range === 'by') $('#j9-occurrences').value = dates.length || '';
+      summaryEl.textContent = describe(c, dates);
+    };
+    const cancelPending = () => { if (timer) window.clearTimeout(timer); timer = null; applyButton.disabled = false; applyButton.textContent = 'Apply'; };
+    const close = () => { cancelPending(); if (dialog.open) dialog.close('cancel'); };
+    const presetFromSelection = () => {
+      const s = stagedSelection, d = parse(s.date), dow = d.getDay(), week = Math.min(Math.ceil(d.getDate() / 7), 5);
+      $('#j9-start-date').value = s.date;
+      document.querySelectorAll('input[name="j9-weekday"]').forEach((x) => { x.checked = Number(x.value) === dow; });
+      $('#j9-month-day').value = d.getDate(); $('#j9-month-ord').value = String(week); $('#j9-month-dow').value = String(dow);
+      $('#j9-year-month').value = String(d.getMonth()); $('#j9-year-day').value = d.getDate(); $('#j9-year-ord').value = String(week); $('#j9-year-dow').value = String(dow); $('#j9-year-month2').value = String(d.getMonth());
+      contextEl.textContent = `${assetInfo().name} · ${shortDate(s.date)} · ${timeText()}`;
+    };
+    const open = (trigger) => {
+      lastDialogTrigger = trigger || openButton;
+      if (!series) presetFromSelection();
+      sync(); cancelPending();
+      if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', '');
+      window.setTimeout(() => (document.querySelector('input[name="j9-pattern"]:checked') || form).focus(), 0);
+    };
+    const ICON = {
+      sync: '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12 4V1L8 5l4 4V6a6 6 0 0 1 6 6 6 6 0 0 1-.7 2.8l1.5 1.5A8 8 0 0 0 20 12a8 8 0 0 0-8-8zm0 14a6 6 0 0 1-6-6c0-1 .2-2 .7-2.8L5.2 7.7A8 8 0 0 0 4 12a8 8 0 0 0 8 8v3l4-4-4-4v3z"/></svg>',
+      eye: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 5C7 5 2.7 8.1 1 12c1.7 3.9 6 7 11 7s9.3-3.1 11-7c-1.7-3.9-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>',
+      remove: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm5 13.6L15.6 17 12 13.4 8.4 17 7 15.6 10.6 12 7 8.4 8.4 7 12 10.6 15.6 7 17 8.4 13.4 12 17 15.6z"/></svg>',
+      trash: '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>',
+    };
+    const STATUS_MARK = { available: '✓', provisional: '!', conflict: '✕' };
+    const conflictsOf = () => series.rows.filter((r) => r.status !== 'available');
+    const renderSeries = () => {
+      const cartCount = $('#cart-count');
+      openButton.hidden = !!series;
+      $('#staged-summary').hidden = !!series;   // the series card carries the same facts; one place only
+      if (!series) { seriesEl.hidden = true; seriesEl.innerHTML = ''; j9SeriesLabel = ''; if (cartCount) cartCount.textContent = '1 staged selection'; if (j9PaintSeries) j9PaintSeries(); return; }
+      const total = series.rows.length, conflicts = conflictsOf(), shown = series.onlyConflicts && conflicts.length ? conflicts : series.rows;
+      j9SeriesLabel = `1 series · ${total} date${total === 1 ? '' : 's'}`;
+      if (cartCount) cartCount.textContent = j9SeriesLabel;
+      const info = assetInfo();
+      seriesEl.hidden = false;
+      seriesEl.innerHTML = `<div class="j9-series-card">
+        <div class="j9-series-title" id="j9-series-title" tabindex="-1"><strong>${info.name}</strong><span>${timeText()}</span></div>
+        <div class="j9-series-venue">${info.venue}</div>
+        <p class="j9-series-rule">${describe(series.config, series.rows.map((r) => r.date))}</p>
+        <div class="j9-series-badges">
+          <button type="button" class="j9-count" data-j9-act="toggle" aria-expanded="${series.open}" aria-controls="j9-occ">${ICON.sync}<span>${total} occurrence${total === 1 ? '' : 's'}</span></button>
+          ${conflicts.length ? `<span class="j9-conflict-chip">${conflicts.length} conflict${conflicts.length === 1 ? '' : 's'}</span>` : '<span class="j9-clear-chip">All available</span>'}
+        </div>
+        <div id="j9-occ" class="j9-occ"${series.open ? '' : ' hidden'}>
+          <div class="j9-occ-tools">
+            ${conflicts.length ? `<label class="j9-only"><input type="checkbox" id="j9-only-conflicts"${series.onlyConflicts ? ' checked' : ''}> Show conflicts only</label>` : ''}
+            <span class="j9-occ-count" role="status">${series.onlyConflicts && conflicts.length ? `Showing ${conflicts.length} out of ${total} occurrences` : `Showing all ${total} occurrences`}</span>
+          </div>
+          <ol class="j9-occ-list">${shown.map((r) => `<li class="is-${r.status}"><span class="j9-occ-main"><span class="j9-occ-date">${series.rows.indexOf(r) + 1}. ${shortDate(r.date)}</span><span class="j9-occ-status"><span class="j9-mark" aria-hidden="true">${STATUS_MARK[r.status]}</span>${r.text}</span></span><span class="j9-occ-actions"><button type="button" class="j9-icon" data-j9-act="show" data-date="${r.date}" title="Show in Diary" aria-label="Show ${shortDate(r.date)} in Diary">${ICON.eye}</button><button type="button" class="j9-icon j9-icon-remove" data-j9-act="remove" data-date="${r.date}" title="Remove this date" aria-label="Remove ${shortDate(r.date)}">${ICON.remove}</button></span></li>`).join('')}</ol>
+          <button type="button" class="j9-delete-conflicts" data-j9-act="delete"${conflicts.length ? '' : ' disabled'}>${ICON.trash}<span>Delete All Conflicting Dates (${conflicts.length})</span></button>
+        </div>
+        <div class="j9-series-foot"><button type="button" class="j9-link" data-j9-act="change">Change recurrence</button><button type="button" class="j9-link" data-j9-act="clear">Remove series</button></div>
+        <p class="j9-note">In the Cart as one series. Not booked, and no price in this sample. Simulated data.</p>
+      </div>`;
+      if (j9PaintSeries) j9PaintSeries();
+    };
+    j9PaintSeries = () => {
+      document.querySelectorAll('.j9-occ-event').forEach((n) => n.remove());
+      if (!series || !stagedSelection) return;
+      const s = stagedSelection, total = series.rows.length;
+      series.rows.forEach((r, i) => {
+        if (r.date === s.date) return;
+        const col = document.querySelector(`.cal-day-col[data-asset="${s.asset}"][data-date="${r.date}"]`); if (!col) return;
+        const slotH = parseFloat(getComputedStyle(col).getPropertyValue('--slot-h') || '10');
+        const a = timeToSlot(s.startH, s.startM), b = timeToSlot(s.endH, s.endM);
+        const el = document.createElement('div');
+        el.className = `cal-event j9-occ-event is-${r.status}`; el.style.top = `${a * slotH}px`; el.style.height = `${(b - a) * slotH}px`;
+        el.setAttribute('role', 'img'); el.setAttribute('aria-label', `Recurring selection ${i + 1} of ${total}, ${timeText()}, ${r.text}`);
+        el.innerHTML = `<strong>${timeText()}</strong><span>Recurring ${i + 1} of ${total}</span>`;
+        col.appendChild(el);
       });
     };
-    const cancelPending = () => {
-      state.operation += 1;
-      if (state.timer) window.clearTimeout(state.timer);
-      state.timer = null;
-      checkButton.disabled = false;
+    const showInDiary = (k) => {
+      const d = parse(k);
+      weekStart = addDays(d, -((d.getDay() + 6) % 7));
+      setStage('b'); renderCalendar();
+      const flash = document.querySelector(`.cal-day-col[data-asset="${stagedSelection.asset}"][data-date="${k}"]`);
+      if (flash) { flash.classList.add('j9-day-flash'); flash.scrollIntoView({ block: 'nearest' }); window.setTimeout(() => flash.classList.remove('j9-day-flash'), 1600); }
+      announceLive(`Showing ${shortDate(k)} in the Diary.`);
     };
-    const close = () => {
-      cancelPending();
-      if (dialog.open) dialog.close('cancel');
-    };
-    const resetDialogForOpen = () => {
-      cancelPending();
-      errors.textContent = '';
-      dialogResult.className = 'j9-dialog-result';
-      dialogResult.textContent = readyText;
-    };
-    const open = () => {
-      lastDialogTrigger = openButton;
-      syncConditionalFields({ invalidate: false });
-      resetDialogForOpen();
-      if (typeof dialog.showModal === 'function') dialog.showModal();
-      else dialog.setAttribute('open', '');
-      window.setTimeout(() => $('#j9-interval').focus(), 0);
-    };
-    patternInputs.forEach((input) => input.addEventListener('change', syncConditionalFields));
-    rangeInputs.forEach((input) => input.addEventListener('change', syncConditionalFields));
-    form.addEventListener('input', invalidateReview);
-    form.addEventListener('change', (event) => {
-      if (event.target.matches('input, select')) invalidateReview();
+    if (!seriesEl) return;   /* the D0 customer page keeps a frozen copy of the HTML, without the series card */
+    seriesEl.addEventListener('change', (event) => {
+      if (event.target.id === 'j9-only-conflicts') { series.onlyConflicts = event.target.checked; renderSeries(); $('#j9-only-conflicts')?.focus(); }
     });
-    document.querySelectorAll('[data-j9-outcome]').forEach((button) => button.addEventListener('click', () => setOutcome(button.dataset.j9Outcome)));
-    openButton.addEventListener('click', open);
+    const askRemoval = (trigger, title, desc, word, run) => { $('#remove-title').textContent = title; $('#remove-desc').textContent = desc; $('#remove-confirm').textContent = word; j9PendingRemoval = run; lastDialogTrigger = trigger; $('#remove-dialog').showModal(); $('#remove-keep').focus(); };   // asks first, as the existing Cart does
+    seriesEl.addEventListener('click', (event) => {
+      const b = event.target.closest('[data-j9-act]'); if (!b || !series) return;
+      const act = b.dataset.j9Act, k = b.dataset.date;
+      if (act === 'toggle') { series.open = !series.open; renderSeries(); $('[data-j9-act="toggle"]')?.focus(); return; }
+      if (act === 'show') { showInDiary(k); return; }
+      if (act === 'change') { open(b); return; }
+      if (act === 'clear') { const m = series.rows.length; askRemoval(b, 'Remove this series?', `${m === 1 ? 'The date leaves' : `All ${m} dates leave`} the Cart. It does not delete a saved booking.`, 'Remove', () => { series = null; renderSeries(); openButton.focus(); announceLive('Recurring series removed from the Cart.'); }); return; }
+      if (act === 'remove') { askRemoval(b, 'Remove this date?', `${shortDate(k)} leaves the series. It does not delete a saved booking.`, 'Remove', () => {
+        const index = series.rows.findIndex((r) => r.date === k);
+        series.rows.splice(index, 1);
+        if (!series.rows.length) { series = null; renderSeries(); openButton.focus(); announceLive('Last date removed. The series has left the Cart.'); return; }
+        if (!conflictsOf().length) series.onlyConflicts = false;
+        renderSeries();
+        const left = $$('[data-j9-act="remove"]'); (left[index] || left[left.length - 1] || $('#j9-series-title')).focus();
+        announceLive(`${shortDate(k)} removed. ${series.rows.length} dates left.`); });
+        return;
+      }
+      if (act === 'delete') { const m = conflictsOf().length; askRemoval(b, 'Delete all conflicting dates?', `${m} conflicting date${m === 1 ? ' leaves' : 's leave'} the series. It does not delete a saved booking.`, 'Delete', () => {
+        const n = conflictsOf().length;
+        series.rows = series.rows.filter((r) => r.status === 'available'); series.onlyConflicts = false;
+        if (!series.rows.length) { series = null; renderSeries(); openButton.focus(); announceLive('All dates had conflicts. The series has left the Cart.'); return; }
+        renderSeries(); $('#j9-series-title').focus();
+        announceLive(`${n} conflicting date${n === 1 ? '' : 's'} removed. ${series.rows.length} dates left.`); });
+      }
+    });
+    form.addEventListener('input', sync);
+    form.addEventListener('change', sync);
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const c = readConfig(), issues = validate(c);
+      if (issues.length) { errors.textContent = issues.join(' '); return; }
+      const dates = generate(c);
+      if (!dates.length) { errors.textContent = 'No dates match this pattern before the end date.'; return; }
+      errors.textContent = '';
+      if (document.activeElement === applyButton || document.activeElement === document.body) { summaryEl.setAttribute('tabindex', '-1'); summaryEl.focus({ preventScroll: true }); }   // A11Y-INH-01: Apply is disabled during the check; focus stays in the window
+      applyButton.disabled = true; applyButton.textContent = 'Checking availability…';
+      announceLive('Checking availability for each date.');
+      timer = window.setTimeout(() => {
+        timer = null; applyButton.disabled = false; applyButton.textContent = 'Apply';
+        series = { config: c, rows: dates.map(checkDate), onlyConflicts: false, open: true };
+        renderSeries();
+        lastDialogTrigger = $('#j9-series-title');
+        dialog.close('apply');
+        const n = conflictsOf().length;
+        announceLive(`${dates.length} dates added to the Cart as one series. ${n ? `${n} with a conflict.` : 'All available.'}`);
+      }, 450);
+    });
+    openButton.addEventListener('click', () => open(openButton));
     closeButton.addEventListener('click', close);
     cancelButton.addEventListener('click', close);
     dialog.addEventListener('cancel', (event) => { event.preventDefault(); close(); });
     dialog.addEventListener('close', () => { cancelPending(); restoreFocus(); });
-    checkButton.addEventListener('click', () => {
-      const issues = validate();
-      if (issues.length) {
-        errors.textContent = issues.join(' ');
-        dialogResult.className = 'j9-dialog-result is-error';
-        dialogResult.textContent = 'Local review blocked until the configuration is valid.';
-        return;
-      }
-      errors.textContent = '';
-      checkButton.disabled = true;
-      state.hasResult = false;
-      const operation = ++state.operation;
-      dialogResult.className = 'j9-dialog-result';
-      dialogResult.textContent = 'Checking local availability…';
-      if (document.body.dataset.journey === '9' && !k1Focus.move(dialogResult, '#j9-check') && (document.activeElement === checkButton || document.activeElement === document.body)) {
-        // A11Y-INH-01 mouse path (17 Oct 2026): the button is disabled during the check, so focus would fall to the page body. Keep it in the window,
-        // on the result, as the keyboard path does; focus moved by script after a pointer click shows no focus ring.
-        if (!dialogResult.hasAttribute('tabindex')) dialogResult.setAttribute('tabindex', '-1');
-        dialogResult.focus({ preventScroll: true });
-      }
-      state.timer = window.setTimeout(() => {
-        if (operation !== state.operation || !dialog.open) {
-          if (operation === state.operation) {
-            state.timer = null;
-            checkButton.disabled = false;
-          }
-          return;
-        }
-        checkButton.disabled = false;
-        const messages = {
-          available: ['Available in local review fixture.', 'Available · local review fixture', 'The configured recurrence has a deterministic available fixture. No series was created.'],
-          conflict: ['Conflict / unavailable in local review fixture.', 'Conflict · local review fixture', 'The configured recurrence meets validation but overlaps the deterministic unavailable fixture.'],
-          error: ['Local review error fixture.', 'Error · local review fixture', 'The deterministic error fixture represents an unavailable review response; no request was sent.']
-        };
-        const [dialogText, statusText, panelText] = messages[state.outcome];
-        state.hasResult = true;
-        dialogResult.className = `j9-dialog-result ${state.outcome === 'available' ? 'is-available' : state.outcome === 'conflict' ? 'is-conflict' : 'is-error'}`;
-        dialogResult.textContent = dialogText;
-        panelTitle.textContent = statusText;
-        statusPill.textContent = statusText;
-        panelResult.textContent = panelText;
-        panelCopy.textContent = 'Configuration remains staged locally. Close or cancel returns here without loss.';
-        if (operation === state.operation) state.timer = null;
-      }, 450);
-    });
     createSelection('hall1', '2026-08-29', 2, 4);
-    setReadySurfaces();
+    presetFromSelection();
     $('#j9-review-launch').hidden = false;
-    window.__j9Review = Object.freeze({ validate, getOutcome: () => state.outcome, reset: () => window.location.reload(), cancelDuringLoading: () => { close(); return !checkButton.disabled; } });
+    renderSeries();
+    window.__j9Review = Object.freeze({ generate, readConfig, getRows: () => (series ? series.rows.slice() : []) });
   }
 
   function init() {
@@ -9704,7 +10712,7 @@ const k1Focus = (() => {
       else weekStart = addDays(weekStart, -7);
       setStage('b');
       renderCalendar();
-      if (!isCheckpointWeek()) showToast('Checkpoint fixtures are in 24–30 Aug 2026. Today returns to that week.');
+      if (!isCheckpointWeek()) showToast('The sample bookings are in 24–30 Aug 2026. Today returns to that week.');
     });
 
     $('#date-next').addEventListener('click', () => {
@@ -9714,7 +10722,7 @@ const k1Focus = (() => {
       else weekStart = addDays(weekStart, 7);
       setStage('b');
       renderCalendar();
-      if (!isCheckpointWeek()) showToast('Checkpoint fixtures are in 24–30 Aug 2026. Today returns to that week.');
+      if (!isCheckpointWeek()) showToast('The sample bookings are in 24–30 Aug 2026. Today returns to that week.');
     });
 
     $('#date-today').addEventListener('click', () => {
@@ -9754,7 +10762,7 @@ const k1Focus = (() => {
       setStage('b');
       renderCalendar();
       restoreFocus();
-      if (!isCheckpointWeek()) showToast('Checkpoint fixtures are in 24–30 Aug 2026. Today returns to that week.');
+      if (!isCheckpointWeek()) showToast('The sample bookings are in 24–30 Aug 2026. Today returns to that week.');
     });
 
     $$('.slot-layout-btn[data-slot-layout]').forEach((button) => {
@@ -9810,7 +10818,7 @@ const k1Focus = (() => {
     $('#cfg-concession').addEventListener('change', renderCurrentSelectionSummary);
 
     $('#current-selection-details-toggle').addEventListener('click', (event) => {
-      if (isJourney9Route()) { event.preventDefault(); event.stopImmediatePropagation(); j9BlockReview('Journey 9 item editing is unavailable; use the recurring review entry.'); return; }
+      if (isJourney9Route()) { event.preventDefault(); event.stopImmediatePropagation(); j9BlockReview('Item editing is unavailable; use Recurring.'); return; }
       if (stagedSelection && !editingLineId && !currentSelectionDetailsExpanded) {
         openStagedSelectionEditor(event.currentTarget);
         return;
@@ -9906,6 +10914,7 @@ const k1Focus = (() => {
       restoreFocus();
     });
 
+    $('#remove-dialog').addEventListener('close', () => { j9PendingRemoval = null; });
     $('#remove-keep').addEventListener('click', () => { $('#remove-dialog').close(); restoreFocus(); });
     $('#remove-confirm').addEventListener('click', confirmRemove);
 
@@ -10047,6 +11056,11 @@ const k1Focus = (() => {
       if (document.body.dataset.journey === '3') {
         if (j3IsExplorerOpen()) j3CloseExplorer();
         else j3OpenExplorer($('#surface-toggle'));
+        return;
+      }
+      if (exIsJ10()) {
+        if (exJ10IsOpen()) exJ10Close();
+        else exJ10Open($('#surface-toggle'));
         return;
       }
       const cur = document.body.dataset.surface;
@@ -10365,17 +11379,17 @@ const k1Focus = (() => {
 
   /* ===== Journey 8 isolated UJ-09 existing item/package/pricing change ===== */
 
-  const J8_BOUNDARY = 'PARTIAL · REVIEW FIXTURE · NO SERVER REQUEST';
-  const J8_TOTAL_UNAVAILABLE = 'Proposed total unavailable — calculation unverified for the change flow; formula open.';
+  const J8_BOUNDARY = 'Sample data · nothing is saved';
+  const J8_TOTAL_UNAVAILABLE = 'Proposed total unavailable — not confirmed for this change.';
   const J8_BLOCKED_COPY = 'BLOCKED/DEFECT-AFFECTED — Booking preview returned HTTP 400; no Booking PATCH follows. No successful Booking update is claimed or simulated.';
   const J8_ITEMS = [
     { id: 'current-item', label: 'Studio 2 private allocation', current: true },
-    { id: 'alternate-item', label: 'Studio lighting review fixture', current: false }
+    { id: 'alternate-item', label: 'Studio lighting', current: false }
   ];
   const J8_PACKAGES = [
-    { id: 'current-package', label: 'Private day package · current fixture', current: true },
-    { id: 'alternate-package', label: 'Private evening package · local fixture', current: false },
-    { id: 'upsell-package', label: 'Private package add-on · local fixture', current: false }
+    { id: 'current-package', label: 'Private day package', current: true },
+    { id: 'alternate-package', label: 'Private evening package', current: false },
+    { id: 'upsell-package', label: 'Private package add-on', current: false }
   ];
   let j8State = 'hub';
   let j8Operation = null;
@@ -10470,20 +11484,20 @@ const k1Focus = (() => {
     $('#j5-action-hub').hidden = false;
     $('#j5-action-hub').inert = false;
     $('#j5-action-hub').removeAttribute('aria-hidden');
-    $('#j4-details-kicker').textContent = 'Existing Booking · review-only entry';
+    $('#j4-details-kicker').textContent = 'Existing booking';
     $('#j4-details-title').textContent = j8Subject.reference;
     $('#j4-details-close').setAttribute('aria-label', 'Close booking details');
     j8HideHubDismissControls(false);   // OC-3: × and "Close review" are shown
     details.setAttribute('aria-describedby', 'j5-details-intro j5-review-boundary');
     $('#j4-details-back').textContent = 'Close';   // OC-3-E: the second close button reads "Close" (was "Close review")
-    $('#j5-total').textContent = 'Amount not asserted · change-flow calculation unverified';
+    $('#j5-total').textContent = 'Amount not confirmed for this change';
     const totalLabel = $('#j5-total')?.parentElement?.querySelector('dt');
-    if (totalLabel) totalLabel.textContent = 'Pricing evidence';
-    $('#j5-state-message').textContent = `${J8_BOUNDARY} · UJ-09 existing item/package/pricing change.`;
+    if (totalLabel) totalLabel.textContent = 'Pricing';
+    $('#j5-state-message').textContent = `${J8_BOUNDARY} · existing item, package or pricing change.`;
     $('#j5-state-message').className = 'j5-state-message is-partial';
-    $('#j5-review-boundary').innerHTML = '<strong>Review-only entry</strong> — Product navigation into this existing Booking is not runtime-proven. Local fixture only; no server request; reload resets the review.<br><span class="j8-scope-exclusions"><strong>OUT OF SCOPE:</strong> reallocation/change-assets · recurrence/occurrences · strict/lenient concession outcome · public packages/price bands.</span>';
+    $('#j5-review-boundary').innerHTML = '<strong>Sample entry</strong> — nothing is saved; reload restores the sample.<br><span class="j8-scope-exclusions"><strong>Not included here:</strong> reallocation/change-assets · recurrence/occurrences · strict/lenient concession outcome · public packages/price bands.</span>';
     $('#j5-actions-title').textContent = 'Existing Booking changes';
-    $('#j5-actions-title').nextElementSibling.textContent = 'Review the bounded local change surfaces; no Booking mutation is available.';
+    $('#j5-actions-title').nextElementSibling.textContent = 'Review the changes; nothing is saved.';
     const grid = $('.j5-action-grid');
     if (grid) {
       grid.innerHTML = [
@@ -10492,7 +11506,7 @@ const k1Focus = (() => {
         '<button type="button" class="j5-action" data-j8-action="pricing">Change pricing</button>'
       ].join('');
     }
-    $('#j5-action-announcement').textContent = 'No Journey 8 change has been requested.';
+    $('#j5-action-announcement').textContent = 'No change has been requested.';
     $('#j5-workflow-announcement').textContent = '';
     $('#ldp-live').textContent = '';
     if (!details.open) details.showModal();
@@ -10538,7 +11552,7 @@ const k1Focus = (() => {
     j8Render();
     dialog.showModal();
     window.setTimeout(() => dialog.querySelector('[data-j8-autofocus], input, select, button:not(.dialog-close)')?.focus(), 0);
-    j8Announce(`Journey 8 ${j8State.replaceAll('_', ' ')} opened.`);
+    j8Announce(`${j8State[0].toUpperCase()}${j8State.slice(1).replaceAll('_', ' ')} opened.`);
   }
   function j8SetState(next, message) {
     j8State = next;
@@ -10633,7 +11647,7 @@ const k1Focus = (() => {
     else target?.focus?.();
     if (j8PickerOpenAnnounced) {   // KA2 (23 Oct 2026, L-02): "is open" is no longer true — say what happened
       j8PickerOpenAnnounced = false;
-      const message = chosen ? `Item chosen: ${chosen}. Prior Journey 8 pricing values remain unchanged.` : 'Item list closed — no item chosen. Prior Journey 8 pricing values remain unchanged.';
+      const message = chosen ? `Item chosen: ${chosen}. Prior pricing values remain unchanged.` : 'Item list closed — no item chosen. Prior pricing values remain unchanged.';
       window.setTimeout(() => j8Announce(message), 0);
     }
   }
@@ -10642,7 +11656,7 @@ const k1Focus = (() => {
     const filter = ($('#large-data-filter')?.value || '').toLowerCase();
     if (!list) return;
     const source = j8PickerKind === 'item' ? J8_ITEMS : J8_PACKAGES;
-    list.innerHTML = source.filter((entry) => entry.label.toLowerCase().includes(filter)).map((entry) => `<button type="button" class="j8-picker-row" data-j8-pick="${entry.id}" role="option" aria-selected="false">${entry.label}</button>`).join('') || '<p class="picker-empty">No local fixture matches.</p>';
+    list.innerHTML = source.filter((entry) => entry.label.toLowerCase().includes(filter)).map((entry) => `<button type="button" class="j8-picker-row" data-j8-pick="${entry.id}" role="option" aria-selected="false">${entry.label}</button>`).join('') || '<p class="picker-empty">No sample matches.</p>';
   }
   function j8OpenPicker(kind, trigger) {
     j8PickerKind = kind;
@@ -10659,10 +11673,10 @@ const k1Focus = (() => {
     j8SnapshotPickerBackground();
     picker.setAttribute('role', 'dialog');
     picker.setAttribute('aria-modal', 'true');
-    picker.setAttribute('aria-label', `${kind === 'item' ? 'Item' : 'Private package'} picker · Journey 8 review fixture`);
+    picker.setAttribute('aria-label', `${kind === 'item' ? 'Item' : 'Private package'} picker`);
     picker.hidden = false; picker.inert = false; picker.removeAttribute('aria-hidden');
     backdrop.hidden = false; backdrop.inert = false; backdrop.removeAttribute('aria-hidden'); backdrop.classList.add('open');
-    $('#large-data-picker-meta').textContent = `${kind === 'item' ? 'Item' : 'Private package'} · REVIEW FIXTURE · local list only`;
+    $('#large-data-picker-meta').textContent = `${kind === 'item' ? 'Item' : 'Private package'} · sample list`;
     $('#large-data-filter').value = '';
     j8RenderPicker();
     window.setTimeout(() => $('#large-data-filter')?.focus(), 0);
@@ -10671,14 +11685,14 @@ const k1Focus = (() => {
     const dialog = $('#mismatch-dialog');
     if (dialog?.open) dialog.close();
     j8State = 'pricing_setup';
-    j8Announce('Mismatch dismissed. Prior Journey 8 pricing values remain unchanged; no package swap occurred.');
+    j8Announce('Mismatch dismissed. Prior pricing values remain unchanged; no package swap occurred.');
     $('#j8-configuration')?.focus();
   }
   function j8ChooseMatchingItem() {   // J8 "Choose a matching item" (Director, 16 Oct 2026): open the item list over the pricing step
     const dialog = $('#mismatch-dialog');
     if (dialog?.open) dialog.close();
     j8State = 'pricing_setup';
-    j8Announce('Choose a matching item: the item list is open. Prior Journey 8 pricing values remain unchanged.');
+    j8Announce('Choose a matching item: the item list is open. Prior pricing values remain unchanged.');
     j8PickerOpenAnnounced = true;
     j8PickerReturnSelector = '#j8-configuration';
     j8OpenPicker('item', $('#j8-configuration'));
@@ -10690,8 +11704,8 @@ const k1Focus = (() => {
     const stage = $('#j5-workflow-stage');
     if (workflowTitle) workflowTitle.textContent = title;
     if (kicker) kicker.textContent = eyebrow;
-    if (description) description.textContent = `${J8_BOUNDARY} · UJ-09. Local fixture only; reload resets this review.`;
-    if (stage) { stage.setAttribute('aria-live', 'off'); stage.innerHTML = `<p class="j8-boundary"><strong>${J8_BOUNDARY}</strong> · UJ-09 existing item/package/pricing change.</p>`; }
+    if (description) description.textContent = `${J8_BOUNDARY}. Reload restores the sample.`;
+    if (stage) { stage.setAttribute('aria-live', 'off'); stage.innerHTML = `<p class="j8-boundary"><strong>${J8_BOUNDARY}</strong> · existing item, package or pricing change.</p>`; }
     $('#j5-workflow-preview').hidden = true;
     $('#j5-workflow-preview').replaceChildren();
     j8HideWorkflowClose(j8State === 'persist_blocked');
@@ -10701,41 +11715,41 @@ const k1Focus = (() => {
     const custom = op.priceMode === 'custom';
     $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel" aria-labelledby="j8-pricing-heading">
       <h3 id="j8-pricing-heading">Change pricing</h3>
-      <p class="j8-evidence">UNVERIFIED · pricing result unverified for this change flow.</p>
+      <p class="j8-evidence">Not confirmed · pricing result for this change.</p>
       <fieldset class="j8-fieldset"><legend>Price mode</legend><label><input type="radio" name="j8-price-mode" value="default" ${!custom ? 'checked' : ''}> Default</label><label><input type="radio" name="j8-price-mode" value="custom" ${custom ? 'checked' : ''}> Custom</label></fieldset>
-      <div class="j8-grid"><label>Configuration<select id="j8-configuration"><option value="theatre" ${op.configuration === 'theatre' ? 'selected' : ''}>Theatre</option><option value="mismatch">Incompatible configuration · test mismatch</option></select></label><label>Concession<select id="j8-concession"><option value="none" ${op.concession === 'none' ? 'selected' : ''}>None</option><option value="review" ${op.concession === 'review' ? 'selected' : ''}>Review fixture concession</option></select></label><label class="j8-custom-only" ${custom ? '' : 'hidden'}>Price type<select id="j8-price-type" ${custom ? '' : 'disabled'}><option value="daily" ${op.priceType === 'daily' ? 'selected' : ''}>Daily</option><option value="session" ${op.priceType === 'session' ? 'selected' : ''}>Session</option><option value="hourly" ${op.priceType === 'hourly' ? 'selected' : ''}>Hourly</option></select></label><label class="j8-custom-only" ${custom ? '' : 'hidden'}>Pricing unit<select id="j8-unit" ${custom ? '' : 'disabled'}><option value="day" ${op.unit === 'day' ? 'selected' : ''}>Day</option><option value="session" ${op.unit === 'session' ? 'selected' : ''}>Session</option><option value="hour" ${op.unit === 'hour' ? 'selected' : ''}>Hour</option></select></label></div>
+      <div class="j8-grid"><label>Configuration<select id="j8-configuration"><option value="theatre" ${op.configuration === 'theatre' ? 'selected' : ''}>Theatre</option><option value="mismatch">Incompatible configuration · test mismatch</option></select></label><label>Concession<select id="j8-concession"><option value="none" ${op.concession === 'none' ? 'selected' : ''}>None</option><option value="review" ${op.concession === 'review' ? 'selected' : ''}>Sample concession</option></select></label><label class="j8-custom-only" ${custom ? '' : 'hidden'}>Price type<select id="j8-price-type" ${custom ? '' : 'disabled'}><option value="daily" ${op.priceType === 'daily' ? 'selected' : ''}>Daily</option><option value="session" ${op.priceType === 'session' ? 'selected' : ''}>Session</option><option value="hourly" ${op.priceType === 'hourly' ? 'selected' : ''}>Hourly</option></select></label><label class="j8-custom-only" ${custom ? '' : 'hidden'}>Pricing unit<select id="j8-unit" ${custom ? '' : 'disabled'}><option value="day" ${op.unit === 'day' ? 'selected' : ''}>Day</option><option value="session" ${op.unit === 'session' ? 'selected' : ''}>Session</option><option value="hour" ${op.unit === 'hour' ? 'selected' : ''}>Hour</option></select></label></div>
       <p class="j8-total-unavailable">${J8_TOTAL_UNAVAILABLE}</p><p id="j8-apply-reason" class="j8-reason" ${op.validationError ? '' : 'hidden'}>Apply disabled: an item or validation state is not available.</p>
     </section>`);
     j8Footer(`${j8Button('cancel', 'Cancel without loss')} ${j8Button('apply-pricing', 'Review proposed change', 'btn-primary', op.validationError)}`);
   }
   function j8RenderItem() {
     const current = j8Operation.itemChoice === 'current-item';
-    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel" aria-labelledby="j8-item-heading"><h3 id="j8-item-heading">Change item</h3><p class="j8-evidence">REVIEW FIXTURE · local item search and selection only.</p><button type="button" class="btn-secondary" data-j8-open-picker="item" data-j8-autofocus>Search local items</button><fieldset class="j8-list-fieldset"><legend>Item selection</legend>${J8_ITEMS.map((item) => `<label><input type="radio" name="j8-item" value="${item.id}" ${j8Operation.itemChoice === item.id ? 'checked' : ''}> ${item.label}${item.current ? ' · current' : ''}</label>`).join('')}</fieldset><p class="j8-selection-note">Apply is unavailable while the selected item is the current item.</p></section>`);
+    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel" aria-labelledby="j8-item-heading"><h3 id="j8-item-heading">Change item</h3><p class="j8-evidence">Sample items.</p><button type="button" class="btn-secondary" data-j8-open-picker="item" data-j8-autofocus>Search local items</button><fieldset class="j8-list-fieldset"><legend>Item selection</legend>${J8_ITEMS.map((item) => `<label><input type="radio" name="j8-item" value="${item.id}" ${j8Operation.itemChoice === item.id ? 'checked' : ''}> ${item.label}${item.current ? ' · current' : ''}</label>`).join('')}</fieldset><p class="j8-selection-note">Apply is unavailable while the selected item is the current item.</p></section>`);
     j8Footer(`${j8Button('cancel', 'Cancel without loss')} ${j8Button('item-apply', 'Apply replacement', 'btn-primary', current)}`);
   }
   function j8RenderPackageOne() {
-    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel" aria-labelledby="j8-package-one-heading"><h3 id="j8-package-one-heading">Change private package · step one</h3><p class="j8-evidence">UNVERIFIED · package search and load-more presentation.</p><button type="button" class="btn-secondary" data-j8-open-picker="package" data-j8-autofocus>Search local packages</button><fieldset class="j8-list-fieldset"><legend>Private package selection</legend>${J8_PACKAGES.slice(0, j8Operation.packageMore ? 3 : 2).map((pkg) => `<label><input type="radio" name="j8-package" value="${pkg.id}" ${j8Operation.packageChoice === pkg.id ? 'checked' : ''}> ${pkg.label}${pkg.current ? ' · current' : ''}</label>`).join('')}</fieldset><button type="button" class="btn-ghost" data-j8-command="package-more">More…</button><p class="j8-selection-note">Load more is a local presentation only; no catalog claim is made.</p></section>`);
+    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel" aria-labelledby="j8-package-one-heading"><h3 id="j8-package-one-heading">Change private package · step one</h3><p class="j8-evidence">Not confirmed · package search and load more.</p><button type="button" class="btn-secondary" data-j8-open-picker="package" data-j8-autofocus>Search local packages</button><fieldset class="j8-list-fieldset"><legend>Private package selection</legend>${J8_PACKAGES.slice(0, j8Operation.packageMore ? 3 : 2).map((pkg) => `<label><input type="radio" name="j8-package" value="${pkg.id}" ${j8Operation.packageChoice === pkg.id ? 'checked' : ''}> ${pkg.label}${pkg.current ? ' · current' : ''}</label>`).join('')}</fieldset><button type="button" class="btn-ghost" data-j8-command="package-more">More…</button><p class="j8-selection-note">Load more is a local presentation only; no catalog claim is made.</p></section>`);
     j8Footer(`${j8Button('cancel', 'Cancel without loss')} ${j8Button('package-continue', 'Continue to step two', 'btn-primary')}`);
   }
   function j8RenderPackageTwo() {
     const all = j8Operation.selectedIncluded.size === 2;
-    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel" aria-labelledby="j8-package-two-heading"><h3 id="j8-package-two-heading">Change private package · step two</h3><p class="j8-evidence">UNVERIFIED · attendees and package items are local fixture bounds, not production rules.</p><label>Attendees <input id="j8-attendees" type="number" min="1" max="18" value="${j8Operation.attendeeCount}" aria-describedby="j8-attendee-bound"></label><p id="j8-attendee-bound" class="j8-selection-note">Local fixture bound: 1–18 attendees; no universal default is claimed.</p><fieldset class="j8-list-fieldset"><legend>Package items</legend><label><input type="checkbox" data-j8-included="standard-room" ${j8Operation.selectedIncluded.has('standard-room') ? 'checked' : ''}> Standard item · local fixture</label><label><input type="checkbox" data-j8-included="upsell-item" ${j8Operation.selectedIncluded.has('upsell-item') ? 'checked' : ''}> Upsell item · local fixture</label><label><input type="checkbox" id="j8-select-all" ${all ? 'checked' : ''}> Select all</label></fieldset></section>`);
+    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel" aria-labelledby="j8-package-two-heading"><h3 id="j8-package-two-heading">Change private package · step two</h3><p class="j8-evidence">Sample attendees and package items.</p><label>Attendees <input id="j8-attendees" type="number" min="1" max="18" value="${j8Operation.attendeeCount}" aria-describedby="j8-attendee-bound"></label><p id="j8-attendee-bound" class="j8-selection-note">Sample limit: 1–18 attendees.</p><fieldset class="j8-list-fieldset"><legend>Package items</legend><label><input type="checkbox" data-j8-included="standard-room" ${j8Operation.selectedIncluded.has('standard-room') ? 'checked' : ''}> Standard item</label><label><input type="checkbox" data-j8-included="upsell-item" ${j8Operation.selectedIncluded.has('upsell-item') ? 'checked' : ''}> Upsell item</label><label><input type="checkbox" id="j8-select-all" ${all ? 'checked' : ''}> Select all</label></fieldset></section>`);
     j8Footer(`${j8Button('cancel', 'Cancel without loss')} ${j8Button('package-back', 'Back')} ${j8Button('package-apply', 'Apply package to proposal', 'btn-primary')}`);
   }
   function j8RenderConfirm(kind) {
     const sales = kind === 'sales_category_confirm';
-    j8RenderCommon(sales ? 'Confirm sales category' : 'Confirm proposed branch', sales ? 'Sales category review' : 'Branch review');
-    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel j8-confirm-panel"><h3>${sales ? 'Sales category confirmation' : 'Generic branch confirmation'}</h3><p>${sales ? 'Confirm or cancel only. This review performs no validation, branching rule or persistence.' : 'Confirm the proposed local branch. No branch taxonomy or Booking mutation is claimed.'}</p><span class="j8-evidence">${sales ? 'UNVERIFIED' : 'PARTIAL'}</span></section>`);
+    j8RenderCommon(sales ? 'Confirm sales category' : 'Confirm proposed branch', sales ? 'Sales category' : 'Review change');
+    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel j8-confirm-panel"><h3>${sales ? 'Sales category confirmation' : 'Generic branch confirmation'}</h3><p>${sales ? 'Confirm or cancel only. Nothing is saved.' : 'Confirm the proposed change. Nothing is saved.'}</p><span class="j8-evidence">${sales ? 'Not confirmed' : 'Partial'}</span></section>`);
     j8Footer(`${j8Button('cancel', 'Cancel')} ${j8Button(sales ? 'sales-proceed' : 'branch-confirm', sales ? 'Proceed' : 'Confirm', 'btn-primary')}`);
   }
   function j8RenderProposed() {
     j8RenderCommon('Proposed local change', 'Proposed result');
-    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel j8-proposed" aria-labelledby="j8-proposed-heading"><h3 id="j8-proposed-heading">PROPOSED · LOCAL ONLY · NOT PERSISTED</h3><dl class="j8-proposal-facts"><div><dt>Original Booking</dt><dd>${j8Subject.reference} · version ${j8Subject.version}</dd></div><div><dt>Current fixture</dt><dd>${j8Subject.resource} · ${j8Subject.dateLabel} · ${j8Subject.time}</dd></div><div><dt>Proposed change</dt><dd>${j8Operation.itemChoice === 'current-item' ? 'Current item retained' : 'Alternate item selected'} · ${j8Operation.packageChoice === 'current-package' ? 'Current package retained' : 'Alternate package selected'}</dd></div></dl><p class="j8-total-unavailable">${J8_TOTAL_UNAVAILABLE}</p><p class="j8-evidence">UNVERIFIED · local comparison only; original Booking remains unchanged.</p></section>`);
+    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel j8-proposed" aria-labelledby="j8-proposed-heading"><h3 id="j8-proposed-heading">PROPOSED · LOCAL ONLY · NOT PERSISTED</h3><dl class="j8-proposal-facts"><div><dt>Original Booking</dt><dd>${j8Subject.reference} · version ${j8Subject.version}</dd></div><div><dt>Current booking</dt><dd>${j8Subject.resource} · ${j8Subject.dateLabel} · ${j8Subject.time}</dd></div><div><dt>Proposed change</dt><dd>${j8Operation.itemChoice === 'current-item' ? 'Current item retained' : 'Alternate item selected'} · ${j8Operation.packageChoice === 'current-package' ? 'Current package retained' : 'Alternate package selected'}</dd></div></dl><p class="j8-total-unavailable">${J8_TOTAL_UNAVAILABLE}</p><p class="j8-evidence">Sample comparison only; the original Booking remains unchanged.</p></section>`);
     j8Footer(`${j8Button('proposed-back', 'Back')} ${j8Button('patch-preview', 'Review patch preview', 'btn-primary')}`);
   }
   function j8RenderBlocked() {
     j8RenderCommon('Preview blocked', 'Terminal blocker');
-    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel j8-blocked" aria-labelledby="j8-blocked-heading"><h3 id="j8-blocked-heading">${J8_BLOCKED_COPY}</h3><p>Original Booking remains unchanged. This terminal state has no retry, override, confirm or update-success action.</p><span class="j8-evidence">BLOCKED/DEFECT-AFFECTED</span></section>`);
+    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel j8-blocked" aria-labelledby="j8-blocked-heading"><h3 id="j8-blocked-heading">${J8_BLOCKED_COPY}</h3><p>Original Booking remains unchanged. This terminal state has no retry, override, confirm or update-success action.</p><span class="j8-evidence">Blocked — known defect</span></section>`);
     j8Footer(j8Button('terminal-cancel', 'Cancel without loss', 'btn-primary'));
   }
   function j8Render() {
@@ -10764,7 +11778,7 @@ const k1Focus = (() => {
     j8HideWorkflowClose(false);
     j8OpenHub(j8Trigger || $('#j4-open-private'));
     j8Closing = false;
-    j8Announce('Cancelled without loss. Original Booking fixture remains unchanged.');
+    j8Announce('Cancelled. The original Booking is unchanged.');
   }
   function j8HandleCommand(command) {
     if (!j8Operation) return;
@@ -10926,27 +11940,27 @@ const k1Focus = (() => {
     applyJourneySurfaces(journey);
     closeAllJourneyOverlays();
     if (journey === 2) {
-      document.title = 'Optimo Diary — Journey 2 Master-Ancestry Candidate';
+      document.title = 'Optimo Diary';
       const pickerInput = $('#picker-input');
       if (pickerInput) pickerInput.value = '2026-08-29';
     } else if (journey === 3) {
-      document.title = 'Optimo Diary — Journey 3 Asset Search, Hierarchy and Selection';
+      document.title = 'Optimo Diary — Asset search and selection';
     } else if (journey === 4) {
-      document.title = 'Optimo Diary — Journey 4 Timeslot Rendering and Calendar Interaction';
+      document.title = 'Optimo Diary — Timeslots';
     } else if (journey === 5) {
-      document.title = 'Optimo Diary — Journey 5 Private Lifecycle Candidate';
+      document.title = 'Optimo Diary — Existing booking';
     } else if (journey === 6) {
-      document.title = 'Optimo Diary — Journey 6 Reschedule and Reallocation Candidate';
+      document.title = 'Optimo Diary — Reschedule and reallocate';
     } else if (journey === 7) {
-      document.title = 'Optimo Diary — Journey 7 New-Booking Pricing Candidate';
+      document.title = 'Optimo Diary — Pricing';
       window.__j7Review = Object.freeze({
         snapshot: j7ReviewSnapshot,
         invokeForbiddenPackageGuard: j7ReviewInvokeForbiddenPackageGuard
       });
     } else if (journey === 8) {
-      document.title = 'Optimo Diary — Journey 8 Existing Pricing Change Candidate';
+      document.title = 'Optimo Diary — Change an existing booking';
     } else if (journey === 9) {
-      document.title = 'Optimo Diary — Journey 9 / UJ-11 Recurring Booking Candidate';
+      document.title = 'Optimo Diary — Recurring booking';
     }
     init();
   }
@@ -11020,14 +12034,14 @@ const k1Focus = (() => {
   function blockNode() {
     const x = state.block; if (!x) return null;
     const col = document.querySelector(`body[data-journey="10"] .cal-day-col[data-asset="${x.asset}"][data-date="${x.date}"]`); if (!col) return null;
-    const node = document.createElement('button'); node.type = 'button'; node.className = 'cal-event block j10-block-event'; node.id = 'j10-committed-block'; node.dataset.asset = x.asset; node.dataset.date = x.date; node.setAttribute('aria-label', `Block on ${x.assetName}, ${slotToLabel(x.startSlot)} to ${slotToLabel(x.endSlot)}, ${x.category}${x.marker ? `, ${x.marker}` : ''}`); node.innerHTML = '<strong>Block</strong><span></span>'; node.querySelector('span').textContent = `${x.category}${x.marker ? ` · ${x.marker}` : ''}`; shared().applyTimeslotVisual?.(node, 'block');
+    const node = document.createElement('button'); node.type = 'button'; node.className = 'cal-event block j10-block-event'; node.id = 'j10-committed-block'; node.dataset.asset = x.asset; node.dataset.date = x.date; node.setAttribute('aria-label', `Block on ${x.assetName}, ${slotToLabel(x.startSlot)} to ${slotToLabel(x.endSlot)}, ${x.category}${x.marker ? `, ${x.marker}` : ''}`); node.innerHTML = '<strong>Block</strong><span></span>'; node.querySelector('span').textContent = `${x.category}${x.marker ? ` · ${x.marker}` : ''}`; shared().applyTimeslotVisual?.(node, 'block'); window.__c14?.j10Clip(node);
     const slotH = slotHeight(col); node.style.top = `${x.startSlot * slotH}px`; node.style.height = `${(x.endSlot - x.startSlot) * slotH}px`; node.addEventListener('click', (e) => openEditor('update', e.currentTarget)); node.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEditor('update', e.currentTarget); } }); col.appendChild(node); return node;
   }
-  function render() { if (!isJ10()) return; const grid = $('calendar-grid'); if (!grid) return; grid.querySelectorAll('.j10-selection-card, .j10-block-event').forEach((el) => el.remove()); blockNode(); paintSelection(); selectionCardNode(); }
-  function closeEditor(restore = true) { const dialog = $('j10-block-dialog'); if (dialog?.open) dialog.close(); $('j10-block-error').textContent = ''; if (restore && state.trigger?.isConnected) state.trigger.focus(); else if (restore) $('j10-add-block')?.focus(); state.trigger = null; state.editorMode = 'create'; }
-  function populateEditor(mode, source) { const x = mode === 'update' ? state.block : state.selection; if (!x || (mode === 'create' && (state.block || !rangeEligible(x.asset, x.date, x.startSlot, x.endSlot)))) return false; $('j10-block-title').textContent = mode === 'update' ? 'Edit Block' : 'Add Block'; $('j10-block-save').textContent = mode === 'update' ? 'Save Changes' : 'Save Block'; $('j10-block-delete').hidden = mode !== 'update'; $('j10-block-asset').value = x.assetName; $('j10-block-time').value = `${slotToLabel(x.startSlot)}–${slotToLabel(x.endSlot)}`; $('j10-block-category').value = mode === 'update' ? x.category : ''; $('j10-block-marker').value = mode === 'update' ? (x.marker || '') : ''; $('j10-block-error').textContent = ''; state.editorMode = mode; state.trigger = source || state.trigger || $('j10-add-block'); return true; }
+  function render() { if (!isJ10()) return; if (!state.block) window.__c14?.j10Reset(); const grid = $('calendar-grid'); if (!grid) return; grid.querySelectorAll('.j10-selection-card, .j10-block-event').forEach((el) => el.remove()); blockNode(); paintSelection(); selectionCardNode(); }
+  function closeEditor(restore = true) { if (restore === false) window.__c14?.j10Commit(); else window.__c14?.j10Drop(); const dialog = $('j10-block-dialog'); if (dialog?.open) dialog.close(); $('j10-block-error').textContent = ''; if (restore && state.trigger?.isConnected) state.trigger.focus(); else if (restore) $('j10-add-block')?.focus(); state.trigger = null; state.editorMode = 'create'; }
+  function populateEditor(mode, source) { const x = mode === 'update' ? state.block : state.selection; if (!x || (mode === 'create' && (state.block || !rangeEligible(x.asset, x.date, x.startSlot, x.endSlot)))) return false; $('j10-block-title').textContent = mode === 'update' ? 'Edit Block' : 'Add Block'; $('j10-block-save').textContent = mode === 'update' ? 'Save Changes' : 'Save Block'; $('j10-block-delete').hidden = mode !== 'update'; $('j10-block-asset').value = x.assetName; $('j10-block-time').value = `${slotToLabel(x.startSlot)}–${slotToLabel(x.endSlot)}`; $('j10-block-category').value = mode === 'update' ? x.category : ''; $('j10-block-marker').value = mode === 'update' ? (x.marker || '') : ''; $('j10-block-error').textContent = ''; state.editorMode = mode; state.trigger = source || state.trigger || $('j10-add-block'); window.__c14?.j10Open(); return true; }
   function openEditor(mode, source) { if (!isJ10() || state.busy || (mode === 'create' && (state.block || !state.selection))) return; if (!populateEditor(mode, source)) { announce('Choose one eligible free interval before adding a Block.'); return; } const dialog = $('j10-block-dialog'); dialog.showModal(); $('j10-block-category').focus(); }
-  function openDeleteConfirm() { if (!state.block || state.busy) return; const dialog = $('j10-delete-dialog'); state.confirmTrigger = state.trigger || $('j10-committed-block'); closeEditor(false); dialog.showModal(); $('j10-delete-keep').focus(); }
+  function openDeleteConfirm() { if (!state.block || state.busy) return; const dialog = $('j10-delete-dialog'); state.confirmTrigger = state.trigger || $('j10-committed-block'); window.__c14?.j10Drop(); closeEditor(false); dialog.showModal(); $('j10-delete-keep').focus(); }
   function closeDeleteConfirm() { const dialog = $('j10-delete-dialog'); if (dialog?.open) dialog.close(); if (state.confirmTrigger?.isConnected) state.confirmTrigger.focus(); else $('j10-add-block')?.focus(); state.confirmTrigger = null; }
   function chooseSelection(target) { if (state.block) return; const col = target.closest('.cal-day-col'); if (!col) return; const slot = Number(target.dataset.slot); const asset = col.dataset.asset; const date = col.dataset.date; if (!eligibleCell(asset, date, slot)) { state.selection = null; render(); announce('Choose one eligible free interval.'); return; } state.selection = { asset, assetName: col.closest('.cal-lane')?.querySelector('.cal-lane-title')?.textContent?.split(' · ')[0] || asset, date, startSlot: slot, endSlot: slot + 1 }; render(); announce(`Interval selected: ${selectedText(state.selection)}. Add Block is available.`); }
   function onGridPointer(event) { if (!isJ10()) return; const block = event.target.closest('.j10-block-event'); if (block) return; const slot = event.target.closest('.cal-slot.free'); if (!slot) return; event.preventDefault(); event.stopImmediatePropagation(); if (event.type === 'mousedown' && event.button !== 0) return; chooseSelection(slot); }
@@ -11035,11 +12049,11 @@ const k1Focus = (() => {
   function setMaintenance() { document.body.dataset.mode = 'maintenance'; document.querySelectorAll('.mode-nav .mode-btn').forEach((btn) => { const maintenance = btn.dataset.mode === 'maintenance'; btn.classList.toggle('is-active', maintenance); btn.setAttribute('aria-pressed', String(maintenance)); }); }
   function installRouteSurface() {
     if (!isJ10()) return;
-    document.title = 'Optimo Diary — Journey 10 / UJ-12 bounded Block CRUD'; document.body.dataset.contextualWorkspace = 'true'; setMaintenance();
+    document.title = 'Optimo Diary — Private block'; document.body.dataset.contextualWorkspace = 'true'; setMaintenance();
     setHidden($('j10-route-status'), false); setHidden($('j10-block-dialog'), false); setHidden($('j10-delete-dialog'), false);
     const grid = $('calendar-grid'); grid?.addEventListener('mousedown', onGridPointer, true); grid?.addEventListener('click', onGridPointer, true); grid?.addEventListener('keydown', onGridKey, true);
     ['j10-block-dialog', 'j10-delete-dialog'].forEach((id) => { const dialog = $(id); shared().trapDialogFocus?.(dialog); dialog.addEventListener('keydown', (event) => { if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); if (id === 'j10-block-dialog') closeEditor(); else closeDeleteConfirm(); } }, true); });
-    document.addEventListener('click', (event) => { if (!isJ10()) return; const mode = event.target.closest('.mode-nav .mode-btn'); if (mode) { event.preventDefault(); event.stopImmediatePropagation(); if (mode.dataset.mode === 'booking' && window.__unifiedSwitch) { window.__unifiedSwitch('booking'); return; } /* unified build, slice 6 (a block comment: this listener is one line) */ setMaintenance(); announce(mode.dataset.mode === 'maintenance' ? 'Maintenance context active for Journey 10.' : 'Booking is outside the Journey 10 bounded maintenance scope.'); return; } const dateControl = event.target.closest('#date-prev, #date-next, #date-today'); if (dateControl) window.setTimeout(render, 0); }, true);
+    document.addEventListener('click', (event) => { if (!isJ10()) return; const mode = event.target.closest('.mode-nav .mode-btn'); if (mode) { event.preventDefault(); event.stopImmediatePropagation(); if (mode.dataset.mode === 'booking' && window.__unifiedSwitch) { window.__unifiedSwitch('booking'); return; } /* unified build, slice 6 (a block comment: this listener is one line) */ setMaintenance(); announce(mode.dataset.mode === 'maintenance' ? 'Maintenance context active.' : 'Booking is not available in Maintenance.'); return; } const dateControl = event.target.closest('#date-prev, #date-next, #date-today'); if (dateControl) window.setTimeout(render, 0); }, true);
     $('j10-add-block')?.addEventListener('click', (e) => openEditor('create', e.currentTarget)); $('j10-block-close')?.addEventListener('click', () => closeEditor()); $('j10-block-cancel')?.addEventListener('click', () => closeEditor());
     $('j10-block-form')?.addEventListener('submit', (event) => { event.preventDefault(); if (state.busy) return; if (state.editorMode === 'update') { if (!state.block) return; const category = $('j10-block-category').value; if (!category) { $('j10-block-error').textContent = 'Choose a Category before saving the Block.'; $('j10-block-category').focus(); return; } state.busy = true; state.block = { ...state.block, marker: $('j10-block-marker').value.trim(), category }; state.actions.update += 1; closeEditor(false); render(); announce('Block changes saved locally.'); state.busy = false; $('j10-committed-block')?.focus(); return; } if (state.block || !state.selection || !rangeEligible(state.selection.asset, state.selection.date, state.selection.startSlot, state.selection.endSlot)) { $('j10-block-error').textContent = 'Choose one eligible interval; only one local Block is allowed.'; return; } const category = $('j10-block-category').value; if (!category) { $('j10-block-error').textContent = 'Choose a Category before saving the Block.'; $('j10-block-category').focus(); return; } state.busy = true; state.block = { ...state.selection, category, marker: $('j10-block-marker').value.trim() }; state.selection = null; state.actions.create += 1; closeEditor(false); render(); announce('Block created locally.'); state.busy = false; $('j10-committed-block')?.focus(); });
     $('j10-block-delete')?.addEventListener('click', openDeleteConfirm); $('j10-delete-keep')?.addEventListener('click', closeDeleteConfirm);
@@ -11245,7 +12259,7 @@ const k1Focus = (() => {
   }
   function installRouteSurface() {
     if (!isJ11()) return;
-    document.title = 'Optimo Diary — Journey 11 / UJ-13 Diary Notes';
+    document.title = 'Optimo Diary — Diary notes';
     document.body.dataset.mode = 'maintenance';
     document.querySelectorAll('.mode-nav .mode-btn').forEach((button) => {
       const active = button.dataset.mode === 'maintenance';
@@ -11261,7 +12275,7 @@ const k1Focus = (() => {
       if (!isJ11()) return;
       const header = event.target instanceof Element ? event.target.closest('.cal-day-header[data-date]') : null;
       if (header) { event.preventDefault(); event.stopImmediatePropagation(); openNotes(header); return; }
-      if (event.target.closest('.mode-nav .mode-btn')) { event.preventDefault(); event.stopImmediatePropagation(); if (event.target.closest('.mode-nav .mode-btn').dataset.mode === 'booking' && window.__unifiedSwitch) { window.__unifiedSwitch('booking'); return; } announce('Maintenance context is active for Journey 11.'); return; }   // unified build, slice 6
+      if (event.target.closest('.mode-nav .mode-btn')) { event.preventDefault(); event.stopImmediatePropagation(); if (event.target.closest('.mode-nav .mode-btn').dataset.mode === 'booking' && window.__unifiedSwitch) { window.__unifiedSwitch('booking'); return; } announce('Maintenance context is active.'); return; }   // unified build, slice 6
       const edit = event.target.closest('[data-j11-edit]');
       if (edit) { event.preventDefault(); openEditor(state.notes.find((note) => note.id === edit.dataset.j11Edit)); return; }
       const remove = event.target.closest('[data-j11-delete]');
@@ -11337,7 +12351,7 @@ const k1Focus = (() => {
         node.type = 'button';
         node.id = 'j12-public-event';
         node.dataset.j12Event = 'fixture';
-        node.innerHTML = `<strong>${FIXTURE.title}</strong><span class="j12-event-meta">${FIXTURE.assetName} · ${FIXTURE.time}</span><span class="j12-event-tag">Public event · local fixture</span>`;
+        node.innerHTML = `<strong>${FIXTURE.title}</strong><span class="j12-event-meta">${FIXTURE.assetName} · ${FIXTURE.time}</span><span class="j12-event-tag">Public event · sample</span>`;
         col.appendChild(node);
       } else if (node.parentElement !== col) {
         col.appendChild(node);
@@ -11345,7 +12359,7 @@ const k1Focus = (() => {
       node.className = 'cal-event j12-public-event' + (state.selected ? ' j12-selected' : '');
       if (state.selected && !state.eventTrigger?.isConnected) state.eventTrigger = node;
       node.setAttribute('aria-pressed', String(state.selected));
-      node.setAttribute('aria-label', `${FIXTURE.title} · ${FIXTURE.assetName} · ${FIXTURE.time} · local in-memory review fixture`);
+      node.setAttribute('aria-label', `${FIXTURE.title} · ${FIXTURE.assetName} · ${FIXTURE.time} · sample`);
       const h = slotHeight(col);
       node.style.top = `${FIXTURE.startSlot * h}px`;
       node.style.height = `${(FIXTURE.endSlot - FIXTURE.startSlot) * h}px`;
@@ -11358,7 +12372,7 @@ const k1Focus = (() => {
     state.eventTrigger = trigger || $('j12-public-event');
     paintFixture();
     openPanel();
-    announce(`${FIXTURE.title} selected. Event actions are available for local review only.`);
+    announce(`${FIXTURE.title} selected. Event actions are sample previews; nothing is saved.`);
   }
   function placePanel() {   // L-26 (23 Oct 2026): the panel's top 8 px below the view bar, so its buttons and "Settings" stay reachable (today's top if the bar is not near the top)
     const bar = document.getElementById('view-bar'), root = document.documentElement;
@@ -11382,14 +12396,14 @@ const k1Focus = (() => {
     if (restoreFocus && state.eventTrigger?.isConnected) state.eventTrigger.focus();
   }
   const boundaryCopy = {
-    config: 'Configuration and capacity components exist in the legacy trace, but rights, confirmation policy and successful mutation outcomes are UNCONFIRMED. This prototype shows the boundary only — no Save, Update, API, persistence or production destination.',
-    maps: 'Venue/table and asset map handoffs exist as EXTERNAL HANDOFF boundaries only. No URL, map key, coordinates, network call, redirect or destination success is available in this review fixture.',
-    external: 'Corporate Booking, Open Booking, Booking Manager, Call Center, Edit Layout and Event Setup remain DEFECT-AFFECTED external contracts. No URL, navigation, authentication or destination availability is claimed.'
+    config: 'Configuration and capacity exist in the current system, but rights, confirmation and save outcomes are not confirmed yet. Nothing is saved here.',
+    maps: 'Venue/table and asset map handoffs exist as EXTERNAL HANDOFF boundaries only. No URL, map key, coordinates, network call, redirect or destination success is available in this sample.',
+    external: 'Corporate Booking, Open Booking, Booking Manager, Call Center, Edit Layout and Event Setup open other applications, with known faults today. Nothing opens here.'
   };
   function openBoundary(kind) {
     state.boundaryKind = kind;
     const titles = { config: 'Configuration & capacity', maps: 'Venue/table and asset maps', external: 'External applications' };
-    $('j12-boundary-title').textContent = titles[kind] || 'Boundary review';
+    $('j12-boundary-title').textContent = titles[kind] || 'Not available';
     $('j12-boundary-copy').textContent = boundaryCopy[kind] || '';
     const dialog = $('j12-boundary-dialog');
     dialog.showModal();
@@ -11406,7 +12420,7 @@ const k1Focus = (() => {
     const root = window.__j6PublicRescheduleRoot;
     const trigger = $('j12-reschedule-event');
     if (!root?.startOperation || root.rootFunction !== 'j6StartOperation') {
-      announce('Journey 6 public-reschedule root is unavailable. No duplicate flow was started.');
+      announce('Public timeslot reschedule is unavailable.');
       return;
     }
     root.startOperation('PublicReschedule', trigger);
@@ -11424,7 +12438,7 @@ const k1Focus = (() => {
   }
   function installRouteSurface() {
     if (!isJ12()) return;
-    document.title = 'Optimo Diary — Journey 12 / UJ-14 Public Event Actions';
+    document.title = 'Optimo Diary — Public event actions';
     document.body.dataset.j12PublicEvents = 'true';
     document.querySelectorAll('.mode-nav .mode-btn').forEach((button) => {
       button.classList.remove('is-active');
@@ -11441,7 +12455,7 @@ const k1Focus = (() => {
       const eventBtn = event.target.closest('#j12-public-event, .j12-public-event');
       if (eventBtn) { event.preventDefault(); event.stopImmediatePropagation(); selectEvent(eventBtn); return; }
       if (event.target.closest('.mode-nav .mode-btn') && window.__unifiedSwitch) { event.preventDefault(); event.stopImmediatePropagation(); window.__unifiedSwitch(event.target.closest('.mode-nav .mode-btn').dataset.mode === 'maintenance' ? 'maintenance' : 'booking'); return; }   // unified build, slice 6
-      if (event.target.closest('.mode-nav .mode-btn')) { event.preventDefault(); event.stopImmediatePropagation(); announce('Public Events review context is active for Journey 12. No API, persistence or external navigation.'); return; }
+      if (event.target.closest('.mode-nav .mode-btn')) { event.preventDefault(); event.stopImmediatePropagation(); announce('Public events sample is active. Nothing is saved.'); return; }
       if (event.target.closest('#j12-event-actions-close')) { event.preventDefault(); closePanel(); return; }
       if (event.target.closest('#j12-reschedule-event')) { event.preventDefault(); startReschedule(); return; }
       if (event.target.closest('#j12-boundary-config')) { event.preventDefault(); openBoundary('config'); return; }
@@ -11595,7 +12609,7 @@ const k1Focus = (() => {
   const targetElement = (e) => (e.target instanceof Element ? e.target : e.target?.parentElement);
   function installRouteSurface() {
     if (!isJ13()) return;
-    document.title = 'Journey 13 — Configuration & capacity preview';
+    document.title = 'Optimo Diary — Configuration and capacity';
     const surface = root();
     if (surface) { surface.hidden = false; surface.inert = false; surface.removeAttribute('aria-hidden'); }
     installDiaryNavigation();
@@ -11708,7 +12722,7 @@ const k1Focus = (() => {
           try {
             var XHR = window.XMLHttpRequest;
             window.XMLHttpRequest = function() {
-              throw new Error("Network disabled in Journey 14 planning preview");
+              throw new Error("Network disabled in this preview");
             };
             window.XMLHttpRequest.UNSENT = XHR.UNSENT;
           } catch (e) { /* noop */ }
@@ -11775,7 +12789,7 @@ const k1Focus = (() => {
             });
             el.classList.add("is-selected");
             el.setAttribute("aria-pressed", "true");
-            announce("Seat block " + el.getAttribute("data-seat") + " selected for review");
+            announce("Seat block " + el.getAttribute("data-seat") + " selected");
           }
           el.addEventListener("click", selectSeat);
           el.addEventListener("keydown", function(e) {
@@ -11786,7 +12800,7 @@ const k1Focus = (() => {
         var mapPlaceholders = {
           available: { title: "Neutral local map placeholder", body: "Riverside Pavilion · schematic grid only · no API key", pill: "Map placeholder · Available", cls: "status-available" },
           loading: { title: "Loading map presentation", body: "Simulated loading state from asset description pattern", pill: "Map placeholder · Loading", cls: "status-loading" },
-          unavailable: { title: "No location available", body: "Degraded state — venue fallback also missing in this fixture", pill: "Map placeholder · No location", cls: "status-unavailable" }
+          unavailable: { title: "No location available", body: "Venue fallback also missing in this sample", pill: "Map placeholder · No location", cls: "status-unavailable" }
         };
 
         root()?.querySelectorAll('input[name="map-state"]').forEach(function(radio) {
@@ -11812,13 +12826,13 @@ const k1Focus = (() => {
             ["sessionId", "ses-evening-1900-fixture"],
             ["packageId", "pkg-standard-seated-fixture"],
             ["route pattern", "seating-view/{eventId} with session and package query placeholders"],
-            ["handoff mode", "OPEN — DEC-INT-001"]
+            ["handoff mode", "Not confirmed yet"]
           ],
-          "Corporate Booking": [["booking token", "@BookingId@ (placeholder)"], ["expand flag", "?expand=true (label only)"], ["target", "new tab — unverified"]],
-          "Call Center": [["booking reference", "@BookingRef@ (placeholder)"], ["target behaviour", "legacy _black typo noted in evidence"]],
+          "Corporate Booking": [["booking token", "@BookingId@ (placeholder)"], ["expand flag", "?expand=true (label only)"], ["target", "new tab — not confirmed"]],
+          "Call Center": [["booking reference", "@BookingRef@ (placeholder)"], ["target behaviour", "not confirmed"]],
           "Maintain Table Plan": [["entitlement", "rights/settings gated — not public seating map"], ["action", "Edit Layout external handoff"]],
           "Event Setup": [["context", "booking / event identifiers (fixture)"], ["route", "named in inventory — URL not shown"]],
-          "Booking Manager": [["observed defect", "missing directory in evidence"], ["status", "Unavailable in evidence"]]
+          "Booking Manager": [["known fault", "missing directory"], ["status", "Unavailable"]]
         };
 
         function openDialog(triggerEl, destinationKey) {
@@ -11826,7 +12840,7 @@ const k1Focus = (() => {
           byId("j14-dialog-destination").textContent = destinationKey;
           var list = byId("j14-dialog-params");
           list.innerHTML = "";
-          var rows = paramTemplates[destinationKey] || [["context", "Review fixture"]];
+          var rows = paramTemplates[destinationKey] || [["context", "Sample"]];
           rows.forEach(function(pair) {
             var li = document.createElement("li");
             li.innerHTML = "<span>" + pair[0] + "</span><span>" + pair[1] + "</span>";
@@ -11837,7 +12851,7 @@ const k1Focus = (() => {
           var rl = root()?.querySelector(".review-rail"); if (rl) rl.inert = true;
           var sk = root()?.querySelector(".skip-link"); if (sk) sk.inert = true;
           byId("j14-dialog-back").focus();
-          announce("Handoff review sheet opened for " + destinationKey);
+          announce("Handoff details opened for " + destinationKey);
         }
 
         function closeDialog(returnFocus) {
@@ -11846,7 +12860,7 @@ const k1Focus = (() => {
           var rl2 = root()?.querySelector(".review-rail"); if (rl2) rl2.inert = false;
           var sk2 = root()?.querySelector(".skip-link"); if (sk2) sk2.inert = false;
           if (returnFocus !== false && lastFocus) lastFocus.focus();
-          announce("Handoff review sheet closed");
+          announce("Handoff details closed");
         }
 
         byId("btn-review-seating").addEventListener("click", function(e) {
@@ -12023,7 +13037,7 @@ const k1Focus = (() => {
     if (window.location.hash === '#location-handoffs') openJ14($('j14-open-location-handoffs'));
     if (document.body.dataset.j14Entry === 'open') {
       openJ14($('j14-open-location-handoffs'));
-      document.title = 'Optimo Diary — Journey 14 Location & handoffs';
+      document.title = 'Optimo Diary — Location and handoffs';
     }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => window.setTimeout(init, 60));
@@ -12118,7 +13132,7 @@ const k1Focus = (() => {
     else {
       document.body.dataset.j15View = view;
       ensureBuilt();
-      if (document.body.dataset.journey === '12') document.title = 'Optimo Diary — Journey 15 Agenda, Custom view and Excel export candidate';   // unified build, slice 5: the title stays the journey's own elsewhere
+      if (document.body.dataset.journey === '12') document.title = 'Optimo Diary — Agenda, Custom view and Excel export';   // unified build, slice 5: the title stays the journey's own elsewhere
     }
     markButtons();
     render();
@@ -12135,13 +13149,13 @@ const k1Focus = (() => {
       : '';
     const booking = r.kind === 'public'
       ? `<span class="j15-sub">Bookings and guests open from the row's Details.</span>`
-      : `<b>${esc(r.bookingId)}</b><span class="j15-sub">Client details are not in this review fixture.</span>`;
+      : `<b>${esc(r.bookingId)}</b><span class="j15-sub">Client details are not in this sample.</span>`;
     const details = r.kind === 'public'
       ? '<button type="button" class="j15-details-btn" data-j15-details aria-expanded="false">Details</button>' +
         '<div class="j15-details" hidden><div class="j15-mini-actions"><button type="button" class="j15-btn" disabled>Bookings</button><button type="button" class="j15-btn" disabled>Guest List</button></div>' +
-        '<div class="j15-why">Bookings opens a dialog that is defect-affected today (UJ-06). Guest List is an external handoff (UJ-14).</div></div>'
+        '<div class="j15-why">Bookings opens a dialog with a known fault today. Guest List is an external handoff.</div></div>'
       : '<button type="button" class="j15-details-btn" data-j15-details aria-expanded="false">Details</button>' +
-        '<div class="j15-details" hidden><div class="j15-why">The Corporate Booking link is an external handoff and is not opened in this review (UJ-14).</div></div>';
+        '<div class="j15-details" hidden><div class="j15-why">The Corporate Booking link is an external handoff and is not opened in this sample.</div></div>';
     return `${dateCell}` +
       `<td class="j15-c-time"><b>${r.start}</b><span> – ${r.end}</span></td>` +
       `<td class="j15-c-event"><div class="j15-title-line">${esc(r.title)}</div><div class="j15-cat">${esc(r.category)}</div></td>` +
@@ -12168,7 +13182,7 @@ const k1Focus = (() => {
       '<div class="j15-head"><h2 id="j15-title" tabindex="-1">Agenda</h2>' +
       `<span class="j15-context">${esc(rangeLabel())} · from Week view · ${VENUE}</span>` +
       `<span class="j15-count" id="j15-count" role="status">${rows.length} event${rows.length === 1 ? '' : 's'}</span></div>` +
-      '<p class="j15-note-line">Evidence: partially confirmed · Review fixture — local data only, no API call · Export shows a preview, no file is created.</p>' +
+      '<p class="j15-note-line">Sample data · Export shows a preview, no file is created.</p>' +
       `<div class="j15-toolbar"><label class="j15-toggle"><input type="checkbox" id="j15-booked-only" ${state.bookedOnly ? 'checked' : ''}> Show booked events only</label>` +
       `<button type="button" class="j15-btn" id="j15-export" ${exportDisabled}><span aria-hidden="true">⤓</span> Export</button></div>` +
       '<div class="j15-list-wrap"><table class="j15-list"><thead><tr>' +
@@ -12207,11 +13221,11 @@ const k1Focus = (() => {
         '<li>Confirm when the file is ready (“Agenda exported: N rows”).</li>' +
         '<li>When there is nothing to export, disable Export and say so.</li>' +
         '<li>If the export fails, show an error message (the current system only writes to the browser console).</li></ul></div>' +
-        '<p class="j15-fixture-note">Values marked “—” are not in the review fixture. The current system defines this file name, sheet and columns in code, but the downloaded file has not been verified (AGENDA-EXPORT-01 is open). No file is created in this review.</p>';
+        '<p class="j15-fixture-note">Values marked “—” are not in this sample. The current system defines this file name, sheet and columns in code, but the downloaded file has not been verified. No file is created in this sample.</p>';
       openDialog('#j15-export-dialog');
       btn.removeAttribute('aria-disabled');
       btn.innerHTML = '<span aria-hidden="true">⤓</span> Export';
-      announce(`Export preview opened: ${rows.length} rows. No file is created in this review.`);
+      announce(`Export preview opened: ${rows.length} rows. No file is created in this sample.`);
     }, 450);
   }
 
@@ -12301,7 +13315,7 @@ const k1Focus = (() => {
     host.innerHTML =
       '<div class="j15-head"><h2 id="j15-title" tabindex="-1">Custom view</h2>' +
       `<span class="j15-context">${esc(c.desc)} · ${fmt(parse(c.from))} – ${fmt(parse(c.to))} ${parse(c.to).getFullYear()} · ${c.dates.length} date${c.dates.length === 1 ? '' : 's'}</span></div>` +
-      '<p class="j15-note-line">Review preview — this simplified grid stands in for the Diary\'s timeslot grid. Date navigation and the Stack/Column switch are hidden, as today. The view is not saved.</p>' +
+      '<p class="j15-note-line">Preview — this simplified grid stands in for the Diary\'s timeslot grid. Date navigation and the Stack/Column switch are hidden, as today. The view is not saved.</p>' +
       '<div class="j15-toolbar"><button type="button" class="j15-btn" id="j15-custom-edit">Edit custom view</button></div>' +
       (c.dates.length
         ? `<div class="j15-grid-wrap"><table class="j15-custom-grid"><thead><tr><th scope="col">Asset</th>${head}</tr></thead><tbody>${row('Hall 1')}${row('Studio 2')}</tbody></table></div>`
@@ -12348,7 +13362,7 @@ const k1Focus = (() => {
     const opts = (n, from = 1) => Array.from({ length: n }, (_, i) => `<option value="${i + from}">${i + from}</option>`).join('');
     document.body.insertAdjacentHTML('beforeend',
       '<div class="j15-backdrop" id="j15-export-dialog" hidden><div class="j15-dialog" role="dialog" aria-modal="true" aria-labelledby="j15-export-title">' +
-      '<header><div style="flex:1"><h2 id="j15-export-title">Export preview — Agenda to Excel</h2><p>No file is created in this review.</p></div><button type="button" class="j15-x" data-close aria-label="Close export preview">×</button></header>' +
+      '<header><div style="flex:1"><h2 id="j15-export-title">Export preview — Agenda to Excel</h2><p>No file is created in this sample.</p></div><button type="button" class="j15-x" data-close aria-label="Close export preview">×</button></header>' +
       '<div class="j15-body" id="j15-export-body"></div><footer><button type="button" class="j15-btn j15-btn-primary" data-close data-autofocus>Close</button></footer></div></div>' +
       '<div class="j15-backdrop" id="j15-custom-dialog" hidden><div class="j15-dialog narrow" role="dialog" aria-modal="true" aria-labelledby="j15-custom-title">' +
       '<header><div style="flex:1"><h2 id="j15-custom-title">Custom view with Weekly pattern</h2><p>Choose dates and a repeat pattern. The Diary shows only the matching days.</p></div><button type="button" class="j15-x" data-close aria-label="Close custom view">×</button></header>' +
@@ -12356,14 +13370,14 @@ const k1Focus = (() => {
       '<div class="j15-block"><span class="j15-label">View type</span><div class="j15-row">' +
       '<label class="j15-muted"><input type="radio" name="j15-main" value="create" checked disabled> Create Custom View</label>' +
       '<label class="j15-muted"><input type="radio" name="j15-main" value="bookedDays" disabled> Show Booked Days Only</label></div>' +
-      '<p class="j15-hint">The current system shows this choice only while a booking selection is in progress in the Diary, with a package filter when the selection spans two or more packages. There is no selection on this review page, so it is not available here.</p></div>' +
+      '<p class="j15-hint">The current system shows this choice only while a booking selection is in progress in the Diary, with a package filter when the selection spans two or more packages. There is no selection on this page, so it is not available here.</p></div>' +
       '<div class="j15-block"><span class="j15-label">Date range</span><div class="j15-row"><label>From <input type="date" id="j15-from" value="2026-08-01" data-autofocus></label><label>To <input type="date" id="j15-to" value="2026-08-31"></label></div></div>' +
       '<div class="j15-block"><span class="j15-label">Pattern</span><div class="j15-row"><label><input type="radio" name="j15-pattern" value="weekly" checked> Weekly</label><label><input type="radio" name="j15-pattern" value="monthly"> Monthly</label></div></div>' +
       `<div class="j15-block j15-weekly-only"><span class="j15-label">Weekly</span><div class="j15-row"><label>Repeat every <select id="j15-repeat">${opts(6)}</select> week(s) on</label><button type="button" class="j15-btn" id="j15-all-days">Select all days</button></div><div class="j15-days">${dayBoxes}</div></div>` +
       `<div class="j15-block j15-monthly-only" hidden><span class="j15-label">Monthly</span><div class="j15-row"><label><input type="radio" name="j15-month-mode" value="day" checked> Day</label><select id="j15-month-day" aria-label="Day of month">${opts(31)}</select><label>of every <select id="j15-month-every">${opts(3)}</select> month(s)</label></div>` +
       '<div class="j15-row" style="margin-top:8px"><label><input type="radio" name="j15-month-mode" value="the"> The</label><select id="j15-ordinal" aria-label="Which week"><option value="first">First</option><option value="second">Second</option><option value="third">Third</option><option value="fourth">Fourth</option><option value="last">Last</option></select>' +
       `<select id="j15-weekday" aria-label="Weekday">${DAY_NAMES.map((n, i) => `<option value="${i}">${n}</option>`).join('')}</select><label>of every <select id="j15-month-every2">${opts(3)}</select> month(s)</label></div></div>` +
-      '<div class="j15-block"><div class="j15-row"><label class="j15-muted"><input type="checkbox" id="j15-save-view" disabled> Save this View</label><span class="j15-muted">Not saved in this review. Saving a view is a settings behaviour (UJ-16) and is an open decision.</span></div></div>' +
+      '<div class="j15-block"><div class="j15-row"><label class="j15-muted"><input type="checkbox" id="j15-save-view" disabled> Save this View</label><span class="j15-muted">Not saved in this sample.</span></div></div>' +
       '<div id="j15-custom-errors" role="alert" aria-live="assertive"></div></form></div>' +
       '<footer><button type="button" class="j15-btn" data-close>Cancel</button><button type="button" class="j15-btn j15-btn-primary" id="j15-custom-apply" disabled>Apply</button></footer></div></div>' +
       '<aside class="j15-guide" id="j15-guide" aria-label="Mockup guide (review aid, not Product)"><div class="j15-guide-head"><strong>Journey 15 v2 · not product</strong>' +
@@ -12388,7 +13402,7 @@ const k1Focus = (() => {
     if (!state.ready) return;
     const t = event.target;
     const vb = t.closest('.view-switch .view-btn[data-view]');
-    if (vb && vb.dataset.view === 'agenda') { event.preventDefault(); event.stopImmediatePropagation(); closePanels(); if (window.__unifiedToWeek) window.__unifiedToWeek(); setView('agenda'); announce('Agenda view. Review fixture.'); return; }
+    if (vb && vb.dataset.view === 'agenda') { event.preventDefault(); event.stopImmediatePropagation(); closePanels(); if (window.__unifiedToWeek) window.__unifiedToWeek(); setView('agenda'); announce('Agenda view. Sample data.'); return; }
     if (vb && vb.dataset.view === 'custom') { event.preventDefault(); event.stopImmediatePropagation(); closePanels(); if (window.__unifiedToWeek) window.__unifiedToWeek(); openCustom(vb); return; }
     if (vb && (vb.dataset.view === 'day' || vb.dataset.view === 'workweek' || vb.dataset.view === 'month') && state.view !== 'week') { state.view = 'week'; delete document.body.dataset.j15View; render(); return; }   // unified build, slice 1: Day / Work Week leave Agenda/Custom for the in-place calendar (the shared handler marks and announces the view)
     if (vb && vb.dataset.view === 'week' && state.view !== 'week') { setView('week'); announce('Week view.'); return; }
@@ -12481,12 +13495,12 @@ const k1Focus = (() => {
     if ($('#j16-settings-dialog')) return;
     document.body.insertAdjacentHTML('beforeend',
       '<div class="j16-backdrop" id="j16-settings-dialog" hidden><div class="j16-dialog" role="dialog" aria-modal="true" aria-labelledby="j16-settings-title">' +
-      '<header><div style="flex:1"><h2 id="j16-settings-title">Diary settings</h2><p>Proposed Journey 16 surface — review only, nothing is saved.</p></div><button type="button" class="j16-x" data-j16-close aria-label="Close settings">×</button></header>' +
+      '<header><div style="flex:1"><h2 id="j16-settings-title">Diary settings</h2><p>Nothing is saved in this sample.</p></div><button type="button" class="j16-x" data-j16-close aria-label="Close settings">×</button></header>' +
       '<div class="j16-body"><form onsubmit="return false">' +
       '<div class="j16-block"><span class="j16-label">Default date behaviour</span><div class="j16-row">' +
       '<label><input type="radio" name="j16-datebehaviour" value="today" checked data-autofocus> Today (current system default)</label>' +
       '<label><input type="radio" name="j16-datebehaviour" value="remember"> Remember last view</label></div>' +
-      '<p class="j16-hint">From the current system\'s DiarySettings defaultDateBehavior offers these two values (today is the default). Every combination is unverified (SETTINGS-01).</p></div>' +
+      '<p class="j16-hint">These two values come from the current system (today is the default). No combination is confirmed yet.</p></div>' +
       '<div class="j16-block"><span class="j16-label">Timeslot colours</span><div class="j16-row">' +
       '<label><input type="checkbox" id="j16-colours" checked> Show timeslot colours in the calendar</label></div>' +
       '<p class="j16-hint">The current system loads colour options at startup (selected reads confirmed). Proposed as a settings toggle.</p></div>' +
@@ -12494,7 +13508,7 @@ const k1Focus = (() => {
       '<div class="j16-row"><span class="j16-muted">Example: Agenda requires right <b>959</b> · shown as a label, nothing is enforced · the intended UI/API right matrix is RIGHTS-01 (open).</span></div></div>' +
       '<div class="j16-block"><span class="j16-label">Outlook and SignalR</span>' +
       '<p class="j16-hint">Outlook: no verifiable runtime outcome exists — excluded. SignalR: connection and one send are confirmed in the evidence, but collaboration, reconnect and topology are unverified, so no prototype behaviour is proposed. (DEC-J16-05)</p></div>' +
-      '<p class="j16-hint"><b>Not persisted:</b> the prototype stores nothing. Whether settings persist (session-only vs storage) is DEC-J16-02 — open.</p>' +
+      '<p class="j16-hint"><b>Not saved:</b> this sample stores nothing. Whether settings are saved is still to be decided.</p>' +
       '</form></div>' +
       '<footer><button type="button" class="j16-btn" data-j16-close>Cancel</button><button type="button" class="j16-btn j16-btn-primary" id="j16-save">Save</button></footer></div></div>' +
       '<aside class="j16-guide" id="j16-guide" aria-label="Journey 16 review guide (review aid, not Product)"><div class="j16-guide-head"><strong>Journey 16 review · not product</strong>' +
@@ -12528,7 +13542,7 @@ const k1Focus = (() => {
     state.trigger = trigger || $('#j16-settings-entry') || $('.view-switch .view-btn[data-view="agenda"]');
     const open = $('#j16-settings-dialog') && !$('#j16-settings-dialog').hidden;
     if (!open) state.prevTitle = document.title;
-    document.title = 'Optimo Diary — Journey 16 settings candidate';
+    document.title = 'Optimo Diary — Settings';
     if (!$('#j16-settings-dialog')) build();
     const d = $('#j16-settings-dialog');
     if (!open) {   // KA2 (23 Oct 2026, L-29): Cancel, × and Escape discard an unsaved change — the dialog opens on the last saved choices
@@ -12564,7 +13578,7 @@ const k1Focus = (() => {
     if (t.closest('#j16-save')) {
       event.preventDefault();
       state.saved = { date: $('input[name="j16-datebehaviour"]:checked')?.value || 'today', colours: !!$('#j16-colours')?.checked };   // KA2 (23 Oct 2026, L-29): kept for the next opening (nothing persists beyond this page)
-      announce('Settings review saved — nothing persists in this review (DEC-J16-02 open).');
+      announce('Settings applied — nothing is saved in this sample.');
       closeSettings(true);
       return;
     }
