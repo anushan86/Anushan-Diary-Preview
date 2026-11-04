@@ -10469,7 +10469,7 @@ const k1Focus = (() => {
       if (c.pattern === 'monthly' && c.monthly === 'day') { if (!whole(c.monthDay) || c.monthDay > 31) issues.push('Day must be between 1 and 31.'); if (!whole(c.monthN1)) issues.push('Enter a whole number of months.'); }
       if (c.pattern === 'monthly' && c.monthly === 'ordinal' && !whole(c.monthN2)) issues.push('Enter a whole number of months.');
       if (c.pattern === 'yearly') { if (!whole(c.yearN)) issues.push('Enter a whole number of years.'); if (c.yearly === 'date' && (!whole(c.yearDay) || c.yearDay > lastDay(2000, c.yearMonth))) issues.push('That day is not in the chosen month.'); }
-      if (c.range === 'after' && (!whole(c.count) || c.count > MAX_DATES)) issues.push(`End after must be between 1 and ${MAX_DATES} occurrences in this sample.`);
+      if (c.range === 'after' && (!whole(c.count) || c.count < 2 || c.count > MAX_DATES)) issues.push(`End after must be between 2 and ${MAX_DATES} occurrences in this sample.`);
       if (c.range === 'by' && (!c.end || (c.start && c.end < c.start))) issues.push('End by must be on or after the start date.');
       return issues;
     };
@@ -10540,6 +10540,18 @@ const k1Focus = (() => {
       if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', '');
       window.setTimeout(() => (document.querySelector('input[name="j9-pattern"]:checked') || form).focus(), 0);
     };
+    // Step b14 (4 Nov 2026): Extend series. The form returns to the applied rule; only the end stays open; Cancel leaves the series as it was.
+    let extending = false;
+    const snapForm = () => Array.from(form.elements).filter((e) => e.name || e.id).map((e) => [e, (e.type === 'radio' || e.type === 'checkbox') ? e.checked : e.value]);
+    const putForm = (snap) => snap.forEach(([e, v]) => { if (e.type === 'radio' || e.type === 'checkbox') e.checked = v; else e.value = v; });
+    const extendLocked = () => { const keep = radio('j9-range'); return [...form.querySelectorAll('#j9-pattern-fieldset input, .j9-rule input, .j9-rule select, #j9-start-date'), ...form.querySelectorAll(`input[name="j9-range"]:not([value="${keep}"])`)]; };
+    const unlockExtend = () => { if (!extending) return; extending = false; form.querySelectorAll('#j9-pattern-fieldset input, .j9-rule input, .j9-rule select, #j9-start-date, input[name="j9-range"]').forEach((e) => { e.disabled = false; }); sync(); };
+    const openExtend = (trigger) => {
+      putForm(series.snap); extending = true; extendLocked().forEach((e) => { e.disabled = true; });
+      open(trigger);
+      announceLive(`Extend series. Choose an end later than the current ${series.generated.length} occurrences.`);
+      window.setTimeout(() => { const f = radio('j9-range') === 'after' ? $('#j9-occurrences') : $('#j9-end-date'); f.focus(); if (f.select) f.select(); }, 0);
+    };
     const ICON = {
       sync: '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12 4V1L8 5l4 4V6a6 6 0 0 1 6 6 6 6 0 0 1-.7 2.8l1.5 1.5A8 8 0 0 0 20 12a8 8 0 0 0-8-8zm0 14a6 6 0 0 1-6-6c0-1 .2-2 .7-2.8L5.2 7.7A8 8 0 0 0 4 12a8 8 0 0 0 8 8v3l4-4-4-4v3z"/></svg>',
       eye: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 5C7 5 2.7 8.1 1 12c1.7 3.9 6 7 11 7s9.3-3.1 11-7c-1.7-3.9-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>',
@@ -10574,7 +10586,7 @@ const k1Focus = (() => {
           <ol class="j9-occ-list">${shown.map((r) => `<li class="is-${r.status}"><span class="j9-occ-main"><span class="j9-occ-date">${series.rows.indexOf(r) + 1}. ${shortDate(r.date)}</span><span class="j9-occ-status"><span class="j9-mark" aria-hidden="true">${STATUS_MARK[r.status]}</span>${r.text}</span></span><span class="j9-occ-actions"><button type="button" class="j9-icon" data-j9-act="show" data-date="${r.date}" title="Show in Diary" aria-label="Show ${shortDate(r.date)} in Diary">${ICON.eye}</button><button type="button" class="j9-icon j9-icon-remove" data-j9-act="remove" data-date="${r.date}" title="Remove this date" aria-label="Remove ${shortDate(r.date)}">${ICON.remove}</button></span></li>`).join('')}</ol>
           <button type="button" class="j9-delete-conflicts" data-j9-act="delete"${conflicts.length ? '' : ' disabled'}>${ICON.trash}<span>Delete All Conflicting Dates (${conflicts.length})</span></button>
         </div>
-        <div class="j9-series-foot"><button type="button" class="j9-link" data-j9-act="change">Change recurrence</button><button type="button" class="j9-link" data-j9-act="clear">Remove series</button></div>
+        <div class="j9-series-foot"><button type="button" class="j9-link" data-j9-act="extend">Extend series</button><button type="button" class="j9-link" data-j9-act="change">Change recurrence</button><button type="button" class="j9-link" data-j9-act="clear">Remove series</button></div>
         <p class="j9-note">In the Cart as one series. Not booked, and no price in this sample. Simulated data.</p>
       </div>`;
       if (j9PaintSeries) j9PaintSeries();
@@ -10613,6 +10625,7 @@ const k1Focus = (() => {
       const act = b.dataset.j9Act, k = b.dataset.date;
       if (act === 'toggle') { series.open = !series.open; renderSeries(); $('[data-j9-act="toggle"]')?.focus(); return; }
       if (act === 'show') { showInDiary(k); return; }
+      if (act === 'extend') { openExtend(b); return; }
       if (act === 'change') { open(b); return; }
       if (act === 'clear') { const m = series.rows.length; askRemoval(b, 'Remove this series?', `${m === 1 ? 'The date leaves' : `All ${m} dates leave`} the Cart. It does not delete a saved booking.`, 'Remove', () => { series = null; renderSeries(); openButton.focus(); announceLive('Recurring series removed from the Cart.'); }); return; }
       if (act === 'remove') { askRemoval(b, 'Remove this date?', `${shortDate(k)} leaves the series. It does not delete a saved booking.`, 'Remove', () => {
@@ -10637,29 +10650,38 @@ const k1Focus = (() => {
     form.addEventListener('change', sync);
     form.addEventListener('submit', (event) => {
       event.preventDefault();
-      const c = readConfig(), issues = validate(c);
+      const c = extending ? { ...series.config, range: radio('j9-range'), count: num('#j9-occurrences'), end: $('#j9-end-date').value } : readConfig(), issues = validate(c);
+      if (extending && !issues.length) {
+        const base = series.generated, last = base[base.length - 1];
+        if (c.range === 'after' && c.count <= base.length) issues.push(`End after must be more than ${base.length} to extend this series.`);
+        if (c.range === 'by' && c.end <= last) issues.push(`End by must be after ${shortDate(last)} to extend this series.`);
+      }
       if (issues.length) { errors.textContent = issues.join(' '); return; }
       const dates = generate(c);
       if (!dates.length) { errors.textContent = 'No dates match this pattern before the end date.'; return; }
+      if (dates.length < 2) { errors.textContent = 'A series needs more than one date.'; return; }
+      const fresh = extending ? dates.filter((k) => !series.generated.includes(k)) : dates;
+      if (!fresh.length) { errors.textContent = 'No new dates match this pattern before that end date.'; return; }
+      const snap = snapForm(), keepRows = extending ? series.rows : [];
       errors.textContent = '';
       if (document.activeElement === applyButton || document.activeElement === document.body) { summaryEl.setAttribute('tabindex', '-1'); summaryEl.focus({ preventScroll: true }); }   // A11Y-INH-01: Apply is disabled during the check; focus stays in the window
       applyButton.disabled = true; applyButton.textContent = 'Checking availability…';
       announceLive('Checking availability for each date.');
       timer = window.setTimeout(() => {
         timer = null; applyButton.disabled = false; applyButton.textContent = 'Apply';
-        series = { config: c, rows: dates.map(checkDate), onlyConflicts: false, open: true };
+        series = { config: c, rows: keepRows.concat(fresh.map(checkDate)), generated: dates, snap, onlyConflicts: false, open: true };
         renderSeries();
         lastDialogTrigger = $('#j9-series-title');
         dialog.close('apply');
         const n = conflictsOf().length;
-        announceLive(`${dates.length} dates added to the Cart as one series. ${n ? `${n} with a conflict.` : 'All available.'}`);
+        announceLive(`${fresh.length} dates added to the Cart as one series. ${n ? `${n} with a conflict.` : 'All available.'}`);
       }, 450);
     });
     openButton.addEventListener('click', () => open(openButton));
     closeButton.addEventListener('click', close);
     cancelButton.addEventListener('click', close);
     dialog.addEventListener('cancel', (event) => { event.preventDefault(); close(); });
-    dialog.addEventListener('close', () => { cancelPending(); restoreFocus(); });
+    dialog.addEventListener('close', () => { cancelPending(); unlockExtend(); restoreFocus(); });
     createSelection('hall1', '2026-08-29', 2, 4);
     presetFromSelection();
     $('#j9-review-launch').hidden = false;
@@ -13504,6 +13526,27 @@ const k1Focus = (() => {
       '<div class="j16-block"><span class="j16-label">Timeslot colours</span><div class="j16-row">' +
       '<label><input type="checkbox" id="j16-colours" checked> Show timeslot colours in the calendar</label></div>' +
       '<p class="j16-hint">The current system loads colour options at startup (selected reads confirmed). Proposed as a settings toggle.</p></div>' +
+      '<div class="j16-block"><span class="j16-label" id="j16-max-label">Maximum number of existing timeslots per asset</span><div class="j16-row"><input class="j16-num" type="number" min="0" step="1" value="2" id="j16-max-slots" data-j16-opt="j16-max-slots" aria-labelledby="j16-max-label"></div></div>' +
+      '<div class="j16-block"><span class="j16-label" id="j16-order-label">Asset panel order</span><div class="j16-row" role="radiogroup" aria-labelledby="j16-order-label">' +
+      '<label><input type="radio" name="j16-order" value="venue" data-j16-opt="j16-order" checked> Venue &gt; Category &gt; Asset</label>' +
+      '<label><input type="radio" name="j16-order" value="category" data-j16-opt="j16-order"> Category &gt; Venue &gt; Asset</label>' +
+      '<label><input type="radio" name="j16-order" value="expand" data-j16-opt="j16-order"> Venue &gt; Auto Expand All Assets</label></div></div>' +
+      '<div class="j16-block"><span class="j16-label" id="j16-text-label">Show Event/Customer Name on the timeslots</span><div class="j16-row" role="radiogroup" aria-labelledby="j16-text-label">' +
+      '<label><input type="radio" name="j16-text" value="event" data-j16-opt="j16-text" checked> Event Name</label>' +
+      '<label><input type="radio" name="j16-text" value="customer" data-j16-opt="j16-text"> Customer Name</label></div></div>' +
+      '<div class="j16-block"><span class="j16-label">Display</span><div class="j16-row">' +
+      '<label><input type="checkbox" id="j16-24h" data-j16-opt="j16-24h" checked> 24 Hour View</label>' +
+      '<label><input type="checkbox" id="j16-expand" data-j16-opt="j16-expand"> Keep multiple assets expanded</label>' +
+      '<label><input type="checkbox" id="j16-notify" data-j16-opt="j16-notify" checked> Timeslot Visual Notification</label>' +
+      '<label><input type="checkbox" id="j16-tax" data-j16-opt="j16-tax" checked> Show prices with tax</label>' +
+      '<label><input type="checkbox" id="j16-area" data-j16-opt="j16-area"> Business Area</label>' +
+      '</div></div>' +
+      '<div class="j16-block"><span class="j16-label">Time segmentation</span><div class="j16-row">' +
+      '<label>Day view <select id="j16-seg-day" data-j16-opt="j16-seg-day" data-j16-seg><option>10 mins</option><option>15 mins</option><option selected>30 mins</option><option>1 hour</option><option>2 hours</option><option>4 hours</option></select></label>' +
+      '<label>Week / Work Week view <select id="j16-seg-week" data-j16-opt="j16-seg-week" data-j16-seg><option selected>4 hours</option><option>6 hours</option><option>8 hours</option><option>12 hours</option></select></label>' +
+      '<label>Month view <select id="j16-seg-month" data-j16-opt="j16-seg-month" data-j16-seg><option>12 hours</option><option selected>24 hours</option></select></label>' +
+      '</div><p class="j16-hint" id="j16-seg-hint">Available when 24 Hour View is off.</p></div>' +
+      '<div class="j16-block"><p class="j16-hint">Except timeslot colours, these choices do not change the sample calendar.</p></div>' +
       '<div class="j16-block"><span class="j16-label">Rights displays (proposed — display only)</span>' +
       '<div class="j16-row"><span class="j16-muted">Example: Agenda requires right <b>959</b> · shown as a label, nothing is enforced · the intended UI/API right matrix is RIGHTS-01 (open).</span></div></div>' +
       '<div class="j16-block"><span class="j16-label">Outlook and SignalR</span>' +
@@ -13538,6 +13581,11 @@ const k1Focus = (() => {
     if (j15 && window.ResizeObserver && !state.guideRO) { state.guideRO = new ResizeObserver(placeGuide); state.guideRO.observe(j15); }
   }
 
+  // Step b14 (4 Nov 2026): the existing system's settings; kept for the next opening, like the date choice. 24 Hour View turns time segmentation off, as settings.component.html:60 does.
+  const j16Key = (n) => (n.type === 'radio' ? `${n.dataset.j16Opt}:${n.value}` : n.dataset.j16Opt);
+  function j16Read(d) { const v = {}; d.querySelectorAll('[data-j16-opt]').forEach((n) => { v[j16Key(n)] = (n.type === 'radio' || n.type === 'checkbox') ? n.checked : n.value; }); return v; }
+  function j16Sync(d) { const on = d.querySelector('#j16-24h')?.checked; d.querySelectorAll('[data-j16-seg]').forEach((s) => { s.disabled = !!on; }); const h = d.querySelector('#j16-seg-hint'); if (h) h.hidden = !on; }
+  function j16Write(d, v) { if (v) d.querySelectorAll('[data-j16-opt]').forEach((n) => { const x = v[j16Key(n)]; if (x === undefined) return; if (n.type === 'radio' || n.type === 'checkbox') n.checked = x; else n.value = x; }); j16Sync(d); }
   function openSettings(trigger) {
     state.trigger = trigger || $('#j16-settings-entry') || $('.view-switch .view-btn[data-view="agenda"]');
     const open = $('#j16-settings-dialog') && !$('#j16-settings-dialog').hidden;
@@ -13545,15 +13593,17 @@ const k1Focus = (() => {
     document.title = 'Optimo Diary — Settings';
     if (!$('#j16-settings-dialog')) build();
     const d = $('#j16-settings-dialog');
+    if (!d.dataset.j16Wired) { d.dataset.j16Wired = '1'; d.addEventListener('change', () => j16Sync(d)); if (!state.saved.opts) state.saved.opts = j16Read(d); }
     if (!open) {   // KA2 (23 Oct 2026, L-29): Cancel, × and Escape discard an unsaved change — the dialog opens on the last saved choices
       const saved = d.querySelector(`input[name="j16-datebehaviour"][value="${state.saved.date}"]`); if (saved) saved.checked = true;
       const colours = d.querySelector('#j16-colours'); if (colours) colours.checked = state.saved.colours;
+      j16Write(d, state.saved.opts);
     }
     d.hidden = false;
     const app = $('#app-shell'); if (app) app.inert = true;
     const g = $('#j16-guide'); if (g) g.inert = true;
     // KA1 (22 Oct 2026, L-25): the dialog starts on its selected option ("Today" unless another was saved), not on "Save" — the first key press
-    // or a held Enter no longer saves before any choice; "Save" is three Tabs away. A marked radio stands for its group, as Tab does: v2 — after
+    // or a held Enter no longer saves before any choice; "Save" comes after the settings. A marked radio stands for its group, as Tab does: v2 — after
     // a saved choice the dialog reopens on that choice, not on an unselected "Today".
     const auto = d.querySelector('[data-autofocus]');
     const first = auto?.type === 'radio' ? (d.querySelector(`input[name="${auto.name}"]:checked`) || auto) : auto;
@@ -13577,7 +13627,7 @@ const k1Focus = (() => {
     if (t.closest('[data-j16-close]')) { event.preventDefault(); closeSettings(true); return; }
     if (t.closest('#j16-save')) {
       event.preventDefault();
-      state.saved = { date: $('input[name="j16-datebehaviour"]:checked')?.value || 'today', colours: !!$('#j16-colours')?.checked };   // KA2 (23 Oct 2026, L-29): kept for the next opening (nothing persists beyond this page)
+      state.saved = { date: $('input[name="j16-datebehaviour"]:checked')?.value || 'today', colours: !!$('#j16-colours')?.checked, opts: j16Read($('#j16-settings-dialog')) };   // KA2 (23 Oct 2026, L-29): kept for the next opening (nothing persists beyond this page)
       announce('Settings applied — nothing is saved in this sample.');
       closeSettings(true);
       return;
@@ -13595,7 +13645,7 @@ const k1Focus = (() => {
     if (!d || d.hidden) return;
     if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); closeSettings(true); return; }
     if (event.key === 'Tab') {
-      const f = $$('button:not([disabled]), input:not([disabled])', d).filter((x) => !x.closest('[hidden]'));
+      const f = $$('button:not([disabled]), input:not([disabled]), select:not([disabled])', d).filter((x) => !x.closest('[hidden]'));
       if (!f.length) return;
       if (event.shiftKey && document.activeElement === f[0]) { event.preventDefault(); f[f.length - 1].focus(); }
       else if (!event.shiftKey && document.activeElement === f[f.length - 1]) { event.preventDefault(); f[0].focus(); }
