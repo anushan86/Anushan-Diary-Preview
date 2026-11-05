@@ -5993,6 +5993,74 @@ const k1Focus = (() => {
     location.assign(location.pathname + '?journey=' + (target === 'maintenance' ? 10 : home));
   }
   window.__unifiedSwitch = unifiedSwitchWorkspace;
+  // Step b15: Recurring from a new selection. The selection goes to the Journey 9 dialog; the Cart, week and assets wait in the same context as the Booking / Maintenance switch. Without a carried selection Journey 9 is as it was.
+  const J9_CARRY = 'optimoJ9.carry.v1';
+  const J9_CARRY_ROUTES = ['1', '4', '7'];
+  function j9CarryAvailable() {
+    return J9_CARRY_ROUTES.includes(document.body.dataset.journey) && !!stagedSelection && !editingLineId && !playJourneyActive && (stagedSelection.endDate || stagedSelection.date) === stagedSelection.date;
+  }
+  function j9CarryGo() {
+    if (!j9CarryAvailable()) return;
+    const s = { ...stagedSelection };
+    const ctx = { at: Date.now(), from: UNIFIED_KEY, target: 'booking', bookingHome: UNIFIED_KEY, home: { assets: [...selectedAssets], cart: cartLines, layout: slotLayout, staged: s }, week: weekStart.getTime(), view: sharedView,
+      day: sharedDay ? sharedDay.getTime() : null, month: sharedMonth ? sharedMonth.getTime() : null, assets: [...selectedAssets] };
+    try {
+      sessionStorage.setItem(UNIFIED_CTX, JSON.stringify(ctx));
+      sessionStorage.setItem(J9_CARRY, JSON.stringify({ at: Date.now(), from: UNIFIED_KEY, s }));
+    } catch (e) { showToast('Recurring could not open from here.'); return; }
+    location.assign(location.pathname + '?journey=9');
+  }
+  // Step b15: Add all in a category, on a new selection. Each other asset of the category gets the same time as its own Cart line; one that is not free is left out and named.
+  function j4AddAllName() {
+    if (!stagedSelection || !['1', '4'].includes(document.body.dataset.journey) || editingLineId || playJourneyActive || (stagedSelection.endDate || stagedSelection.date) !== stagedSelection.date) return '';
+    const a = ASSETS.find((x) => x.id === stagedSelection.asset);
+    return a && ASSETS.some((x) => x.category === a.category && x.id !== a.id) ? a.category : '';
+  }
+  function j4AddAllInCategory() {
+    const category = j4AddAllName(); if (!category) return;
+    const s = stagedSelection, at = (h, m) => h * 60 + (m || 0), from = at(s.startH, s.startM), to = at(s.endH, s.endM);
+    const slot = (m) => (m - HOUR_START * 60) / 30;
+    const taken = (id) => EVENTS.some((ev) => ev.asset === id && ev.date === s.date && isOccupiedEvent(ev) && (ev.allDay || (from < ev.end * 60 && to > ev.start * 60)))
+      || cartLines.some((l) => l.asset === id && l.date === s.date && from < at(l.endH, l.endM) && to > at(l.startH, l.startM));
+    const others = ASSETS.filter((x) => x.category === category && x.id !== s.asset);
+    const free = others.filter((x) => !taken(x.id)), left = others.filter((x) => taken(x.id));
+    if (!free.length) { showToast(`${left.map((x) => x.name).join(', ')} ${left.length === 1 ? 'is' : 'are'} not free at this time. Nothing else was added.`); return; }
+    const stamp = Date.now(), first = addToCart(true);
+    if (!first) { stagedSelection = s; return; }
+    first.id = `${first.id}-0`;
+    free.forEach((x, i) => {
+      stagedSelection = { ...selectionFromSlots(x.id, s.date, slot(from), slot(to)) };
+      const line = addToCart(true);
+      if (line) { line.id = `line-${stamp}-${i + 1}`; line.configuration = (CONFIGURATIONS[x.id] || [])[0] || line.configuration; selectedAssets.add(x.id); }
+    });
+    stagedSelection = null;
+    setPhase('cart');
+    setStage('l');
+    renderAssetTree();
+    updateCartUI();
+    renderCalendar();
+    const names = [ASSETS.find((x) => x.id === s.asset).name, ...free.map((x) => x.name)].join(', ');
+    showToast(`Added to cart: ${names} — booking is not saved${left.length ? `. ${left.map((x) => x.name).join(', ')} not free at this time.` : ''}`);
+    $('#cart-primary-action')?.focus();
+  }
+  function j4AddAllSync() {
+    if (!['1', '4'].includes(document.body.dataset.journey)) return;
+    let b = $('#j4-add-all');
+    if (!b) {
+      b = document.createElement('button');
+      b.type = 'button'; b.id = 'j4-add-all'; b.className = 'btn-secondary j4-add-all';
+      $('#j9-review-launch').appendChild(b);
+      b.addEventListener('click', j4AddAllInCategory);
+    }
+    const name = j4AddAllName();
+    b.hidden = !name;
+    if (name) b.textContent = `Add all in ${name}`;
+  }
+  function j9CarryTake() {   // read once: a reload of Journey 9 is the plain Journey 9
+    let c = null;
+    try { c = JSON.parse(sessionStorage.getItem(J9_CARRY) || 'null'); sessionStorage.removeItem(J9_CARRY); } catch (e) { return null; }
+    return c && c.s && Date.now() - c.at < 30 * 60000 ? c : null;
+  }
   let unifiedPending = null;   // the carried context until the journey's own boot has run (a boot reset gets it once more; then it is settled)
   function unifiedApplyState(ctx) {   // returns what was carried, so the message says only that
     weekStart = new Date(ctx.week);
@@ -6024,6 +6092,8 @@ const k1Focus = (() => {
   function unifiedShowRestored(msg) {   // after the journey's boot: the carried view's button pressed, the Cart drawn, the message shown and announced
     if (sharedView !== 'week') $$('.view-switch .view-btn').forEach((b) => { const on = b.dataset.view === sharedView; b.classList.toggle('is-active', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
     if (cartLines.length) { renderCartLines(); updateCartUI(); }
+    const staged = unifiedReadCtx()?.home?.staged;   // step b15: the selection Recurring carried comes back as it was
+    if (staged && ASSETS.some((a) => a.id === staged.asset)) { stagedSelection = { ...staged }; setPhase('configure'); setStage('e'); updateCartUI(); renderCalendar(); }
     showToast(msg);   // the toast region is the page's polite status region: one announcement (Supervisor review, 3:59 PM: the extra live-region copy announced it twice)
   }
   function sharedRangeLabel() {
@@ -6915,6 +6985,7 @@ const k1Focus = (() => {
 
     $('#cart-empty-guidance').hidden = hasSelection || count > 0 || phase !== 'select';
     $('#cart-current-selection').hidden = !hasSelection || phase === 'unavailable';
+    if (J9_CARRY_ROUTES.includes(document.body.dataset.journey)) { $('#j9-review-launch').hidden = !j9CarryAvailable(); j4AddAllSync(); }   // step b15
     $('#cart-added-items').hidden = count === 0;
     $('#cart-hint').hidden = hasSelection || count === 0;
     $('#cart-amount-context').hidden = count === 0 && !hasSelection;
@@ -10451,7 +10522,8 @@ const k1Focus = (() => {
       const diff = (dow - new Date(y, m, 1, 12).getDay() + 7) % 7, day = 1 + diff + (ord - 1) * 7;
       return day <= lastDay(y, m) ? new Date(y, m, day, 12) : null;
     };
-    const assetInfo = () => ({ name: 'Hall 1', venue: 'Northside Leisure Centre' });
+    const carried = j9CarryTake();   // step b15: the selection Recurring brought from Journey 1, 4 or 7
+    const assetInfo = () => { const a = carried && ASSETS.find((x) => x.id === stagedSelection.asset); return a ? { name: a.name, venue: a.venue } : { name: 'Hall 1', venue: 'Northside Leisure Centre' }; };
     const timeText = () => { const s = stagedSelection; return `${pad(s.startH)}:${pad(s.startM)}–${pad(s.endH)}:${pad(s.endM)}`; };
     const readConfig = () => ({
       pattern: radio('j9-pattern'), daily: radio('j9-daily'), dailyN: num('#j9-daily-n'), weeklyN: num('#j9-weekly-n'),
@@ -10682,14 +10754,33 @@ const k1Focus = (() => {
     cancelButton.addEventListener('click', close);
     dialog.addEventListener('cancel', (event) => { event.preventDefault(); close(); });
     dialog.addEventListener('close', () => { cancelPending(); unlockExtend(); restoreFocus(); });
-    createSelection('hall1', '2026-08-29', 2, 4);
+    const carryBack = () => location.assign(location.pathname + '?journey=' + carried.from);
+    if (carried) {
+      const c = carried.s, d = parse(c.date), slot = (h, m) => (h * 60 + (m || 0) - HOUR_START * 60) / 30;
+      d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); d.setHours(0, 0, 0, 0); weekStart = d;
+      selectedAssets.add(c.asset);
+      createSelection(c.asset, c.date, slot(c.startH, c.startM), slot(c.endH, c.endM));
+    } else createSelection('hall1', '2026-08-29', 2, 4);
     presetFromSelection();
     $('#j9-review-launch').hidden = false;
     renderSeries();
+    if (carried) {   // Cancel with no series goes straight back; with a series, Back asks first, because a series does not travel
+      const back = document.createElement('button');
+      back.type = 'button'; back.className = 'btn-secondary j9-carry-back'; back.id = 'j9-carry-back'; back.textContent = `Back to Journey ${carried.from}`;
+      $('#j9-review-launch').appendChild(back);
+      back.addEventListener('click', () => {
+        if (!series) { carryBack(); return; }
+        const m = series.rows.length;
+        askRemoval(back, 'Leave this series?', `${m === 1 ? 'The date leaves' : `All ${m} dates leave`} the Cart. Your Journey ${carried.from} Cart, week and selection come back.`, 'Leave', carryBack);
+      });
+      dialog.addEventListener('close', () => { if (dialog.returnValue === 'cancel' && !series) carryBack(); });
+      window.setTimeout(() => open(openButton), 0);
+    }
     window.__j9Review = Object.freeze({ generate, readConfig, getRows: () => (series ? series.rows.slice() : []) });
   }
 
   function init() {
+    if (document.body.dataset.journey !== '9') $('#j9-open-review')?.addEventListener('click', j9CarryGo);   // step b15; Journey 9 wires its own
     const unifiedRestored = unifiedRestoreState();   // unified build, slice 6: the context of a Booking / Maintenance switch, before anything renders
     unifiedMountJourneyMenu();   // unified build, slice 7: the journey menu in the top bar
     const isJ9 = document.body.dataset.journey === '9';
@@ -11088,6 +11179,8 @@ const k1Focus = (() => {
       const cur = document.body.dataset.surface;
       document.body.dataset.surface = cur === 'assets' ? 'week' : 'assets';
       $('#surface-toggle').textContent = document.body.dataset.surface === 'assets' ? 'Week' : 'Assets';
+      // Step b15: on a phone an open Cart would cover the Explorer. Week does not reopen it; its handle stays.
+      if (document.body.dataset.surface === 'assets' && isNarrowViewport() && ['4', '7'].includes(document.body.dataset.journey)) setSheetExpanded(false);
     });
 
     $('#sheet-handle').addEventListener('click', () => {

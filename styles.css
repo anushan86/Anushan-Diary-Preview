@@ -9900,3 +9900,36 @@ li.is-conflict .j9-occ-status { color: #b42318; }
 .asset-info-list dt { font-weight: 600; }
 .asset-info-list dd { margin: 0; overflow-wrap: anywhere; }
 .asset-info-dialog .dialog-actions { margin-top: 16px; }
+
+/* Step b15: on phones, Assets shows the Explorer in place of the calendar on the journeys whose own layout held it back or covered it. Week brings the calendar back. */
+@media (max-width: 600px) {
+  :is(body[data-journey="4"], body[data-journey="5"], body[data-journey="6"], body[data-journey="7"], body[data-journey="12"])[data-surface="assets"] .workspace {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+  }
+  :is(body[data-journey="4"], body[data-journey="5"], body[data-journey="6"], body[data-journey="7"], body[data-journey="12"])[data-surface="assets"] .calendar-panel { display: none !important; }
+  :is(body[data-journey="4"], body[data-journey="5"], body[data-journey="6"], body[data-journey="7"], body[data-journey="12"])[data-surface="assets"] .assets-panel {
+    display: flex !important;
+    grid-column: 1;
+    grid-row: 1;
+    min-height: 0;
+    height: 100%;
+  }
+  body[data-journey="12"][data-surface="assets"] #j12-event-actions-panel { display: none !important; }
+}
+
+/* Step b15: between phone and tablet, Journeys 5 and 6 draw one column and had no way to the Explorer. */
+@media (min-width: 601px) and (max-width: 760px) {
+  :is(body[data-journey="5"], body[data-journey="6"]) .surface-toggle { display: inline-flex !important; margin-left: auto; min-height: 29px; }
+  :is(body[data-journey="5"], body[data-journey="6"])[data-surface="assets"] .calendar-panel { display: none !important; }
+  :is(body[data-journey="5"], body[data-journey="6"])[data-surface="assets"] .assets-panel { display: flex !important; grid-column: 1; grid-row: 1; min-height: 0; height: 100%; }
+  :is(body[data-journey="5"], body[data-journey="6"])[data-surface="assets"] .workspace { grid-template-rows: minmax(0, 1fr) !important; }
+}
+
+/* Step b15: Recurring from a new selection, in the Cart on Journeys 1, 4 and 7. */
+:is(body[data-journey="1"], body[data-journey="4"], body[data-journey="7"]) .j9-review-launch { margin-bottom: 10px; }
+:is(body[data-journey="1"], body[data-journey="4"], body[data-journey="7"]) .j9-review-launch #j9-open-review { min-height: 44px; }
+.j9-carry-back { justify-self: start; align-self: flex-start; min-height: 44px; }
+.j9-carry-back[hidden] { display: none !important; }
+.j4-add-all { align-self: flex-start; min-height: 44px; }
+.j4-add-all[hidden] { display: none !important; }
