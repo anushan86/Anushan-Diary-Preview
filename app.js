@@ -2084,6 +2084,17 @@ const k1Focus = (() => {
     const boundary = document.createElement('p'); boundary.className = 'j5-workflow-description j12tc-boundary'; boundary.id = 'j12tc-boundary'; boundary.setAttribute('data-d0-hide', ''); boundary.textContent = 'Local review only — nothing is saved; reload resets it.';   // L-18: the dialog's description while this line is the one on screen
     template.content.prepend(boundary); details.append(summary, content); template.content.append(details); return template.innerHTML;
   }
+  // Step b25 (L-16): the availability and preview stages fold their review notes (banner, defect note) into the setup stage's disclosure pattern.
+  function j12CompactRescheduleNotes(html) {
+    const template = document.createElement('template'); template.innerHTML = html;
+    const notes = ['.j6-public-banner', '.j6-defect-note'].map((selector) => template.content.querySelector(selector)).filter(Boolean);
+    if (!notes.length) return html;
+    const defect = notes.some((note) => note.classList.contains('j6-defect-note'));
+    const details = document.createElement('details'); details.id = 'j12tc-evidence'; details.className = 'j12tc-evidence'; details.setAttribute('data-d0-hide', '');
+    const summary = document.createElement('summary'); summary.textContent = `Review boundary${defect ? ' and known defect' : ''} (${notes.length} note${notes.length === 1 ? '' : 's'})`;
+    const content = document.createElement('div'); content.className = 'j12tc-evidence-content'; notes.forEach((note) => content.append(note));
+    details.append(summary, content); template.content.append(details); return template.innerHTML;
+  }
   // Step b12, C3: availability appears by itself, as in the existing rescheduling-availability component. The HTTP 400 stop stays.
   // Stale, permission and error stay in the handler for tests: window.__j6Review.command(name).
   var j6AutoEnabled = false;
@@ -2152,6 +2163,7 @@ const k1Focus = (() => {
       else if (op.stage === 'availability') { html = `<div class="j6-public-banner">${J6_PUBLIC_BANNER}</div><div class="j6-stage-card ${op.availability === 'error' ? 'j6-blocked' : 'j6-safety'}"><span class="j6-workflow-label">${op.availability.toUpperCase()}</span><h3>Availability review</h3><p>${op.availability === 'loading' ? 'Availability is loading.' : op.availability === 'error' ? 'The availability check returned an error. Retry.' : op.availability === 'conflict' ? 'Conflict or unavailable. No override is offered.' : 'Availability is ready for a before/after preview. Nothing is saved.'}</p><p class="j6-defect-note">${J6_DEFECT_COPY}</p></div>`; buttons = j6Button('j6-check', 'Retry availability', 'btn-primary') + j6Button('j6-conflict', 'Show conflict') + j6Button('j6-error', 'Show error') + j6Button('j6-stale', 'Show stale target') + j6Button('j6-permission-change', 'Permission changed') + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
       else { html = `<div class="j6-public-banner">${J6_PUBLIC_BANNER}</div><div class="j6-stage-card j6-safety"><span class="j6-workflow-label">Confirmed · sample only</span><h3>Before / after preview</h3><div class="j6-indivisible"><strong>${op.baseline.date} · ${op.baseline.start}–${op.baseline.end}</strong><span>before</span></div><div class="j6-indivisible"><strong>${op.date} · ${op.start}–${op.end}</strong><span>proposed · ${op.duration}</span></div><p>No server request is sent. Confirmation is guarded by stale and permission checks.</p></div>`; buttons = j6Button('j6-confirm', 'Confirm one local change', 'btn-primary', op.stale || !op.changed) + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
     }
+    if (document.body.dataset.journey === '12' && op.action === 'PublicReschedule' && !op.permissionChanged && !op.result && (op.stage === 'availability' || op.stage === 'preview')) html = j12CompactRescheduleNotes(html);   // step b25 (L-16)
     if (document.body.dataset.journey === '12' && op.action === 'PublicReschedule') html = '<div class="j12tc-reschedule' + (op.stage === 'setup' ? ' j12tc-setup' : '') + '">' + html + '</div>';
     stage.innerHTML = html; footer.innerHTML = buttons; j6AutoWire(op);
     // L-18 (27 Oct 2026): in the setup stage the short boundary line is the sentence on screen, so the dialog is
@@ -12013,7 +12025,7 @@ const k1Focus = (() => {
     else target?.focus?.();
     if (j8PickerOpenAnnounced) {   // KA2 (23 Oct 2026, L-02): "is open" is no longer true — say what happened
       j8PickerOpenAnnounced = false;
-      const message = chosen ? `Item chosen: ${chosen}. Prior pricing values remain unchanged.` : 'Item list closed — no item chosen. Prior pricing values remain unchanged.';
+      const message = chosen ? `Item chosen: ${chosen}.` : 'Item list closed — no item chosen.';   // step b24 (L-33): one sentence each (minimum text)
       window.setTimeout(() => j8Announce(message), 0);
     }
   }
@@ -12079,9 +12091,11 @@ const k1Focus = (() => {
   function j8RenderPricing() {
     const op = j8Operation;
     const custom = op.priceMode === 'custom';
+    const chosenItem = J8_ITEMS.find((item) => item.id === op.itemChoice);   // step b24 (L-01): the chosen item, shown on the pricing step
     $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel" aria-labelledby="j8-pricing-heading">
       <h3 id="j8-pricing-heading">Change pricing</h3>
       <p class="j8-evidence">Not confirmed · pricing result for this change.</p>
+      ${chosenItem ? `<p class="j8-selection-note j8-chosen-item">Item: <strong>${chosenItem.label}</strong>${chosenItem.current ? ' · current' : ''}</p>` : ''}
       <fieldset class="j8-fieldset"><legend>Price mode</legend><label><input type="radio" name="j8-price-mode" value="default" ${!custom ? 'checked' : ''}> Default</label><label><input type="radio" name="j8-price-mode" value="custom" ${custom ? 'checked' : ''}> Custom</label></fieldset>
       <div class="j8-grid"><label>Configuration<select id="j8-configuration"><option value="theatre" ${op.configuration === 'theatre' ? 'selected' : ''}>Theatre</option><option value="mismatch">Incompatible configuration · test mismatch</option></select></label><label>Concession<select id="j8-concession"><option value="none" ${op.concession === 'none' ? 'selected' : ''}>None</option><option value="review" ${op.concession === 'review' ? 'selected' : ''}>Sample concession</option></select></label><label class="j8-custom-only" ${custom ? '' : 'hidden'}>Price type<select id="j8-price-type" ${custom ? '' : 'disabled'}><option value="daily" ${op.priceType === 'daily' ? 'selected' : ''}>Daily</option><option value="session" ${op.priceType === 'session' ? 'selected' : ''}>Session</option><option value="hourly" ${op.priceType === 'hourly' ? 'selected' : ''}>Hourly</option></select></label><label class="j8-custom-only" ${custom ? '' : 'hidden'}>Pricing unit<select id="j8-unit" ${custom ? '' : 'disabled'}><option value="day" ${op.unit === 'day' ? 'selected' : ''}>Day</option><option value="session" ${op.unit === 'session' ? 'selected' : ''}>Session</option><option value="hour" ${op.unit === 'hour' ? 'selected' : ''}>Hour</option></select></label></div>
       <p class="j8-total-unavailable">${J8_TOTAL_UNAVAILABLE}</p><p id="j8-apply-reason" class="j8-reason" ${op.validationError ? '' : 'hidden'}>Apply disabled: an item or validation state is not available.</p>
@@ -14034,7 +14048,8 @@ const k1Focus = (() => {
       btn.id = 'j16-settings-entry';
       btn.className = 'j16-btn';
       btn.textContent = 'Settings';
-      btn.setAttribute('title', 'Proposed Journey 16 settings entry (review only)');
+      btn.setAttribute('title', 'Diary settings');   // step b23: the dialog's own heading (was the review-only wording, shown on every route since b22)
+      btn.setAttribute('aria-haspopup', 'dialog');   // step b23: says the entry opens a dialog (as the Cart's dialog toggle, app.js 7641)
       bar.appendChild(btn);
     }
     if (state.away) { state.ready = true; return; }
