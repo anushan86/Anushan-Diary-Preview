@@ -87,6 +87,98 @@ const k1Focus = (() => {
 
   const CHECKPOINT_WEEK_START = new Date(2026, 7, 24);
   const TODAY = new Date(2026, 7, 29);
+  /* Step b17: the Diary settings that act on the sample. Read from this browser's DiarySettings only; with nothing stored every value is the default and nothing changes. */
+  const DIARY_CUSTOMERS = { 'BK-10482': 'A. Customer', 'BK-10501': 'B. Customer', 'BK-10490': 'C. Customer' };
+  const DIARY_AREA_COLOUR = { hall1: '#5b3f8c', hall2: '#5b3f8c', studio1: '#0b6e62', studio2: '#0b6e62' };
+  function diaryStored() { try { const v = JSON.parse(localStorage.getItem('DiarySettings')); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } }
+  function diaryOpt(key) { const o = diaryStored().opts; return o && typeof o === 'object' ? o[key] : undefined; }
+  function diaryCustomerName(ref) { return diaryOpt('j16-text:customer') === true ? (DIARY_CUSTOMERS[ref] || '') : ''; }
+  function diaryEventText(ev) { return diaryCustomerName(ev.id) || ev.title; }
+  function diaryBusinessArea(el, asset) { const c = diaryOpt('j16-area') === true ? DIARY_AREA_COLOUR[asset] : ''; if (c) { el.style.boxShadow = `inset 6px 0 0 ${c}`; el.dataset.diaryArea = 'on'; } }
+  function diaryDisplaySnapshot() { return [diaryOpt('j16-text:customer') === true, diaryOpt('j16-area') === true, diaryOpt('j16-order:category') === true].join('|'); }
+  /* Step b18: Keep multiple assets expanded. Saved and off, one category stays open at a time. Nothing stored: nothing changes. A filter's reveal and the Accommodation class keep theirs. */
+  let diaryLastOpen = ''; let diaryFollow = '';
+  function diaryOneOpen() { return diaryOpt('j16-expand') === false; }
+  function diaryCategoryNodes() {
+    if (isJ3Journey()) return { set: j3ExpandedNodes, cats: [...new Set(J3_FIXTURE_CATALOG.map((a) => a.catKey))] };
+    if (exOn()) return { set: expandedNodes, cats: [...new Set(jxCatalog().map((a) => a.catKey))] };
+    return { set: expandedNodes, cats: ['halls', 'studios'] };
+  }
+  function diaryTrimOpen() {
+    if (diaryAutoAll || !diaryOneOpen() || (jxOn() && (j3ActiveFilterChips().length || j3ClassOn.accommodation))) return;
+    const { set, cats } = diaryCategoryNodes(); const open = cats.filter((k) => set.has(k));
+    if (open.length < 2) return;
+    const keep = open.includes(diaryLastOpen) ? diaryLastOpen : open[0];
+    open.forEach((k) => { if (k !== keep) set.delete(k); });
+  }
+  function diaryNoteOpened(key) {
+    if (!diaryOneOpen()) return;
+    const { set, cats } = diaryCategoryNodes();
+    if (cats.includes(key) && set.has(key)) { diaryLastOpen = key; diaryFollow = key; diaryAutoAll = false; }
+  }
+  /* Step b19: Venue > Auto Expand All Assets opens the first venue with every category at each opening and at Save; the first category the person opens
+     after that follows b18 again. Expand all and Collapse all show only while Keep multiple assets expanded is saved on and Auto Expand is not.
+     They act on the venues and categories; the generated sample list keeps its own. Nothing stored: nothing changes. */
+  let diaryAutoAll = false;
+  function diaryAutoOn() { return diaryOpt('j16-order:expand') === true; }
+  function diaryHierarchyNodes() {
+    if (isJ3Journey()) {
+      const north = [...new Set(J3_FIXTURE_CATALOG.filter((a) => a.venueKey === 'j3v-north').map((a) => a.catKey))];
+      return { set: j3ExpandedNodes, first: ['j3v-north', ...north], all: ['j3v-north', 'j3v-south', ...new Set(J3_FIXTURE_CATALOG.map((a) => a.catKey))] };
+    }
+    const { set, cats } = diaryCategoryNodes(); const first = ['venue', ...cats];
+    return { set, first, all: exOn() ? [...first, ...cats.map((k) => `ex-cat-venue-${k}`)] : first };
+  }
+  function diaryAutoExpand() {
+    diaryAutoAll = diaryAutoOn(); if (!diaryAutoAll) return;
+    const { set, first } = diaryHierarchyNodes(); first.forEach((k) => set.add(k));
+  }
+  function diaryExDefaultNodes() {
+    const set = new Set(['venue', 'halls', 'studios']);
+    if (diaryAutoAll && !isJ3Journey()) diaryHierarchyNodes().first.forEach((k) => set.add(k));
+    return set;
+  }
+  function diaryExpandBar() {
+    const tree = $('#asset-tree'); if (!tree) return;
+    const show = diaryOpt('j16-expand') === true && !diaryAutoOn() && !assetQuery.trim();
+    let bar = $('#diary-expand-bar');
+    if (!bar) {
+      if (!show) return;
+      tree.insertAdjacentHTML('beforebegin', '<div class="diary-expand-bar" id="diary-expand-bar" role="group" aria-label="Asset list" style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0 8px 2px"><button type="button" id="diary-expand-all" aria-controls="asset-tree" style="padding:0 4px;min-height:40px;border:0;background:transparent;color:var(--cobalt);font:inherit;font-weight:600;text-decoration:underline;cursor:pointer">Expand all</button><span aria-hidden="true">/</span><button type="button" id="diary-collapse-all" aria-controls="asset-tree" style="padding:0 4px;min-height:40px;border:0;background:transparent;color:var(--cobalt);font:inherit;font-weight:600;text-decoration:underline;cursor:pointer">Collapse all</button></div>');
+      bar = $('#diary-expand-bar');
+      bar.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) diaryExpandAll(b.id === 'diary-expand-all'); });
+    }
+    bar.hidden = !show; bar.style.display = show ? 'flex' : 'none';
+  }
+  function diaryExpandAll(open) {
+    const { set, all } = diaryHierarchyNodes(); all.forEach((k) => { if (open) set.add(k); else set.delete(k); });
+    assetActive = 0; assetScroll = 0; const tree = $('#asset-tree'); if (tree) tree.scrollTop = 0;
+    renderAssetTree();
+    announceLive(open ? 'All venues and categories expanded.' : 'All venues and categories collapsed.');
+  }
+  const DIARY_REMEMBER_ROUTES = ['', '0', '1', '3']; let diaryRememberReady = false; let diaryLastDisplay = '';
+  function diaryKeepViewDate() { if (diaryRememberReady && diaryStored().date === 'remember' && DIARY_REMEMBER_ROUTES.includes(String(document.body.dataset.journey || ''))) { try { localStorage.setItem('viewDate', JSON.stringify(dateKey(sharedView === 'day' && sharedDay ? sharedDay : weekStart))); } catch (e) { /* no storage: nothing to keep */ } } }
+  function diaryApplyRememberedDate() {
+    diaryLastDisplay = diaryDisplaySnapshot();
+    if (diaryStored().date === 'remember' && DIARY_REMEMBER_ROUTES.includes(String(document.body.dataset.journey || ''))) {
+      let k = null; try { k = JSON.parse(localStorage.getItem('viewDate')); } catch (e) { k = null; }
+      if (typeof k === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(k)) {
+        const [y, m, d] = k.split('-').map(Number); const at = new Date(y, m - 1, d);
+        if (!Number.isNaN(at.getTime())) { weekStart = addDays(at, -((at.getDay() + 6) % 7)); sharedDay = new Date(at); renderCalendar(); }
+      }
+    }
+    diaryRememberReady = true;
+    if (diaryLastDisplay !== 'false|false|false') { renderCalendar(); if ($('#asset-tree')) renderAssetTree(); }
+  }
+  window.addEventListener('diary-settings-load', diaryApplyRememberedDate);
+  window.addEventListener('diary-settings-load', () => { diaryAutoExpand(); if (diaryAutoAll && $('#asset-tree')) renderAssetTree(); });
+  window.addEventListener('diary-settings-saved', () => { diaryAutoExpand(); if ($('#asset-tree') && (diaryAutoAll || diaryOpt('j16-expand') === true || $('#diary-expand-bar'))) renderAssetTree(); });
+  window.addEventListener('diary-settings-saved', () => {
+    if (diaryStored().date === 'remember') diaryKeepViewDate(); else { try { localStorage.removeItem('viewDate'); } catch (e) { /* no storage */ } }
+    if (diaryOneOpen() && $('#asset-tree')) renderAssetTree();
+    const now = diaryDisplaySnapshot(); if (now === diaryLastDisplay) return;
+    diaryLastDisplay = now; renderCalendar(); if ($('#asset-tree')) renderAssetTree();
+  });
   const HOUR_START = 8;
   const HOUR_END = 20;
   const SLOTS_PER_HOUR = 2;
@@ -455,6 +547,11 @@ const k1Focus = (() => {
       id: 'private', kind: 'private', label: 'Private Booking', reference: 'BK-10482',
       status: 'Private Booking · Confirmed', asset: 'studio2', resource: 'Studio 2', dayOffset: 4,
       startSlot: 2, endSlot: 10, visualType: 'confirmed', access: 'Details and actions available · sample', details: true, more: true
+    },
+    {
+      id: 'series', j5Series: true, kind: 'private', label: 'Recurring booking', reference: 'BK-10490',
+      status: 'Recurring · Confirmed', asset: 'hall1', resource: 'Hall 1', dayOffset: 6,
+      startSlot: 12, endSlot: 16, visualType: 'confirmed', access: 'Reschedule Recurring in More actions · sample', details: true, more: true
     },
     {
       id: 'public-review', kind: 'public-review', journey6: true, label: 'Public timeslot · sample', reference: 'PUB-REVIEW-001',
@@ -1011,6 +1108,12 @@ const k1Focus = (() => {
     j4SetContextMenuFocus(next, true);
   }
 
+  function j5SeriesPlace(f) {
+    const base = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate(), 12);
+    const at = J5_SERIES.occurrences.map((_, i) => { const [y, m, d] = j5RrShift(j5SeriesNow.first, i * 7).split('-').map(Number); return Math.round((new Date(y, m - 1, d, 12) - base) / 86400000); }).find((o) => o >= 0 && o <= 6);
+    f.j5Away = at === undefined; if (at !== undefined) f.dayOffset = at;
+  }
+  function j4OwnFixture(fixture) { if (fixture.j5Series && isJ5Journey()) j5SeriesPlace(fixture); return !fixture.journey6 && (!fixture.j5Series || (isJ5Journey() && !fixture.j5Away)); }
   function j4OpenContext(fixture, trigger) {
     if (!isJ4Journey() || !fixture || !fixture.more || j4ActionsBlocked()) return;
     if (j4ContextFixture) j4CloseContext(false);
@@ -1019,11 +1122,17 @@ const k1Focus = (() => {
     j4ContextTrigger = trigger;
     const menu = $('#j4-context-menu');
     $('#j4-context-title').textContent = `${fixture.label} actions`;
-    $('#j4-context-copy').textContent = fixture.kind === 'blocked'
+    $('#j4-context-copy').textContent = fixture.j5Series ? `${J5_SERIES.occurrences.length} occurrences, every ${j5RrWeekday(j5SeriesNow.first)}. Nothing is saved.` : fixture.kind === 'blocked'
       ? 'Block context first handoff only. Block create, edit and delete are unavailable.'
       : 'Private Booking context first handoff only. No lifecycle action is available.';
     const open = $('#j4-context-open-details');
     open.dataset.j4Fixture = fixture.id;
+    $('#j5-context-reschedule-recurring')?.remove();
+    if (fixture.j5Series) {
+      const rr = document.createElement('button'); rr.type = 'button'; rr.className = 'j4-context-action'; rr.id = 'j5-context-reschedule-recurring'; rr.setAttribute('role', 'menuitem'); rr.tabIndex = -1; rr.textContent = 'Reschedule Recurring';
+      rr.addEventListener('click', (event) => { event.stopPropagation(); const from = j4ContextTrigger; j4CloseContext(false); j5SeriesOpen(from); });
+      open.after(rr);
+    }
     menu.hidden = false;
     menu.inert = false;
     menu.removeAttribute('aria-hidden');
@@ -1088,9 +1197,9 @@ const k1Focus = (() => {
     boardHead.append(titleCell, countCell);
     grid.appendChild(boardHead);
 
-    let fixtures = isJ6Journey() ? J4_FIXTURES.filter((fixture) => fixture.journey6) : J4_FIXTURES.filter((fixture) => !fixture.journey6);
+    let fixtures = isJ6Journey() ? J4_FIXTURES.filter((fixture) => fixture.journey6) : J4_FIXTURES.filter(j4OwnFixture);
     if (j4ViewState === 'loading' || j4ViewState === 'error') fixtures = [];
-    else if (j4ViewState === 'empty') fixtures = isJ6Journey() ? [] : J4_FIXTURES.filter((fixture) => !fixture.journey6 && fixture.kind === 'available');
+    else if (j4ViewState === 'empty') fixtures = isJ6Journey() ? [] : J4_FIXTURES.filter((fixture) => j4OwnFixture(fixture) && fixture.kind === 'available');
 
     if (fixtures.length) {
       const board = document.createElement('div');
@@ -1138,7 +1247,7 @@ const k1Focus = (() => {
        arrow keys, Home, End -> move between timeslot blocks; filters, review states and dialogs are unchanged. */
   function j4VisibleFixtures() {
     if (j4ViewState === 'loading' || j4ViewState === 'error') return [];
-    let list = isJ6Journey() ? J4_FIXTURES.filter((f) => f.journey6) : J4_FIXTURES.filter((f) => !f.journey6);
+    let list = isJ6Journey() ? J4_FIXTURES.filter((f) => f.journey6) : J4_FIXTURES.filter(j4OwnFixture);
     if (j4ViewState === 'empty') list = isJ6Journey() ? [] : list.filter((f) => f.kind === 'available');
     return list;
   }
@@ -1211,12 +1320,13 @@ const k1Focus = (() => {
     if (fixture.visualType) { block.classList.add(fixture.visualType); applyTimeslotVisual(block, fixture.visualType); }
     block.dataset.j4Kind = fixture.kind;
     block.dataset.j4Fixture = fixture.id;
+    block.dataset.diaryRef = fixture.reference; diaryBusinessArea(block, fixture.asset);
     block.style.setProperty('--j4-state-color', j4StateColor(fixture));
     block.title = `${fixture.reference} · ${j4FixtureDateTime(fixture)} · ${fixture.resource} · ${fixture.status}`;
     block.setAttribute('role', 'group');
     block.setAttribute('aria-label', `${fixture.label}. ${fixture.reference}. ${j4FixtureDateTime(fixture)}. ${fixture.resource}. ${fixture.status}.`);
     if (fixture.id === j4ActiveFixtureId) block.classList.add('is-current');
-    const text = `<strong>${escapeHtml(fixture.kind === 'available' ? 'Available interval' : fixture.reference)}</strong> <span class="event-status">${escapeHtml(fixture.status)}</span>`;
+    const text = `<strong>${escapeHtml(fixture.kind === 'available' ? 'Available interval' : (diaryCustomerName(fixture.reference) || fixture.reference))}</strong> <span class="event-status">${escapeHtml(fixture.status)}</span>`;
     if (fixture.kind === 'available') {
       const label = document.createElement('span');
       label.className = 'j4-cal-text';
@@ -1567,6 +1677,13 @@ const k1Focus = (() => {
     $('#j4-details-kicker').textContent = 'Existing private booking'; $('#j4-details-title').textContent = J5_BASE_BOOKING.reference; $('#j4-details-close').setAttribute('aria-label', 'Close existing booking details'); $('#j4-details-back').textContent = 'Back to calendar'; dialog.setAttribute('aria-describedby', 'j5-details-intro j5-review-boundary'); dialog.dataset.j5ActionHub = 'true'; j5DockPlaybackControls(); j5RenderState(); announceLive(`${J5_BASE_BOOKING.reference} private details and local lifecycle action hub opened.`);
   }
   function j5ReturnFromWorkflow() {
+    if (j5Operation?.action === 'RecurringReschedule') {
+      if (j5WorkflowReturning) return; j5WorkflowReturning = true; const from = j5WorkflowTrigger; const dialog = $('#j5-workflow-dialog'); if (dialog?.open) dialog.close();
+      j5Operation = null; j5WorkflowTrigger = null; renderCalendar();
+      ($('#j4-more-series') || (from && from.isConnected && from) || $('#date-next') || $('#calendar-grid'))?.focus?.({ preventScroll: true });
+      window.setTimeout(() => { j5WorkflowReturning = false; }, 60);
+      return;
+    }
     if (j5WorkflowReturning) return; j5WorkflowReturning = true; const dialog = $('#j5-workflow-dialog'); if (dialog?.open) dialog.close(); const op = j5Operation; const trigger = j5WorkflowTrigger; const origin = op?.origin; const action = op?.action; j5WorkflowTrigger = null; j5Operation = null;
     const finishReturn = () => {
       if (isJ6Journey() || (document.body.dataset.journey === '12' && action === 'PublicReschedule')) {
@@ -1617,7 +1734,85 @@ const k1Focus = (() => {
     target?.focus();
   }
 
+  /* Step b17, 5.6: Reschedule Recurring on the sample series. The existing system: only on a recurring booking; the duration is kept and the end is locked. Availability follows every change by itself. Nothing is saved. */
+  const J5_SERIES = Object.freeze({ reference: 'BK-10490', customer: 'C. Customer', resource: 'Hall 1', occurrences: Object.freeze(['2026-08-30', '2026-09-06', '2026-09-13', '2026-09-20', '2026-09-27']), start: '14:00', end: '16:00', minutes: 120, busy: Object.freeze([Object.freeze({ date: '2026-09-13', from: 960, to: 1080, ref: 'BK-10537' })]) });
+  let j5SeriesNow = { first: J5_SERIES.occurrences[0], start: J5_SERIES.start };
+  const j5RrMin = (s) => { const m = /^(\d{2}):(\d{2})$/.exec(String(s || '')); return m ? Number(m[1]) * 60 + Number(m[2]) : NaN; };
+  const j5RrTime = (n) => `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
+  const j5RrDay = (k) => new Date(`${k}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  const j5RrWeekday = (k) => new Date(`${k}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'long' });
+  const j5RrShift = (k, days) => { const [y, m, d] = k.split('-').map(Number); return dateKey(new Date(y, m - 1, d + days)); };
+  function j5SeriesDrawnHit(date, from, to) {   // the sample bookings the person can see in Hall 1, which repeat on their weekday in this sample
+    const [y, m, d] = date.split('-').map(Number); const wd = (new Date(y, m - 1, d, 12).getDay() + 6) % 7;
+    const f = J4_FIXTURES.find((x) => !x.j5Series && !x.journey6 && x.asset === 'hall1' && x.kind !== 'available' && x.dayOffset === wd && from < HOUR_START * 60 + x.endSlot * 30 && to > HOUR_START * 60 + x.startSlot * 30);
+    return f ? { ref: f.reference } : null;
+  }
+  function j5SeriesRows(first, start) {
+    const base = j5SeriesNow.first; const [ya, ma, da] = base.split('-').map(Number); const [yb, mb, db] = String(first || '').split('-').map(Number);
+    const from = j5RrMin(start); const to = from + J5_SERIES.minutes;
+    const issue = !first || Number.isNaN(new Date(yb, mb - 1, db).getTime()) ? 'Choose a first date.' : first < dateKey(TODAY) ? 'Choose today or a later date.' : Number.isNaN(from) ? 'Choose a start time.' : from % 30 ? 'Choose a time on the half hour in this sample.' : (from < HOUR_START * 60 || to > HOUR_END * 60) ? `Hall 1 is open ${j5RrTime(HOUR_START * 60)} to ${j5RrTime(HOUR_END * 60)} in this sample.` : '';
+    if (issue) return { issue, rows: [], from, to };
+    const shift = Math.round((new Date(yb, mb - 1, db, 12) - new Date(ya, ma - 1, da, 12)) / 86400000);
+    const dates = J5_SERIES.occurrences.map((_, i) => j5RrShift(j5RrShift(J5_SERIES.occurrences[0], i * 7), Math.round((new Date(ya, ma - 1, da, 12) - new Date(`${J5_SERIES.occurrences[0]}T12:00:00`)) / 86400000) + shift));
+    return { issue: '', from, to, rows: dates.map((date) => { const hit = J5_SERIES.busy.find((b) => b.date === date && from < b.to && to > b.from) || j5SeriesDrawnHit(date, from, to); return { date, ok: !hit, text: hit ? `Conflict: ${hit.ref}` : 'Available' }; }) };
+  }
+  function j5SeriesListHtml(check) {
+    return check.rows.map((r, i) => `<div><strong>${i + 1}. ${j5RrDay(r.date)} · ${j5RrTime(check.from)}–${j5RrTime(check.to)}</strong><span class="${r.ok ? 'j9-clear-chip' : 'j9-conflict-chip'}">${r.ok ? '✓' : '✕'} ${r.text}</span></div>`).join('');
+  }
+  function j5SeriesOpen(trigger) {
+    if (!isJ5Journey() || !j5CanEnterAction() || j5LifecycleState !== 'ready') { announceLive(j5LifecycleMessage()); return; }
+    j5WorkflowTrigger = trigger || document.activeElement;
+    j5Operation = { action: 'RecurringReschedule', stage: 'setup', first: j5SeriesNow.first, start: j5SeriesNow.start, commandToken: null };
+    const dialog = $('#j5-workflow-dialog'); if (!dialog) return; j5SeriesRender(); dialog.showModal();
+    window.setTimeout(() => { const f = $('#j5-rr-date'); if (f && j5Operation?.action === 'RecurringReschedule' && j5Operation.stage === 'setup') f.focus(); }, 80);
+  }
+  function j5SeriesSync() {
+    const op = j5Operation; if (!op || op.stage !== 'setup') return;
+    op.first = $('#j5-rr-date').value; op.start = $('#j5-rr-start').value;
+    const check = j5SeriesRows(op.first, op.start); const conflicts = check.rows.filter((r) => !r.ok).length;
+    const same = op.first === j5SeriesNow.first && op.start === j5SeriesNow.start;
+    $('#j5-rr-end').value = Number.isNaN(check.to) ? '' : j5RrTime(check.to);
+    $('#j5-rr-list').innerHTML = j5SeriesListHtml(check);
+    const why = check.issue || (conflicts ? `${conflicts} date${conflicts === 1 ? ' has' : 's have'} a conflict. Choose another date or time.` : same ? 'Change the date or time to continue.' : `All dates are available in this sample${j5RrWeekday(op.first) !== j5RrWeekday(j5SeriesNow.first) ? `, now every ${j5RrWeekday(op.first)}` : ''}.`);
+    $('#j5-rr-why').textContent = why;
+    const go = $('[data-j5-command="rr-preview"]'); if (go) go.disabled = !!check.issue || !!conflicts || same;
+  }
+  function j5SeriesRender() {
+    const op = j5Operation; const stage = $('#j5-workflow-stage'); const preview = $('#j5-workflow-preview'); const footer = $('#j5-workflow-footer'); if (!op || !stage || !footer) return;
+    $('#j5-workflow-kicker').textContent = 'Existing booking'; $('#j5-workflow-title').textContent = 'Reschedule Recurring';
+    $('#j5-workflow-description').textContent = `${J5_SERIES.reference} · ${J5_SERIES.resource} · ${J5_SERIES.customer} · every ${j5RrWeekday(j5SeriesNow.first)}, ${J5_SERIES.occurrences.length} occurrences. Nothing is saved; reload restores the sample.`;
+    if (preview) { preview.innerHTML = ''; preview.hidden = true; }
+    const was = j5SeriesRows(j5SeriesNow.first, j5SeriesNow.start);
+    if (op.stage === 'setup') {
+      stage.innerHTML = `<div class="j6-stage-card j6-open"><h3>Choose the new date and time</h3><div class="j5-form-grid"><label>First date<input id="j5-rr-date" type="date" value="${op.first}"></label><label>Start<input id="j5-rr-start" type="time" step="1800" value="${op.start}"></label><label class="j6-field-readonly">End (follows the start)<input id="j5-rr-end" type="text" readonly aria-readonly="true"></label><label class="j6-field-readonly">Duration<input id="j5-rr-duration" type="text" value="2.00 HRS" readonly aria-readonly="true"></label></div><p class="j5-inline-note">A recurring booking keeps its duration. Each date keeps its place in the series.</p><div class="j5-preview-list" id="j5-rr-list"></div><p class="j5-inline-note" id="j5-rr-why" role="status" aria-live="polite"></p></div>`;
+      footer.innerHTML = j5Button('rr-preview', 'Continue', 'btn-primary', true) + j5Button('workflow-cancel', 'Cancel');
+      $('#j5-rr-date').addEventListener('input', j5SeriesSync); $('#j5-rr-start').addEventListener('input', j5SeriesSync);
+      j5SeriesSync();
+    } else if (op.stage === 'preview') {
+      const now = j5SeriesRows(op.first, op.start);
+      stage.innerHTML = `<div class="j6-stage-card j6-open"><h3>Check the change</h3><div class="j5-preview-list">${now.rows.map((r, i) => `<div><strong>${i + 1}. ${j5RrDay(was.rows[i].date)} · ${j5RrTime(was.from)}–${j5RrTime(was.to)}</strong><span>to ${j5RrDay(r.date)} · ${j5RrTime(now.from)}–${j5RrTime(now.to)}</span></div>`).join('')}</div></div>`;
+      footer.innerHTML = j5Button('rr-confirm', 'Reschedule', 'btn-primary') + j5Button('rr-back', 'Back') + j5Button('workflow-cancel', 'Cancel');
+    } else {
+      stage.innerHTML = `<div class="j6-stage-card j6-open"><h3>Series rescheduled in this sample</h3><div class="j5-preview-list">${j5SeriesListHtml(was)}</div>${j4FindFixture('series')?.j5Away ? `<p class="j5-inline-note">This week holds no date of the series. Use the week arrows to reach ${j5RrDay(j5SeriesNow.first)}.</p>` : ''}<p class="j5-inline-note">Nothing is saved; reload restores the sample.</p></div>`;
+      footer.innerHTML = j5Button('workflow-done', 'Done', 'btn-primary');
+    }
+    if (op.stage !== 'setup' || op.moved) { const h = stage.querySelector('h3'); if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); } }
+  }
+  function j5SeriesCommand(command) {
+    const op = j5Operation; if (!op) return;
+    if (command === 'rr-preview') { const c = j5SeriesRows(op.first, op.start); if (c.issue || c.rows.some((r) => !r.ok)) return; op.stage = 'preview'; j5SeriesRender(); return; }
+    if (command === 'rr-back') { op.stage = 'setup'; op.moved = true; j5SeriesRender(); return; }
+    if (command === 'rr-confirm') {
+      const c = j5SeriesRows(op.first, op.start); j5SeriesNow = { first: c.rows[0].date, start: op.start };
+      const f = j4FindFixture('series');
+      if (f) { j5SeriesPlace(f); f.startSlot = (c.from - HOUR_START * 60) / 30; f.endSlot = (c.to - HOUR_START * 60) / 30; }
+      op.stage = 'result'; j5SeriesRender(); renderCalendar(); announceLive('Series rescheduled in this sample. Nothing is saved.'); return;
+    }
+    if (command === 'workflow-cancel' || command === 'workflow-done') j5ReturnFromWorkflow();
+  }
+  function j5SeriesReset() { j5SeriesNow = { first: J5_SERIES.occurrences[0], start: J5_SERIES.start }; const f = j4FindFixture('series'); if (f) { f.j5Away = false; f.dayOffset = 6; f.startSlot = 12; f.endSlot = 16; } }
   function j5RenderWorkflow() {
+    if (j5Operation?.action === 'RecurringReschedule') return j5SeriesRender();
     if (j6PublicRescheduleWorkflowActive()) return j6RenderWorkflow();
     const op = j5Operation; const stage = $('#j5-workflow-stage'); const preview = $('#j5-workflow-preview'); const footer = $('#j5-workflow-footer'); const title = $('#j5-workflow-title'); const description = $('#j5-workflow-description'); const announcement = $('#j5-workflow-announcement');
     if (!op || !stage || !preview || !footer || !title || !description || !announcement) return;
@@ -1715,6 +1910,7 @@ const k1Focus = (() => {
     j5RenderWorkflow(); j5RenderState(); announceLive(j5LocalResult(op.result.title));
   }
   function j5HandleWorkflowCommand(event) {
+    if (j5Operation?.action === 'RecurringReschedule') { const c = event.target.closest('[data-j5-command]')?.dataset.j5Command; if (c) j5SeriesCommand(c); return; }
     if (j6PublicRescheduleWorkflowActive()) return j6HandleWorkflowCommand(event);
     const command = event.target.closest('[data-j5-command]')?.dataset.j5Command; if (!command || !j5Operation) return; const op = j5Operation; if (op.stage === 'setup') j5ReadWorkflowValues();
     if (['copy-preview', 'copy-confirm', 'update-preview', 'update-confirm', 'move-preview', 'move-confirm', 'batch-preview', 'batch-confirm'].includes(command) && j5ValidationMessage()) {
@@ -1771,7 +1967,7 @@ const k1Focus = (() => {
     document.addEventListener('click', (event) => { if (event.target.closest('#j5-workflow-footer [data-j5-command]') || (document.body.dataset.journey === '12' && event.target.closest('#j12tc-evidence [data-j5-command]'))) j5HandleWorkflowCommand(event); }); $('#j5-workflow-close')?.addEventListener('click', j5ReturnFromWorkflow); $('#j5-workflow-dialog')?.addEventListener('cancel', (event) => { event.preventDefault(); j5ReturnFromWorkflow(); }); $('#j5-workflow-dialog')?.addEventListener('close', () => { if (j5WorkflowTrigger && !j5WorkflowReturning) j5ReturnFromWorkflow(); }); $('#j4-details-dialog').addEventListener('close', (event) => { if (event?.returnValue !== 'workflow') j5RestorePlaybackControls(); });
   }
   function j5ResetBootState() {
-    j4ResetBootState(); j4ActiveFixtureId = 'private'; J5_BOOKING_FIXTURE = j5CloneBooking(); const overviewTitle = $('#j4-overview-title'); const overviewCopy = $('#j4-overview p'); const caption = $('.calendar-caption');
+    j5SeriesReset(); j4ResetBootState(); j4ActiveFixtureId = 'private'; J5_BOOKING_FIXTURE = j5CloneBooking(); const overviewTitle = $('#j4-overview-title'); const overviewCopy = $('#j4-overview p'); const caption = $('.calendar-caption');
     if (overviewTitle) overviewTitle.textContent = 'Existing booking'; if (overviewCopy) overviewCopy.textContent = 'Copy, update, item removal, Move and Batch are sample previews; nothing is saved.'; if (caption) caption.textContent = 'Sample booking — nothing is saved';
     j5ReviewState = 'loaded'; j5LifecycleState = 'ready'; j5Operation = null; renderCalendar(); j5RenderState(); window.setTimeout(() => j5OpenActionHub($('#j4-open-private')), 0);
   }
@@ -2337,6 +2533,28 @@ const k1Focus = (() => {
     renderCalendar();
   }
 
+  // Step b16, matrix 3.6: the asset-class ticks are remembered per browser, as the current system does (search-panel.service.ts:55-58). Nothing stored: the defaults stand and nothing is written at load.
+  // Only a person's own action writes (isTrusted): Play and the guided reviews never change what is stored. Journey 10's Accommodation stays on hold: a stored tick is neither applied nor lost there.
+  function j3StoredClasses() { try { const v = JSON.parse(localStorage.getItem('selectedAssetTypes')); return v && typeof v.facility === 'boolean' && typeof v.resource === 'boolean' ? v : null; } catch (e) { return null; } }
+  function j3RestoreClasses(render) {
+    const v = j3StoredClasses(); if (!v) return;
+    j3ClassOn = { facility: v.facility, resource: v.resource, accommodation: v.accommodation === true && !exIsJ10() };
+    J3_CLASSES.forEach((c) => { const box = $('#j3-class-' + c.key); if (box) box.checked = j3ClassOn[c.key]; });
+    j3RenderTypesList(); j3SyncCapacityState();   // both were first drawn from the defaults (independent review, F1)
+    if (render) j3AfterFilterChange();
+  }
+  function j3StoreClasses(e) {
+    if (!e || !e.isTrusted) return;
+    const v = j3StoredClasses();
+    try { localStorage.setItem('selectedAssetTypes', JSON.stringify({ facility: j3ClassOn.facility, resource: j3ClassOn.resource, accommodation: exIsJ10() ? !!(v && v.accommodation === true) : j3ClassOn.accommodation, brandingArea: false })); } catch (x) { /* no storage: the tick still applies on this page */ }
+  }
+  function j3PlayDefaults() {   // Play shows the sample's own walk from the defaults; what is stored returns at the next load
+    if (!j3StoredClasses()) return;
+    j3ClassOn = { facility: true, resource: true, accommodation: false };
+    J3_CLASSES.forEach((c) => { const box = $('#j3-class-' + c.key); if (box) box.checked = j3ClassOn[c.key]; });
+    j3RenderTypesList(); j3AfterFilterChange();
+  }
+
   function j3ResetRefineState() {
     j3ClassOn = { facility: true, resource: true, accommodation: false };
     j3PickedTypes = new Set();
@@ -2396,6 +2614,7 @@ const k1Focus = (() => {
       const t = e.target;
       if (t.dataset.class) {
         j3ClassOn[t.dataset.class] = t.checked;
+        j3StoreClasses(e);
         j3RenderTypesList();
         j3AfterFilterChange(t.checked ? t.dataset.class : null);
         return;
@@ -2439,6 +2658,7 @@ const k1Focus = (() => {
         const chips = Array.from(chipBox.querySelectorAll('.j3-chip'));
         const at = chips.indexOf(chip);
         j3RemoveChip(chip.dataset.chip);
+        j3StoreClasses(e);
         const left = Array.from(chipBox.querySelectorAll('.j3-chip'));
         const next = left[at] || left[at - 1] || $('#j3-filters-toggle');   // the keyboard focus stays inside the Explorer
         if (next) next.focus();
@@ -2503,9 +2723,9 @@ const k1Focus = (() => {
 
   function exAfterFilterChange(focusClass) {
     const active = j3ActiveFilterChips().length > 0;
-    if (!active) expandedNodes = new Set(['venue', 'halls', 'studios']);
+    if (!active) { expandedNodes = diaryExDefaultNodes(); diaryVenueRowSeen.clear(); }
     const eligible = j3GetEligibleAssets();
-    const reveal = (a) => { expandedNodes.add('venue'); expandedNodes.add(a.catKey); };
+    const reveal = (a) => { expandedNodes.add('venue'); expandedNodes.add(a.catKey); expandedNodes.add(`ex-cat-venue-${a.catKey}`); };
     if (active) eligible.forEach(reveal);
     if (j3ClassOn.accommodation) eligible.filter((a) => a.assetClass === 'accommodation').forEach(reveal);
     assetActive = 0;
@@ -2521,6 +2741,7 @@ const k1Focus = (() => {
     }
   }
 
+  const diaryVenueRowSeen = new Set();
   function exBrowseRows() {
     const catalog = jxCatalog();
     const eligibleIds = new Set(j3GetEligibleAssets().map((a) => a.id));
@@ -2531,13 +2752,23 @@ const k1Focus = (() => {
     });
     const rows = [];
     if (cats.length) {   // a branch with nothing to show is left out
-      rows.push({ kind: 'venue', key: 'venue', name: EX_VENUE, level: 1, expanded: expandedNodes.has('venue'), journey: true, meta: 'Venue · Journey fixtures' });
-      if (expandedNodes.has('venue')) {
+      if (diaryOpt('j16-order:category') === true) {   /* step b17: Category > Venue > Asset; the venue row of each category opens by its own key */
         cats.forEach((cat) => {
-          const open = expandedNodes.has(cat.key);
-          rows.push({ kind: 'category', key: cat.key, name: cat.name, level: 2, expanded: open, meta: 'Category' });
-          if (open) catalog.filter((a) => a.catKey === cat.key && eligibleIds.has(a.id)).forEach((asset) => rows.push({ kind: 'resource', key: asset.id, asset, level: 3, meta: j3ClassLabel(asset) + ' · ' + asset.assetType }));
+          const open = expandedNodes.has(cat.key); const vk = `ex-cat-venue-${cat.key}`;
+          if (!diaryVenueRowSeen.has(vk)) { diaryVenueRowSeen.add(vk); expandedNodes.add(vk); }
+          rows.push({ kind: 'category', key: cat.key, name: cat.name, level: 1, expanded: open, meta: 'Category' });
+          if (open) rows.push({ kind: 'venue', key: vk, name: EX_VENUE, level: 2, expanded: expandedNodes.has(vk), journey: true, meta: 'Venue' });
+          if (open && expandedNodes.has(vk)) catalog.filter((a) => a.catKey === cat.key && eligibleIds.has(a.id)).forEach((asset) => rows.push({ kind: 'resource', key: asset.id, asset, level: 3, meta: j3ClassLabel(asset) + ' · ' + asset.assetType }));
         });
+      } else {
+        rows.push({ kind: 'venue', key: 'venue', name: EX_VENUE, level: 1, expanded: expandedNodes.has('venue'), journey: true, meta: 'Venue · Journey fixtures' });
+        if (expandedNodes.has('venue')) {
+          cats.forEach((cat) => {
+            const open = expandedNodes.has(cat.key);
+            rows.push({ kind: 'category', key: cat.key, name: cat.name, level: 2, expanded: open, meta: 'Category' });
+            if (open) catalog.filter((a) => a.catKey === cat.key && eligibleIds.has(a.id)).forEach((asset) => rows.push({ kind: 'resource', key: asset.id, asset, level: 3, meta: j3ClassLabel(asset) + ' · ' + asset.assetType }));
+          });
+        }
       }
     }
     if (j3ActiveFilterChips().length) return rows;   // the generated fixtures have no class or Type, so they sit out while a filter is on
@@ -2883,6 +3114,7 @@ const k1Focus = (() => {
   }
 
   function j3DefaultExpandedNodes() {
+    if (diaryAutoAll) return new Set(diaryHierarchyNodes().first);
     return new Set(['j3v-north', 'j3v-north-halls', 'j3v-north-studios']);
   }
 
@@ -3002,7 +3234,7 @@ const k1Focus = (() => {
     if (fromEl) fromEl.value = '';
     if (toEl) toEl.value = '';
     j3ExpandedNodes = j3DefaultExpandedNodes();
-    if (exOn()) expandedNodes = new Set(['venue', 'halls', 'studios']);
+    if (exOn()) expandedNodes = diaryExDefaultNodes();
     assetActive = 0;
     assetScroll = 0;
     j3ResetRefineState();
@@ -3080,7 +3312,7 @@ const k1Focus = (() => {
       });
     }
     if (resetBtn) {
-      resetBtn.addEventListener('click', j3ResetFilters);
+      resetBtn.addEventListener('click', (e) => { j3ResetFilters(); j3StoreClasses(e); });
       resetBtn.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && j3FiltersExpanded) {
           e.stopPropagation();
@@ -5784,7 +6016,7 @@ const k1Focus = (() => {
 
   function expandAssetNode(key) {
     if (isJ3Journey()) {
-      j3ExpandedNodes.add(key);
+      j3ExpandedNodes.add(key); diaryNoteOpened(key);
       return;
     }
     if (key === 'venue') expandedNodes.add('venue');
@@ -5793,6 +6025,7 @@ const k1Focus = (() => {
     else if (String(key).startsWith('ex-cat-')) expandedNodes.add(key);
     else if (key === 'scalability-review-fixtures') scalabilityFixturesExpanded = true;
     else genVenueExpanded[key] = true;
+    diaryNoteOpened(key);
   }
 
   function collapseAssetNode(key) {
@@ -5812,12 +6045,14 @@ const k1Focus = (() => {
     if (isJ3Journey()) {
       if (j3ExpandedNodes.has(key)) j3ExpandedNodes.delete(key);
       else j3ExpandedNodes.add(key);
+      diaryNoteOpened(key);
       return;
     }
     if (key === 'scalability-review-fixtures') scalabilityFixturesExpanded = !scalabilityFixturesExpanded;
     else if (expandedNodes.has(key)) expandedNodes.delete(key);
     else if (key === 'venue' || key === 'halls' || key === 'studios' || String(key).startsWith('ex-cat-')) expandedNodes.add(key);
     else genVenueExpanded[key] = !genVenueExpanded[key];
+    diaryNoteOpened(key);
   }
 
   // Step b13, D4: read-only information on one resource. Same finder as toggleResourcePin. Only rows that hold the sample's documents show the Documents list (C4's rule).
@@ -5964,7 +6199,7 @@ const k1Focus = (() => {
       cell.setAttribute('aria-label', `${d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, ${evs.length ? evs.length + (evs.length === 1 ? ' event' : ' events') : 'no events'} — opens this day`);
       const num = document.createElement('div'); num.className = 'month-cell-date'; num.textContent = String(d.getDate()); cell.appendChild(num);
       const box = document.createElement('div'); box.className = 'month-cell-events';
-      evs.forEach((ev) => { const chip = document.createElement('div'); chip.className = `month-chip cal-event ${ev.type}`; applyTimeslotVisual(chip, ev.type); chip.textContent = `${ev.allDay ? '' : String(ev.start).padStart(2, '0') + ':00 '}${ev.title}`; chip.setAttribute('aria-hidden', 'true'); box.appendChild(chip); });
+      evs.forEach((ev) => { const chip = document.createElement('div'); chip.className = `month-chip cal-event ${ev.type}`; applyTimeslotVisual(chip, ev.type); chip.textContent = `${ev.allDay ? '' : String(ev.start).padStart(2, '0') + ':00 '}${diaryEventText(ev)}`; diaryBusinessArea(chip, ev.asset); chip.setAttribute('aria-hidden', 'true'); box.appendChild(chip); });
       cell.appendChild(box);
       cell.addEventListener('click', () => {   // the day opens in Day view, here: move the week by whole weeks (keeps the fixture week's own time base)
         const k = Math.round((addDays(d, -((d.getDay() + 6) % 7)) - addDays(weekStart, 0)) / (7 * 86400000));
@@ -7484,7 +7719,7 @@ const k1Focus = (() => {
     const configuration = $('#cfg-configuration')?.selectedOptions?.[0]?.textContent || configurationLabel($('#cfg-configuration')?.value);
     const allocation = $('#allocation-summary')?.textContent || asset.name;
     const amountRegion = $('#amount-region');
-    const amount = amountRegion && !amountRegion.hidden ? amountRegion.querySelector('.amount-value')?.textContent : 'Quote pending';
+    const amount = isJourney7Route() && stagedSelection && !j7IsAcceptedGraph(stagedSelection).ok ? 'Not priced yet' : amountRegion && !amountRegion.hidden ? amountRegion.querySelector('.amount-value')?.textContent : 'Quote pending';
     const concession = getConcessionRecord(getCommitted('concession')).label;
     const pricing = [amount, concession].filter(Boolean).join(' · ');
     const row = (label, value) => `<div class="current-selection-summary-row" data-summary-row="${label.toLowerCase()}"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`;
@@ -7586,7 +7821,7 @@ const k1Focus = (() => {
 
   function keepCurrentSelection() {
     if (!stagedSelection || editingLineId || !keepContinueRoute()) return null;
-    if (isJourney7Route() && !j7IsAcceptedGraph(stagedSelection).ok) return null;
+    if (isJourney7Route() && !j7IsAcceptedGraph(stagedSelection).ok) return addToCart(true, true) || null;   /* step b17, 4.3: it stays, not priced yet */
     return addToCart(true) || null;
   }
 
@@ -7644,7 +7879,7 @@ const k1Focus = (() => {
     }
     createSelection(assetId, dk, startSlot, endSlotExclusive, endDate);
     const reused = reuseFirstLinePackage();
-    if (kept) showToast(`Added to cart: ${selectionLabel(kept)}.${reused}`);
+    if (kept) showToast(`${kept.priceStatus === 'Not priced yet · sample' ? 'Added to cart, not priced yet' : 'Added to cart'}: ${selectionLabel(kept)}.${reused}`);
     else if (reused) showToast(reused.trim());
     return true;
   }
@@ -7710,16 +7945,16 @@ const k1Focus = (() => {
     renderCalendar();
   }
 
-  function addToCart(keepForNext) {
+  function addToCart(keepForNext, unpriced = false) {
     if (isJourney9Route()) { j9BlockReview('This screen cannot add a selection to the Booking Cart; use Recurring.'); return; }
     if (!stagedSelection) return;
-    if (isJourney7Route() && !j7IsAcceptedGraph(stagedSelection).ok) {
+    if (isJourney7Route() && !unpriced && !j7IsAcceptedGraph(stagedSelection).ok) {
       j7BlockReview('This selection cannot be added to the Cart yet.');
       j7SyncRouteState();
       return;
     }
-    const packageState = getStagedPackageState(true);
-    if (!packageState.valid) return;
+    const packageState = getStagedPackageState(!unpriced);
+    if (!unpriced && !packageState.valid) return;
     const wasEdit = !!editingLineId;
     const line = {
       id: 'line-' + Date.now(),
@@ -7733,9 +7968,9 @@ const k1Focus = (() => {
       concession: getCommitted('concession'),
       configuration: $('#cfg-configuration').value,
       allocationMode: 'single',
-      amountPending: j1MultiDay(stagedSelection) || (cartLines.length >= 1 && !editingLineId),
-      amount: j1MultiDay(stagedSelection) ? null : 2750,
-      priceStatus: j1MultiDay(stagedSelection) ? 'Multi-day sample · pricing not confirmed' : 'Calculated · sample',
+      amountPending: unpriced || j1MultiDay(stagedSelection) || (cartLines.length >= 1 && !editingLineId),
+      amount: unpriced || j1MultiDay(stagedSelection) ? null : 2750,
+      priceStatus: unpriced ? 'Not priced yet · sample' : j1MultiDay(stagedSelection) ? 'Multi-day sample · pricing not confirmed' : 'Calculated · sample',
       pricingOption: 'standard',
       priceMode: 'default',
       priceType: 'standard-rate',
@@ -8131,6 +8366,7 @@ const k1Focus = (() => {
     $('#changed-price-fields').hidden = mode !== 'change';
     const amount = Number.isFinite(line.amount) ? line.amount : 2750;
     $('#pricing-amount').textContent = j1MultiDay(line) ? 'Quote pending · multi-day sample'
+      : !Number.isFinite(line.amount) ? 'Not priced yet'
       : `AU$ ${amount.toLocaleString('en-AU', { minimumFractionDigits: 2 })}`;
     return true;
   }
@@ -8391,13 +8627,14 @@ const k1Focus = (() => {
         endDate: candidate.endDate,
         endH: candidate.endH,
         endM: candidate.endM,
-        amountPending: false,
-        priceStatus: 'Recalculated · sample'
+        amountPending: !Number.isFinite(cartLines[idx].amount),
+        priceStatus: Number.isFinite(cartLines[idx].amount) ? 'Recalculated · sample' : 'Not priced yet'
       };
     });
     const count = Object.keys(timeEditor.candidates).length;
+    const stillNoPrice = Object.keys(timeEditor.candidates).some((id) => cartLines.some((l) => l.id === id && !Number.isFinite(l.amount)));
     closeCartItemEditor();
-    showToast(`${count} staged ${count === 1 ? 'time' : 'times'} updated · pricing recalculated as samples`);
+    showToast(`${count} staged ${count === 1 ? 'time' : 'times'} updated · ${stillNoPrice ? 'price pending' : 'pricing recalculated as samples'}`);
     updateCartUI();
     renderCalendar();
   }
@@ -8658,9 +8895,11 @@ const k1Focus = (() => {
     line.priceMode = mode;
     line.priceType = priceType;
     line.pricingUnit = pricingUnit;
-    line.amountPending = j1MultiDay(line);
+    const noPrice = !Number.isFinite(line.amount);   /* step b17: a line with no amount never claims a price; the line and the total agree */
+    line.amountPending = j1MultiDay(line) || noPrice;
     line.priceStatus = j1MultiDay(line)
       ? 'Pricing choices recorded · multi-day sample; total not confirmed'
+      : noPrice ? 'Pricing choices recorded · not priced yet'
       : 'Pricing choices applied · sample';
     closeCartItemEditor();
     showToast('Pricing choices applied · booking is not saved');
@@ -8744,6 +8983,7 @@ const k1Focus = (() => {
 
 
   function renderAssetTree() {
+    diaryTrimOpen(); diaryExpandBar();
     const rows = getAssetDisplayRows();
     flatAssetRows = rows;
     const scrollEl = $('#asset-tree');
@@ -8755,6 +8995,7 @@ const k1Focus = (() => {
     const kbInfo = document.activeElement && document.activeElement.matches && document.activeElement.matches('#asset-tree-viewport .tree-info:focus-visible') ? document.activeElement.dataset.info : null;
     const total = rows.length;
     const rowH = j3GetTreeRowHeight();
+    if (diaryFollow) { const at = rows.findIndex((r) => r.key === diaryFollow); diaryFollow = ''; if (at >= 0) { assetActive = at; if (at * rowH < assetScroll) { assetScroll = at * rowH; scrollEl.scrollTop = assetScroll; } } }
     const win = computeWindow(assetScroll, scrollEl.clientHeight || 300, rowH, total);
     // L-64 (28 Oct 2026): a mouse wheel or the scrollbar can move the box with the keyboard focus out of the drawn rows; its row is then drawn
     // as well, in its place in the list, so the focus stays on it (out of view, as in any long list).
@@ -9092,6 +9333,7 @@ const k1Focus = (() => {
     renderCalendarGrid();
     renderCartLineMarks();
     if (j9PaintSeries) j9PaintSeries();
+    diaryKeepViewDate();
   }
 
   function renderCalendarGrid() {
@@ -9256,12 +9498,13 @@ const k1Focus = (() => {
           }
           if (document.body.dataset.journey === '1') {
             const eventTime = ev.allDay ? 'All day' : `${formatTime(ev.start, 0)}–${formatTime(ev.end, 0)}`;
-            evEl.innerHTML = `<strong>${escapeHtml(ev.title)}</strong><span class="j1-event-time">${eventTime}</span><span class="event-status">${escapeHtml(ev.status)}</span>${isOccupiedEvent(ev) ? '<span class="j1-event-menu" aria-hidden="true">⋯</span>' : ''}`;
+            evEl.innerHTML = `<strong>${escapeHtml(diaryEventText(ev))}</strong><span class="j1-event-time">${eventTime}</span><span class="event-status">${escapeHtml(ev.status)}</span>${isOccupiedEvent(ev) ? '<span class="j1-event-menu" aria-hidden="true">⋯</span>' : ''}`;
           } else {
-            evEl.innerHTML = `<strong>${ev.title}</strong> <span class="event-status">${ev.status}</span>`;
+            evEl.innerHTML = `<strong>${escapeHtml(diaryEventText(ev))}</strong> <span class="event-status">${ev.status}</span>`;
           }
           evEl.setAttribute('aria-label', eventAccessibleLabel(ev));
           evEl.setAttribute('title', eventAccessibleLabel(ev));
+          evEl.dataset.diaryRef = ev.title; diaryBusinessArea(evEl, ev.asset);
           if (isOccupiedEvent(ev)) {
             evEl.addEventListener('click', () => selectUnavailable(lane.id, dk, ev));
             evEl.addEventListener('keydown', (e) => {
@@ -9635,7 +9878,7 @@ const k1Focus = (() => {
   }
 
   function applyStageTarget(target) {
-    if (isJourney9Route()) { j9BlockReview('Journey 9 stage playback is unavailable; use the recurring review entry.'); return; }
+    if (isJourney9Route()) { j9BlockReview('Stage playback is unavailable here; use Recurring.'); return; }
     if (isJourney7Route()) {
       j7BlockReview('These controls are not available on this route.');
       return;
@@ -9807,6 +10050,7 @@ const k1Focus = (() => {
   }
 
   function beginGuidedReview(mode, total) {
+    j3PlayDefaults();   // step b16: every Play walks from the defaults, whatever is stored
     guidedPaused = false; guidedStopAsked = false; guidedLastRun = mode;   // unified build, slice 2
     const overlay = ensureGuidedReviewOverlay(); syncGuidedControls();
     unifiedOnBegin();   // unified build, slice 7: the Play all line; a run starts from the Week view
@@ -9825,6 +10069,7 @@ const k1Focus = (() => {
   }
 
   function endGuidedReview() {
+    j3RestoreClasses(true);   // step b16: the person's ticks return when a Play ends, so the next tick cannot replace them with the defaults (independent review, N8)
     const unifiedOutcome = unifiedRunOutcome();   // unified build, slice 7: Play all — read before the flags reset
     guidedPaused = false; guidedStopAsked = false; syncGuidedControls();   // unified build, slice 2: Restart = the same journey's rail button again
     if (guidedRestartAsked) {   // unified build, slice 7: Restart during Play all → Journey 1, step 1; a scripted demonstration → its fresh fixture (also Journey 13, no rail)
@@ -10193,7 +10438,7 @@ const k1Focus = (() => {
   }
 
   async function playJourney() {
-    if (isJourney9Route()) { j9BlockReview('Journey 9 playback is unavailable; use the recurring review entry.'); return; }
+    if (isJourney9Route()) { j9BlockReview('Playback is unavailable here; use Recurring.'); return; }
     if (isJourney7Route()) {
       j7BlockReview('Journey 7 playback is bounded to the existing selector and Cart review; no Journey 1 playback fallthrough is available.');
       return;
@@ -10254,7 +10499,7 @@ const k1Focus = (() => {
   }
 
   async function playCompleteJourney() {
-    if (isJourney9Route()) { j9BlockReview('Journey 9 complete playback is unavailable; use the recurring review entry.'); return; }
+    if (isJourney9Route()) { j9BlockReview('Complete playback is unavailable here; use Recurring.'); return; }
     if (isJourney7Route()) {
       j7BlockReview('Journey 7 Play complete is unavailable; Booking creation remains outside this candidate.');
       return;
@@ -10442,7 +10687,8 @@ const k1Focus = (() => {
       ? 'The selection is in the Booking Cart. This screen does not create a Booking.'
       : staged.ok
         ? 'Ready to add to the Cart. This screen stops before the booking is created.'
-        : `Blocked: ${staged.failures.join('; ')}. Total and Cart are not available.`;
+        : cartLines.length ? (stagedSelection ? 'This selection has no price yet; making the next one keeps it in the Cart.' : 'The Cart holds a line with no price yet; this screen continues with one priced line.')
+          : `Blocked: ${staged.failures.join('; ')}. Total and Cart are not available.`;
     j7WriteStatus('#j7-route-note', note);
     const book = $('#confirm-booking-btn');
     if (book) { book.hidden = true; book.disabled = true; book.inert = true; book.setAttribute('aria-hidden', 'true'); }
@@ -10763,6 +11009,10 @@ const k1Focus = (() => {
     } else createSelection('hall1', '2026-08-29', 2, 4);
     presetFromSelection();
     $('#j9-review-launch').hidden = false;
+    if (document.body.dataset.journey === '9') {   /* step b17: J9 reads as the product; the rail's journey links stay */
+      document.querySelectorAll('.review-rail-label, .review-scale-caption').forEach((n) => { n.style.display = 'none'; });
+      document.querySelectorAll('[aria-label^="Review only"], [aria-label^="Review-only"]').forEach((n) => { const w = n.getAttribute('aria-label').replace(/^Review[ -]only( — )?\s*/, ''); n.setAttribute('aria-label', w ? w.charAt(0).toUpperCase() + w.slice(1) : 'Journeys'); });
+    }
     renderSeries();
     if (carried) {   // Cancel with no series goes straight back; with a series, Back asks first, because a series does not travel
       const back = document.createElement('button');
@@ -11468,11 +11718,12 @@ const k1Focus = (() => {
       }
     }
 
+    j3RestoreClasses(false);   // step b16, matrix 3.6
     if (isJ2) {
       j2BindEvents();
       loadTimeslotVisualOptions().then(() => j2Render());
     } else if (isJ3) {
-      loadTimeslotVisualOptions().then(() => j3ResetBootState());
+      loadTimeslotVisualOptions().then(() => { j3ResetBootState(); j3RestoreClasses(true); });
     } else if (isJ4) {
       loadTimeslotVisualOptions().then(() => j4ResetBootState());
     } else if (isJ5) {
@@ -11552,7 +11803,7 @@ const k1Focus = (() => {
   }
   function j8BookingBlock() {
     const ref = J5_BASE_BOOKING.reference.replace('LOCAL-', '');
-    return Array.from(document.querySelectorAll('#calendar-grid .cal-event')).find((el) => el.querySelector('strong')?.textContent.trim() === ref) || null;
+    return Array.from(document.querySelectorAll('#calendar-grid .cal-event')).find((el) => (el.dataset.diaryRef || el.querySelector('strong')?.textContent.trim()) === ref) || null;
   }
   function j8HubFocusables() {
     const details = $('#j4-details-dialog');
@@ -12049,7 +12300,7 @@ const k1Focus = (() => {
 
   function boot() {
     window.__j6PublicRescheduleRoot = Object.freeze({ startOperation: j6StartOperation, renderWorkflow: j6RenderWorkflow, handleWorkflowCommand: j6HandleWorkflowCommand, rootFunction: 'j6StartOperation' });
-    window.__journey10Shared = Object.freeze({ renderCalendar, trapDialogFocus, applyTimeslotVisual, isFreeSlot, getFixtureFreeRange, announceLive });
+    window.__journey10Shared = Object.freeze({ renderCalendar, trapDialogFocus, applyTimeslotVisual, isFreeSlot, getFixtureFreeRange, announceLive, showToast });   // showToast: step b20, J14 Acknowledge preview
     const journey = applyJourneyBoot();
     // One Calendar candidate: Journey 10 uses the Journey 12 calendar density (was 40px rows, Correction 005).
     applyJourneySurfaces(journey);
@@ -12969,13 +13220,13 @@ const k1Focus = (() => {
           announce("Handoff details opened for " + destinationKey);
         }
 
-        function closeDialog(returnFocus) {
+        function closeDialog(returnFocus, quiet) {
           dialog.hidden = true;
           var sh2 = root()?.querySelector(".shell"); if (sh2) sh2.inert = false;
           var rl2 = root()?.querySelector(".review-rail"); if (rl2) rl2.inert = false;
           var sk2 = root()?.querySelector(".skip-link"); if (sk2) sk2.inert = false;
           if (returnFocus !== false && lastFocus) lastFocus.focus();
-          announce("Handoff details closed");
+          if (!quiet) announce("Handoff details closed");
         }
 
         byId("btn-review-seating").addEventListener("click", function(e) {
@@ -12989,8 +13240,11 @@ const k1Focus = (() => {
         byId("j14-dialog-close").addEventListener("click", function() { closeDialog(true); });
         byId("j14-dialog-back").addEventListener("click", function() { closeDialog(true); });
         byId("j14-dialog-ack").addEventListener("click", function() {
-          announce("Preview acknowledged locally — no navigation");
-          closeDialog(true);
+          // Step b20 (6 Nov 2026, L-13): one visible notice, read once (the notice area is itself a polite status region). The closing message
+          // is not added: it replaced this one within the same frame, so nothing was shown and the acknowledgement was not read.
+          closeDialog(true, true);
+          var toast = window.__journey10Shared && window.__journey10Shared.showToast;
+          if (toast) toast("Preview acknowledged locally — no navigation"); else announce("Preview acknowledged locally — no navigation");
         });
         document.addEventListener("keydown", function(e) {
           if (dialog.hidden) return;
@@ -13610,7 +13864,7 @@ const k1Focus = (() => {
     if ($('#j16-settings-dialog')) return;
     document.body.insertAdjacentHTML('beforeend',
       '<div class="j16-backdrop" id="j16-settings-dialog" hidden><div class="j16-dialog" role="dialog" aria-modal="true" aria-labelledby="j16-settings-title">' +
-      '<header><div style="flex:1"><h2 id="j16-settings-title">Diary settings</h2><p>Nothing is saved in this sample.</p></div><button type="button" class="j16-x" data-j16-close aria-label="Close settings">×</button></header>' +
+      '<header><div style="flex:1"><h2 id="j16-settings-title">Diary settings</h2><p>Saved in this browser only.</p></div><button type="button" class="j16-x" data-j16-close aria-label="Close settings">×</button></header>' +
       '<div class="j16-body"><form onsubmit="return false">' +
       '<div class="j16-block"><span class="j16-label">Default date behaviour</span><div class="j16-row">' +
       '<label><input type="radio" name="j16-datebehaviour" value="today" checked data-autofocus> Today (current system default)</label>' +
@@ -13639,23 +13893,24 @@ const k1Focus = (() => {
       '<label>Week / Work Week view <select id="j16-seg-week" data-j16-opt="j16-seg-week" data-j16-seg><option selected>4 hours</option><option>6 hours</option><option>8 hours</option><option>12 hours</option></select></label>' +
       '<label>Month view <select id="j16-seg-month" data-j16-opt="j16-seg-month" data-j16-seg><option>12 hours</option><option selected>24 hours</option></select></label>' +
       '</div><p class="j16-hint" id="j16-seg-hint">Available when 24 Hour View is off.</p></div>' +
-      '<div class="j16-block"><p class="j16-hint">Except timeslot colours, these choices do not change the sample calendar.</p></div>' +
+      '<div class="j16-block"><p class="j16-hint">Here, Event or Customer Name, Business Area, Category &gt; Venue &gt; Asset and Remember last view change the calendar. Keep multiple assets expanded, when off and saved, lets one category stay open at a time, except while filters are on; when on and saved, Expand all and Collapse all appear above the asset list unless a search is typed or Auto Expand is chosen. Venue &gt; Auto Expand All Assets opens the first venue with every category each time the Diary opens. The other choices are kept for the next opening. The sample calendar always shows working hours, 08:00 to 20:00, whether 24 Hour View is ticked or not.</p></div>' +
       '<div class="j16-block"><span class="j16-label">Rights displays (proposed — display only)</span>' +
       '<div class="j16-row"><span class="j16-muted">Example: Agenda requires right <b>959</b> · shown as a label, nothing is enforced · the intended UI/API right matrix is RIGHTS-01 (open).</span></div></div>' +
       '<div class="j16-block"><span class="j16-label">Outlook and SignalR</span>' +
       '<p class="j16-hint">Outlook: no verifiable runtime outcome exists — excluded. SignalR: connection and one send are confirmed in the evidence, but collaboration, reconnect and topology are unverified, so no prototype behaviour is proposed. (DEC-J16-05)</p></div>' +
-      '<p class="j16-hint"><b>Not saved:</b> this sample stores nothing. Whether settings are saved is still to be decided.</p>' +
+      '<p class="j16-hint"><b>Saved in this browser only:</b> your choices return the next time you open the Diary here. Nothing is sent to a server.</p>' +
       '</form></div>' +
       '<footer><button type="button" class="j16-btn" data-j16-close>Cancel</button><button type="button" class="j16-btn j16-btn-primary" id="j16-save">Save</button></footer></div></div>' +
       '<aside class="j16-guide" id="j16-guide" aria-label="Journey 16 review guide (review aid, not Product)"><div class="j16-guide-head"><strong>Journey 16 review · not product</strong>' +
       '<button type="button" id="j16-guide-toggle" aria-expanded="true">Hide</button></div>' +
       '<div class="j16-guide-body"><ol>' +
       '<li>This page opened with the Settings dialog (review entry).</li>' +
-      '<li>Choose options and press <em>Save</em> — you get a message, nothing persists (DEC-J16-02).</li>' +
+      '<li>Choose options and press <em>Save</em> — you get a message, and your choices return after a reload, in this browser only.</li>' +
       '<li>Open <em>Agenda</em> — a rights strip appears under the Agenda toolbar: display proposal only (RIGHTS-01 open).</li>' +
       '<li>On a phone, the view bar now scrolls horizontally — proposed fix for DEC-J15-05 (DEC-J16-04).</li>' +
       '<li>Agenda, Custom and Week still work exactly as in Journey 15.</li></ol>' +
-      '<p class="j16-note">Out of the proposal: Outlook behaviour, SignalR collaboration behaviour, the notification catalogue, settings persistence, any rights enforcement, any Journey 15-or-earlier change.</p></div></aside>');
+      '<p class="j16-note">Out of the proposal: Outlook behaviour, SignalR collaboration behaviour, the notification catalogue, any rights enforcement, any Journey 15-or-earlier change.</p></div></aside>');
+    if (state.away) { const g0 = $('#j16-guide'); if (g0) g0.remove(); }   // step b22: the Journey 16 review guide stays on Journey 12's route
     if (window.innerWidth <= 600) {
       const g = $('#j16-guide');
       if (g) g.dataset.collapsed = 'true';
@@ -13678,6 +13933,23 @@ const k1Focus = (() => {
   const j16Key = (n) => (n.type === 'radio' ? `${n.dataset.j16Opt}:${n.value}` : n.dataset.j16Opt);
   function j16Read(d) { const v = {}; d.querySelectorAll('[data-j16-opt]').forEach((n) => { v[j16Key(n)] = (n.type === 'radio' || n.type === 'checkbox') ? n.checked : n.value; }); return v; }
   function j16Sync(d) { const on = d.querySelector('#j16-24h')?.checked; d.querySelectorAll('[data-j16-seg]').forEach((s) => { s.disabled = !!on; }); const h = d.querySelector('#j16-seg-hint'); if (h) h.hidden = !on; }
+  // Step b16, matrix 16.12: Save keeps the choices in this browser, as the current system does (setting.service.ts:412-425). No server. Only values this window can show are taken; anything else keeps its default. Nothing stored: nothing changes.
+  const J16_KEY = 'DiarySettings';
+  function j16Restore(d) {
+    let v = null; try { v = JSON.parse(localStorage.getItem(J16_KEY)); } catch (e) { return; }
+    if (!v || typeof v !== 'object') return;
+    if (v.date === 'today' || v.date === 'remember') state.saved.date = v.date;
+    if (typeof v.colours === 'boolean') state.saved.colours = v.colours;
+    if (!v.opts || typeof v.opts !== 'object') return;
+    d.querySelectorAll('[data-j16-opt]').forEach((n) => {
+      const k = j16Key(n), x = v.opts[k];
+      if (n.type === 'radio') { if (x === true) d.querySelectorAll(`input[name="${n.name}"]`).forEach((r) => { state.saved.opts[j16Key(r)] = r === n; }); return; }
+      if (typeof x !== typeof state.saved.opts[k]) return;
+      if (n.type === 'number' && x !== '' && !Number.isFinite(Number(x))) return;
+      if (n.tagName === 'SELECT' && ![...n.options].some((o) => o.value === x)) return;
+      state.saved.opts[k] = x;
+    });
+  }
   function j16Write(d, v) { if (v) d.querySelectorAll('[data-j16-opt]').forEach((n) => { const x = v[j16Key(n)]; if (x === undefined) return; if (n.type === 'radio' || n.type === 'checkbox') n.checked = x; else n.value = x; }); j16Sync(d); }
   function openSettings(trigger) {
     state.trigger = trigger || $('#j16-settings-entry') || $('.view-switch .view-btn[data-view="agenda"]');
@@ -13686,7 +13958,7 @@ const k1Focus = (() => {
     document.title = 'Optimo Diary — Settings';
     if (!$('#j16-settings-dialog')) build();
     const d = $('#j16-settings-dialog');
-    if (!d.dataset.j16Wired) { d.dataset.j16Wired = '1'; d.addEventListener('change', () => j16Sync(d)); if (!state.saved.opts) state.saved.opts = j16Read(d); }
+    if (!d.dataset.j16Wired) { d.dataset.j16Wired = '1'; d.addEventListener('change', () => j16Sync(d)); if (!state.saved.opts) { state.saved.opts = j16Read(d); j16Restore(d); } }
     if (!open) {   // KA2 (23 Oct 2026, L-29): Cancel, × and Escape discard an unsaved change — the dialog opens on the last saved choices
       const saved = d.querySelector(`input[name="j16-datebehaviour"][value="${state.saved.date}"]`); if (saved) saved.checked = true;
       const colours = d.querySelector('#j16-colours'); if (colours) colours.checked = state.saved.colours;
@@ -13720,8 +13992,11 @@ const k1Focus = (() => {
     if (t.closest('[data-j16-close]')) { event.preventDefault(); closeSettings(true); return; }
     if (t.closest('#j16-save')) {
       event.preventDefault();
-      state.saved = { date: $('input[name="j16-datebehaviour"]:checked')?.value || 'today', colours: !!$('#j16-colours')?.checked, opts: j16Read($('#j16-settings-dialog')) };   // KA2 (23 Oct 2026, L-29): kept for the next opening (nothing persists beyond this page)
-      announce('Settings applied — nothing is saved in this sample.');
+      state.saved = { date: $('input[name="j16-datebehaviour"]:checked')?.value || 'today', colours: !!$('#j16-colours')?.checked, opts: j16Read($('#j16-settings-dialog')) };   // KA2 (23 Oct 2026, L-29): kept for the next opening; step b16: and in this browser (before b16 nothing persisted beyond this page)
+      let kept = false;
+      if (event.isTrusted) { try { localStorage.setItem(J16_KEY, JSON.stringify(state.saved)); kept = true; } catch (e) { /* no storage: applied for this visit, and it says so */ } }   // Play's Save stores nothing
+      if (kept) window.dispatchEvent(new CustomEvent('diary-settings-saved'));
+      announce(kept ? 'Settings saved in this browser.' : 'Settings applied for this visit.');
       closeSettings(true);
       return;
     }
@@ -13746,10 +14021,13 @@ const k1Focus = (() => {
   }, true);
 
   function init() {
-    if (document.body.dataset.journey !== '12') return;
     if (document.body.dataset.j14Entry === 'open') return; // the Journey 14 in-Diary view must stay untouched
-    document.body.dataset.j16Candidate = 'ready'; // review-readiness marker, Diary route only (Journey 15's marker is unchanged)
+    // Step b22 (7 Nov 2026): the Settings entry on every route with the view bar - saved settings act on every route since b17, but only Journey 12 could open them.
     const bar = $('#view-bar');
+    if (document.body.dataset.journey !== '12') {
+      if (!bar || document.body.dataset.journey === '13') return;   // Journey 13's configuration screen hides the Diary (styles.css: #app-shell display none)
+      state.away = true;   // off Journey 12: the entry and its dialog only; the rights strip, the review guide and the readiness marker stay on Journey 12
+    } else document.body.dataset.j16Candidate = 'ready'; // review-readiness marker, Diary route only (Journey 15's marker is unchanged)
     if (bar && !$('#j16-settings-entry')) {
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -13759,6 +14037,7 @@ const k1Focus = (() => {
       btn.setAttribute('title', 'Proposed Journey 16 settings entry (review only)');
       bar.appendChild(btn);
     }
+    if (state.away) { state.ready = true; return; }
     // rights strip: kept in sync with the Agenda view whatever shows it (view-bar click, deep link, re-render).
     // Display proposal only — nothing is enforced (RIGHTS-01 open). The J15 hook is left untouched.
     const syncRightsStrip = () => {
@@ -13784,6 +14063,6 @@ const k1Focus = (() => {
     window.__j16Review = Object.freeze({ openSettings });
     if (location.hash === '#settings') openSettings();
   }
-  document.addEventListener('DOMContentLoaded', () => window.setTimeout(init, 80));
+  document.addEventListener('DOMContentLoaded', () => window.setTimeout(() => { init(); window.dispatchEvent(new CustomEvent('diary-settings-load')); }, 80));   /* step b17: every route, not only the Diary route */
 })();
 

@@ -2479,6 +2479,12 @@ body[data-journey="1"] .segmented label:hover {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
+/* Step b21 (6 Nov 2026, L-39): the view bar's buttons nearly fill its height, so an outside ring was painted over by the top bar and the workspace. On these light buttons the ring is inset and drawn in full. */
+#view-bar :is(.btn-icon, .btn-ghost):focus-visible { outline-offset: -2px; }
+/* Step b21 (L-39, Slots): the pressed Slots button is filled with the ring's own blue (J1), so its ring stays outside, 1 px off, with a light gap; raised above its neighbour; it then ends at the bar's edge. */
+#view-bar .slot-layout-btn:focus-visible { outline-offset: 1px; position: relative; z-index: 1; }
+/* Step b21 (L-39, view strip): the focused view button is drawn above its neighbours, so its ring is not covered on its right. */
+#view-bar .view-switch .view-btn:focus-visible { position: relative; z-index: 1; }
 
 .off-week-banner {
   padding: 8px 12px;
@@ -7302,6 +7308,9 @@ body[data-journey="6"] #j5-workflow-dialog input:not([type="checkbox"]), body[da
 body[data-journey="6"] #j5-workflow-close { width: 44px; height: 44px; min-height: 44px; }
 body[data-journey="5"] #j5-workflow-dialog:has(.j6-stage-card) input:not([type="checkbox"]), body[data-journey="5"] #j5-workflow-dialog:has(.j6-stage-card) select, body[data-journey="5"] #j5-workflow-dialog:has(.j6-stage-card) button { min-height: 44px; }
 body[data-journey="5"] #j5-workflow-dialog:has(.j6-stage-card) #j5-workflow-close { width: 44px; height: 44px; min-height: 44px; }
+/* Step b21 (6 Nov 2026, L-11): one 44 px control size in every Journey 5 step window, as its Reschedule window above, Journey 6 and Journey 12 (I-3). */
+body[data-journey="5"] #j5-workflow-dialog input:not([type="checkbox"]):not([type="radio"]), body[data-journey="5"] #j5-workflow-dialog select, body[data-journey="5"] #j5-workflow-dialog button { min-height: 44px; }
+body[data-journey="5"] #j5-workflow-close { width: 44px; height: 44px; min-height: 44px; }
 body[data-journey="6"] .j6-check-row { min-height: 44px; }
 body[data-journey="5"] .j6-different-time-rows, body[data-journey="6"] .j6-different-time-rows { display: grid; gap: 10px; margin-top: 12px; }
 body[data-journey="5"] .j6-different-time-row, body[data-journey="6"] .j6-different-time-row { display: grid; grid-template-columns: minmax(100px, 1fr) repeat(3, minmax(0, 1fr)); align-items: end; gap: 8px; padding: 10px; border: 1px solid var(--diary-border); background: #fff; }
@@ -7531,7 +7540,10 @@ body[data-journey="8"] #j5-workflow-stage { display: block; }
 body[data-journey="8"] .j8-boundary,
 body[data-journey="8"] .j8-evidence,
 body[data-journey="8"] .j8-selection-note { color: var(--diary-text-secondary); font-size: 12px; line-height: 1.45; }
-body[data-journey="8"] .j8-boundary { margin: 0 0 14px; padding: 10px 12px; border: 1px solid var(--diary-border); border-left: 4px solid var(--diary-blue-500); background: var(--diary-surface-muted); }
+/* Step b20 (6 Nov 2026, L-32): the note's fill, as its sibling .j5-review-boundary (--diary-surface-muted is defined nowhere) */
+body[data-journey="8"] .j8-boundary { margin: 0 0 14px; padding: 10px 12px; border: 1px solid var(--diary-border); border-left: 4px solid var(--diary-blue-500); background: var(--diary-blue-050); }
+/* Step b21 (6 Nov 2026, b20 review N1): the note's text, as its sibling .j5-review-boundary (secondary grey on this fill was 4.55:1). */
+body[data-journey="8"] .j8-boundary { color: var(--diary-text); }
 body[data-journey="8"] .j8-panel { display: grid; gap: 14px; padding: 18px; border: 1px solid var(--diary-border); border-radius: 12px; background: var(--diary-surface); }
 body[data-journey="8"] .j8-panel h3 { margin: 0; color: var(--diary-text); }
 body[data-journey="8"] .j8-evidence { margin: -8px 0 0; text-transform: uppercase; letter-spacing: .06em; font-weight: 800; }

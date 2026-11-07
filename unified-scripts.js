@@ -217,11 +217,11 @@ window.UNIFIED_SCRIPTS = Object.assign(window.UNIFIED_SCRIPTS || {}, {
 
   /* Journey 16 — Rights, settings and states: the Diary settings dialog is already open on entry
      (the build redirects ?journey=16 to ?journey=12#settings). Settings, Save with its honest message,
-     the Agenda rights strip, and the existing views still working. Nothing is persisted. */
+     the Agenda rights strip, and the existing views still working. Play stores nothing; a person's own Save stays in this browser. */
   16: [
     { at: '#j16-settings-dialog input[name="j16-datebehaviour"][value="remember"]', say: 'Choose Remember last view instead of Today', wait: 600 },
     { at: '#j16-colours', say: 'Turn the timeslot colours off', wait: 500 },
-    { at: '#j16-save', say: 'Save confirms; nothing persists beyond this page', wait: 1500 },
+    { at: '#j16-save', say: 'Save confirms; this walkthrough stores nothing', wait: 1500 },
     { at: '.view-switch .view-btn[data-view="agenda"]', say: 'Agenda still works and shows the rights strip', wait: 1000 },
     { at: '#j15-booked-only', act: 'check', say: 'The Agenda filter from Journey 15 still works', wait: 700 },
     { at: '.view-switch .view-btn[data-view="week"]', say: 'Week still returns to the normal calendar', wait: 800 },
