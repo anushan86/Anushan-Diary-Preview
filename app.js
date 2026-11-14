@@ -1,5 +1,18 @@
 /* Step b12, C4 (3 Nov 2026): one Documents list, reused. Sample names; opening shows a sample page.
    Existing rules kept: the section appears only when there are documents; venue documents only if shared with facilities, then the asset's own; each opens in a new tab. */
+/* Step b38 (12 Nov 2026): the Client view, a reversible client-demo presentation (the Director, 12 Nov 2026, 9:49 PM and 9:55 PM).
+   ?view=client turns it on for this browser tab; ?view=review turns it off. Without it the review view is exactly as before.
+   Step b40 (13 Nov 2026): the Client view is the default; ?view=review keeps the review view for the tab (index.html sets the view before the first paint; this reads the same order). */
+(function () {
+  try {
+    if (document.querySelector('link[href*="d0-product-only"]')) return;   // v5: the customer pages D0 and D1 keep their own view
+    const v = new URLSearchParams(window.location.search).get('view');
+    if (v === 'client' || v === 'review') window.sessionStorage.setItem('optimo.presentation.v1', v);
+    var demo = false; try { var a = JSON.parse(sessionStorage.getItem('optimoUnified.autoplay.v1') || 'null'), p = JSON.parse(sessionStorage.getItem('optimoUnified.playAll.v1') || 'null'); var jq = Number(new URLSearchParams(location.search).get('journey')) || 1; if (jq === 12 && /^#agenda/.test(location.hash)) jq = 15; else if (jq === 12 && /^#settings/.test(location.hash)) jq = 16; demo = !!(a && a.key === jq && Date.now() - a.at < 60000 && Date.now() >= a.at) || !!(p && p.running && p.k === jq && Date.now() - p.at < 3600000 && Date.now() >= p.at); } catch (e) { demo = false; }   /* step b41: a demonstration page load shows the review view, as index.html */
+    if (!demo && window.sessionStorage.getItem('optimo.presentation.v1') !== 'review') document.documentElement.setAttribute('data-presentation', 'client');
+    if (document.documentElement.getAttribute('data-presentation') === 'client') [['j10-route-title', 'Private block management'], ['j11-route-title', 'Diary notes'], ['j12-route-title', 'Public event actions']].forEach(([id, t]) => { const h = document.getElementById(id); if (h) h.textContent = t; });   // step b39 v2: one heading case in the Client view
+  } catch (e) { document.documentElement.setAttribute('data-presentation', 'client'); }   /* step b40: no session storage - the Client view, the default */
+})();
 (function () {
   const SAMPLE = {
     hall1: { venue: [{ name: 'Northside fire safety plan.pdf', shareWithFacilities: true }, { name: 'Northside staff rota.xlsx', shareWithFacilities: false }], asset: [{ name: 'Hall 1 floor plan.pdf' }, { name: 'Hall 1 AV specification.docx' }] },
@@ -199,6 +212,7 @@ const k1Focus = (() => {
 
   const TIMESLOT_CLASSIFICATION_KEYS = ['confirmed', 'quotation', 'blocked', 'facility-not-in-use'];
   const TIMESLOT_COLOUR_UNAVAILABLE_LABEL = 'System option colour unavailable';
+  const CLIENT_VIEW = document.documentElement.getAttribute('data-presentation') === 'client';   // step b38: the Client view (set before this script part runs)
   const TIMESLOT_SEMANTIC_FALLBACK_LABELS = {
     confirmed: 'Private confirmed',
     quotation: 'Private quotation',
@@ -267,7 +281,7 @@ const k1Focus = (() => {
   function resolveTimeslotLegendLabel(key, entry) {
     if (entry.label) return entry.label;
     const semantic = TIMESLOT_SEMANTIC_FALLBACK_LABELS[key] || key;
-    if (entry.color) return semantic;
+    if (entry.color || CLIENT_VIEW) return semantic;   // step b38: the Client view shows the plain name
     return `${semantic} — ${TIMESLOT_COLOUR_UNAVAILABLE_LABEL}`;
   }
 
@@ -331,7 +345,7 @@ const k1Focus = (() => {
       list.appendChild(li);
     });
     host.appendChild(list);
-    if (j1Legend && missingColour) {
+    if (j1Legend && missingColour && !CLIENT_VIEW) {   // step b38: no fallback note in the Client view
       const note = document.createElement('span');
       note.className = 'j1-legend-fallback';
       note.textContent = 'Dashed swatches: system option colour unavailable';
@@ -541,12 +555,12 @@ const k1Focus = (() => {
     {
       id: 'selected', kind: 'selected', label: 'Selected', reference: 'SEL-LOCAL-001',
       status: 'Selected · Not saved', asset: 'hall1', resource: 'Hall 1', dayOffset: 4,
-      startSlot: 8, endSlot: 11, access: 'Read-only · sample', details: true, more: false
+      startSlot: 8, endSlot: 11, access: document.documentElement.getAttribute('data-presentation') === 'client' ? 'Read-only' : 'Read-only · sample', details: true, more: false
     },
     {
       id: 'private', kind: 'private', label: 'Private Booking', reference: 'BK-10482',
       status: 'Private Booking · Confirmed', asset: 'studio2', resource: 'Studio 2', dayOffset: 4,
-      startSlot: 2, endSlot: 10, visualType: 'confirmed', access: 'Details and actions available · sample', details: true, more: true
+      startSlot: 2, endSlot: 10, visualType: 'confirmed', access: document.documentElement.getAttribute('data-presentation') === 'client' ? 'Details and actions available' : 'Details and actions available · sample', details: true, more: true
     },
     {
       id: 'series', j5Series: true, kind: 'private', label: 'Recurring booking', reference: 'BK-10490',
@@ -554,9 +568,9 @@ const k1Focus = (() => {
       startSlot: 12, endSlot: 16, visualType: 'confirmed', access: 'Reschedule Recurring in More actions · sample', details: true, more: true
     },
     {
-      id: 'public-review', kind: 'public-review', journey6: true, label: 'Public timeslot · sample', reference: 'PUB-REVIEW-001',
-      status: 'Maintenance and public events · sample', asset: 'hall1', resource: 'Hall 1', dayOffset: 4,
-      startSlot: 4, endSlot: 26, access: 'Sample; public identification not confirmed', details: true, more: false
+      id: 'public-review', kind: 'public-review', journey6: true, label: document.documentElement.getAttribute('data-presentation') === 'client' ? 'Public timeslot' : 'Public timeslot · sample', reference: 'PUB-REVIEW-001',
+      status: document.documentElement.getAttribute('data-presentation') === 'client' ? 'Maintenance and public events' : 'Maintenance and public events · sample', asset: 'hall1', resource: 'Hall 1', dayOffset: 4,
+      startSlot: 4, endSlot: 26, access: document.documentElement.getAttribute('data-presentation') === 'client' ? 'Public identification not confirmed' : 'Sample; public identification not confirmed', details: true, more: false
     },
     {
       id: 'blocked', kind: 'blocked', label: 'Blocked', reference: 'BLK-220',
@@ -566,7 +580,7 @@ const k1Focus = (() => {
     {
       id: 'facility-not-in-use', kind: 'facility-not-in-use', label: 'Facility Not In Use', reference: 'FNI-301',
       status: 'Facility Not In Use · Unavailable', asset: 'studio2', resource: 'Studio 2', dayOffset: 6,
-      startSlot: 14, endSlot: 18, visualType: 'facility-not-in-use', access: 'Read-only · sample', details: true, more: false
+      startSlot: 14, endSlot: 18, visualType: 'facility-not-in-use', access: document.documentElement.getAttribute('data-presentation') === 'client' ? 'Read-only' : 'Read-only · sample', details: true, more: false
     },
     {
       id: 'conflict', kind: 'conflict', label: 'Conflict', reference: 'CNF-LOCAL-001',
@@ -688,7 +702,7 @@ const k1Focus = (() => {
       panel.removeAttribute('aria-busy');
     } else {
       title.textContent = 'Varies';
-      copy.textContent = ' Selected intervals have heterogeneous values. All timeslot action and mutation execution is disabled until resolved.';
+      copy.textContent = ' The selected timeslots do not share the same values. Their actions are switched off until this is resolved.';
       panel.removeAttribute('aria-busy');
     }
     panel.append(title, copy);
@@ -916,12 +930,12 @@ const k1Focus = (() => {
 
     if (j4ViewState === 'varies') {
       title.textContent = 'Varies';
-      copy.textContent = 'The selected intervals do not share common values.';
+      copy.textContent = 'The selected timeslots do not share the same values.';
       state.textContent = 'Varies';
-      time.textContent = 'Varies · zero-duration sample';
+      time.textContent = 'Varies';
       resource.textContent = 'Varies';
       access.textContent = 'Actions blocked until resolved';
-      guidance.textContent = 'No normalization or mutation is inferred.';
+      guidance.textContent = 'Nothing is changed while the values differ.';
       open.disabled = true;
       more.disabled = true;
       open.dataset.j4Fixture = '';
@@ -932,9 +946,10 @@ const k1Focus = (() => {
     if (isJ6Journey()) {
       const fixture = j4FindFixture('public-review');
       if (!fixture) return;
-      title.textContent = 'Public timeslot · sample';
-      copy.textContent = 'Maintenance and public events are shown as one sample; the public context menu is not included.';
-      state.textContent = 'SAMPLE';
+      const cvJ6 = document.documentElement.getAttribute('data-presentation') === 'client';   // step b39: the Client view words
+      title.textContent = cvJ6 ? 'Public timeslot' : 'Public timeslot · sample';
+      copy.textContent = cvJ6 ? 'Maintenance and public events are shown together; the public context menu is not included.' : 'Maintenance and public events are shown as one sample; the public context menu is not included.';
+      state.textContent = cvJ6 ? 'Public timeslot' : 'SAMPLE';
       time.textContent = j6PublicInterval.start + '–' + j6PublicInterval.end;
       resource.textContent = fixture.resource;
       access.textContent = fixture.access;
@@ -1513,23 +1528,23 @@ const k1Focus = (() => {
     let step = 0;
     j4ResetBootState();
     beginGuidedReview('journey', total);
-    showToast('Playing Journey 4 review-only timeslot interaction…');
+    showToast('Playing Journey 4: calendar timeslots and first actions…');
     try {
-      await guidedReviewStep(playBtn, 'Exact-one Journey 4 review route; J1–J3 remain isolated.', ++step, total, () => {}, REVIEW_PLAY_STEP_MS);
-      await guidedReviewStep('#j4-select-available', 'Select one valid available interval and hand it to the existing J1 New Selection state.', ++step, total);
-      await guidedReviewStep('#j4-open-private', 'Open Private Booking read-only details directly in one click.', ++step, total);
-      await guidedReviewStep('#j4-details-close', 'Close details and return focus to the exact direct action.', ++step, total);
-      await guidedReviewStep('#j4-more-private', 'Retain the separate non-mutating More actions capability.', ++step, total);
-      await guidedReviewStep('#j4-context-open-details', 'Open the same read-only details from the context first handoff.', ++step, total);
-      await guidedReviewStep('#j4-details-back', 'Back returns focus to the invoking context action.', ++step, total);
-      await guidedReviewStep('#j4-context-close', 'Close context and return to the exact More actions trigger.', ++step, total);
-      await guidedReviewStep('[data-j4-filter="conflict"]', 'Hide Conflict with one local visual update and no storage.', ++step, total);
-      await guidedReviewStep(() => { j4ClearCartHandoff(); return $('#j4-selection-summary'); }, 'Review the selected summary; no second Cart exists.', ++step, total, () => {}, REVIEW_PLAY_STEP_MS);   // unified build, slice 9: the summary is shown before it is reviewed
-      await guidedReviewStep('#j4-selection-summary', 'Show Varies and block all timeslot action or mutation execution.', ++step, total, () => j4SetViewState('varies'), REVIEW_PLAY_STEP_MS);
-      showToast('Journey 4 guided review finished — candidate only; Gate A remains pending.');
+      await guidedReviewStep(playBtn, 'Read the calendar timeslots and take a first action.', ++step, total, () => {}, REVIEW_PLAY_STEP_MS);
+      await guidedReviewStep('#j4-select-available', 'Pick a free timeslot: it becomes the New selection.', ++step, total);
+      await guidedReviewStep('#j4-open-private', 'Click a private booking: its details open in one click.', ++step, total);
+      await guidedReviewStep('#j4-details-close', 'Close the details: you are back on the same booking.', ++step, total);
+      await guidedReviewStep('#j4-more-private', 'More actions offers more options for this booking.', ++step, total);
+      await guidedReviewStep('#j4-context-open-details', 'Open the same details from the More actions menu.', ++step, total);
+      await guidedReviewStep('#j4-details-back', 'Back returns you to the menu you came from.', ++step, total);
+      await guidedReviewStep('#j4-context-close', 'Close the menu: you are back on More actions.', ++step, total);
+      await guidedReviewStep('[data-j4-filter="conflict"]', 'Hide the Conflict timeslots with one click.', ++step, total);
+      await guidedReviewStep(() => { j4ClearCartHandoff(); return $('#j4-selection-summary'); }, 'The summary shows what is selected.', ++step, total, () => {}, REVIEW_PLAY_STEP_MS);   // unified build, slice 9: the summary is shown before it is reviewed
+      await guidedReviewStep('#j4-selection-summary', 'If the values differ, the summary shows Varies.', ++step, total, () => j4SetViewState('varies'), REVIEW_PLAY_STEP_MS);
+      showToast('Journey 4 guided demonstration finished.');
     } catch (error) {
       if (error && error.guidedStop) showToast('Playback stopped.');   // unified build, slice 2
-      else { console.error(error); showToast('Guided Journey 4 review stopped at the last safe state — inspect console evidence.'); }
+      else { console.error(error); showToast('The Journey 4 demonstration stopped. Reload the page to start again.'); }
     } finally {
       playJourneyActive = false;
       playBtn.disabled = false;
@@ -1550,15 +1565,15 @@ const k1Focus = (() => {
     j4ResetBootState();
     beginGuidedReview('complete', total);
     try {
-      await guidedReviewStep(completeBtn, 'Journey 4 short review starts with all six labelled fixture states.', ++step, total, () => {}, REVIEW_COMPLETE_STEP_MS);
-      await guidedReviewStep('#j4-select-available', 'Available interval uses the single existing J1 selection graph.', ++step, total, null, REVIEW_COMPLETE_STEP_MS);
-      await guidedReviewStep('#j4-open-private', 'Direct one-click read-only details.', ++step, total, null, REVIEW_COMPLETE_STEP_MS);
-      await guidedReviewStep('#j4-details-back', 'Back with exact focus return.', ++step, total, null, REVIEW_COMPLETE_STEP_MS);
-      await guidedReviewStep('[data-j4-filter="blocked"]', 'Session-only visual filter; no persistence or request.', ++step, total, null, REVIEW_COMPLETE_STEP_MS);
-      showToast('Journey 4 Play complete finished — FUNCTIONAL CANDIDATE only; not Gate A.');
+      await guidedReviewStep(completeBtn, 'The calendar shows six kinds of timeslot.', ++step, total, () => {}, REVIEW_COMPLETE_STEP_MS);
+      await guidedReviewStep('#j4-select-available', 'Pick a free timeslot: it becomes the New selection.', ++step, total, null, REVIEW_COMPLETE_STEP_MS);
+      await guidedReviewStep('#j4-open-private', 'Open a booking: its details open in one click.', ++step, total, null, REVIEW_COMPLETE_STEP_MS);
+      await guidedReviewStep('#j4-details-back', 'Back returns you to the same booking.', ++step, total, null, REVIEW_COMPLETE_STEP_MS);
+      await guidedReviewStep('[data-j4-filter="blocked"]', 'Hide the Blocked timeslots (not saved).', ++step, total, null, REVIEW_COMPLETE_STEP_MS);
+      showToast('Journey 4 short demonstration finished.');
     } catch (error) {
       if (error && error.guidedStop) showToast('Playback stopped.');   // unified build, slice 2
-      else { console.error(error); showToast('Journey 4 Play complete stopped at the last safe state.'); }
+      else { console.error(error); showToast('The Journey 4 demonstration stopped. Reload the page to start again.'); }
     } finally {
       playJourneyActive = false;
       playBtn.disabled = false;
@@ -1633,6 +1648,7 @@ const k1Focus = (() => {
     j5SyncReviewControls(); j5SyncLifecycleControls();
     const hub = $('#j5-action-hub'); const stateMessage = $('#j5-state-message'); const content = $('#j5-loaded-content'); const total = $('#j5-total'); const itemCount = $('#j5-item-count');
     if (!hub || !stateMessage || !content || !total) return;
+    if (document.documentElement.getAttribute('data-presentation') === 'client') { const ad = [...content.querySelectorAll('dd')].find((d) => d.textContent === 'Private booking · sample data'); if (ad) ad.textContent = 'Private booking'; }   // step b39: the Client view
     if (j5ReviewState === 'loading') hub.setAttribute('aria-busy', 'true'); else hub.removeAttribute('aria-busy');
     stateMessage.className = `j5-state-message is-${j5ReviewState}`; stateMessage.replaceChildren();
     const heading = document.createElement('strong'); const copy = document.createElement('span');
@@ -1649,7 +1665,7 @@ const k1Focus = (() => {
       retry.addEventListener('click', () => { j5SetState('loaded', true); announceLive(j5LocalResult('Details retry returned the local fixture.')); }); stateMessage.appendChild(retry);
     }
     const detailsVisible = !['loading', 'error'].includes(j5ReviewState); content.hidden = !detailsVisible; content.inert = !detailsVisible;
-    total.textContent = j5ReviewState === 'partial' ? 'Unavailable — partial sample' : `${J5_BOOKING_FIXTURE.total.toLocaleString('en-AU', { style: 'currency', currency: 'AUD' })} sample`;
+    total.textContent = j5ReviewState === 'partial' ? 'Unavailable — partial sample' : `${J5_BOOKING_FIXTURE.total.toLocaleString('en-AU', { style: 'currency', currency: 'AUD' })}${document.documentElement.getAttribute('data-presentation') === 'client' ? '' : ' sample'}`;
     if (itemCount) itemCount.textContent = `${J5_BOOKING_FIXTURE.items.length} local booking item${J5_BOOKING_FIXTURE.items.length === 1 ? '' : 's'}`;
     const actionsEnabled = detailsVisible && j5CanEnterAction() && j5LifecycleState === 'ready';
     $$('.j5-action[data-j5-action]').forEach((button) => {
@@ -2058,7 +2074,19 @@ const k1Focus = (() => {
     const details = $('#j4-details-dialog'); if (details?.open) details.close('workflow');
     const dialog = $('#j5-workflow-dialog'); if (!dialog) return;
     j6RenderWorkflow(); dialog.hidden = false; dialog.inert = false; dialog.removeAttribute('aria-hidden'); dialog.showModal();
-    window.setTimeout(() => dialog.querySelector('input, select, button:not(.dialog-close)')?.focus(), 0);
+    // Step b31 (L-19): the first field takes focus even when it is shown a moment after the window opens (the customer page re-checks its hiding 40 ms later); retried every 20 ms
+    // for up to 300 ms, only while the window is open and focus is still on its close button, the window or the page body, so a person who has moved focus is never overridden.
+    // The guard is checked before every retry (b31 v2), so a retry never takes focus from a control the person has moved to; it stops when this opening is no longer the current one.
+    const opening = j5Operation;
+    const waiting = () => { const now = document.activeElement; return now === document.body || now === dialog || !!now?.classList.contains('dialog-close'); };
+    const focusFirst = (tries) => {
+      const target = dialog.querySelector('input, select, button:not(.dialog-close)');
+      if (!dialog.open || j5Operation !== opening || !target || (tries > 0 && !waiting())) return;
+      target.focus();
+      if (document.activeElement === target || tries >= 15 || !waiting()) return;
+      window.setTimeout(() => focusFirst(tries + 1), 20);
+    };
+    window.setTimeout(() => focusFirst(0), 0);
     announceLive(`${j6ActionTitle(action)} opened. No server request sent.`);
   }
   function j6ResultCard(title, copy, cls = 'j6-open') {
@@ -2773,7 +2801,7 @@ const k1Focus = (() => {
           if (open && expandedNodes.has(vk)) catalog.filter((a) => a.catKey === cat.key && eligibleIds.has(a.id)).forEach((asset) => rows.push({ kind: 'resource', key: asset.id, asset, level: 3, meta: j3ClassLabel(asset) + ' · ' + asset.assetType }));
         });
       } else {
-        rows.push({ kind: 'venue', key: 'venue', name: EX_VENUE, level: 1, expanded: expandedNodes.has('venue'), journey: true, meta: 'Venue · Journey fixtures' });
+        rows.push({ kind: 'venue', key: 'venue', name: EX_VENUE, level: 1, expanded: expandedNodes.has('venue'), journey: true, meta: CLIENT_VIEW ? 'Venue' : 'Venue · Journey fixtures' });
         if (expandedNodes.has('venue')) {
           cats.forEach((cat) => {
             const open = expandedNodes.has(cat.key);
@@ -2871,7 +2899,7 @@ const k1Focus = (() => {
     const statusEl = $('#j3-filter-status');
     if (!statusEl) return;
     statusEl.hidden = false;
-    statusEl.textContent = 'Showing ' + visibleCount + ' of ' + jxCatalog().length + (exOn() ? ' sample assets' : ' assets');
+    statusEl.textContent = 'Showing ' + visibleCount + ' of ' + jxCatalog().length + (exOn() && !(document.documentElement.getAttribute('data-presentation') === 'client') ? ' sample assets' : ' assets');
   }
 
   function j3GetTreeRowHeight() {
@@ -3404,61 +3432,61 @@ const k1Focus = (() => {
     let step = 0;
     j3ResetBootState();
     beginGuidedReview('journey', total);
-    showToast('Playing Journey 3 review-only asset search and selection…');
+    showToast('Playing Journey 3: search and selected assets…');
     try {
-      await guidedReviewStep(playBtn, 'Open the Journey 3 asset explorer — review rail only, not Product navigation.', ++step, total, () => j3OpenExplorer(playBtn), REVIEW_PLAY_STEP_MS);
-      await guidedReviewStep('#assets-panel', 'One explorer: keyword search, hierarchy and capacity filters inside #assets-panel.', ++step, total);
-      await guidedReviewStep('#asset-search', 'Filter locally by keyword — no network search.', ++step, total, (el) => {
+      await guidedReviewStep(playBtn, 'Find rooms and resources in the Asset Explorer.', ++step, total, () => j3OpenExplorer(playBtn), REVIEW_PLAY_STEP_MS);
+      await guidedReviewStep('#assets-panel', 'One Asset Explorer: search, venue list and capacity.', ++step, total);
+      await guidedReviewStep('#asset-search', 'Type a keyword: the list narrows as you type.', ++step, total, (el) => {
         el.value = 'Hall Alpha';
         el.dispatchEvent(new Event('input', { bubbles: true }));
       });
-      await guidedReviewStep('#asset-search', 'Clear keyword with Escape recovery path.', ++step, total, (el) => {
+      await guidedReviewStep('#asset-search', 'Press Escape to clear the keyword.', ++step, total, (el) => {
         el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       });
-      await guidedReviewStep(() => $('#asset-tree [data-toggle="j3v-north-halls"]'), 'Expand venue and category in the hierarchy.', ++step, total);
+      await guidedReviewStep(() => $('#asset-tree [data-toggle="j3v-north-halls"]'), 'Open a venue and a category in the list.', ++step, total);
       j3ExpandFilters();
-      await guidedReviewStep('#j3-capacity-from', 'Invalid bounds: From greater than To is blocked locally.', ++step, total, (el) => {
+      await guidedReviewStep('#j3-capacity-from', 'Capacity: a From value larger than To is not accepted.', ++step, total, (el) => {
         el.value = '200';
         el.dispatchEvent(new Event('input', { bubbles: true }));
       });
-      await guidedReviewStep('#j3-capacity-to', 'Complete invalid bounds to show labelled local error.', ++step, total, (el) => {
+      await guidedReviewStep('#j3-capacity-to', 'A clear message explains the problem.', ++step, total, (el) => {
         el.value = '50';
         el.dispatchEvent(new Event('input', { bubbles: true }));
       });
-      await guidedReviewStep('#j3-capacity-from', 'Apply valid local capacity bounds.', ++step, total, (el) => {
+      await guidedReviewStep('#j3-capacity-from', 'Enter a valid capacity range.', ++step, total, (el) => {
         el.value = '40';
         el.dispatchEvent(new Event('input', { bubbles: true }));
       });
-      await guidedReviewStep('#j3-capacity-to', 'Valid To keeps filtering local-only.', ++step, total, (el) => {
+      await guidedReviewStep('#j3-capacity-to', 'The list keeps only the assets in that range.', ++step, total, (el) => {
         el.value = '120';
         el.dispatchEvent(new Event('input', { bubbles: true }));
       });
-      await guidedReviewStep('#j3-reset-filters', 'Reset restores the deterministic default eligible list once.', ++step, total);
-      await guidedReviewStep('#j3-types-btn', 'One grouped list holds Type and Category for each class.', ++step, total);
-      await guidedReviewStep(() => { const box = $('#j3-types-list input[data-key="facility|Conference"]'); if (box) box.scrollIntoView({ block: 'nearest' }); return box; }, 'Tick a Facility Type: only those facilities remain, in both venues.', ++step, total);
-      await guidedReviewStep('#j3-events-btn', 'Public events: Upcoming lists every event not yet ended, including ongoing ones.', ++step, total);
+      await guidedReviewStep('#j3-reset-filters', 'Reset filters restores the full list.', ++step, total);
+      await guidedReviewStep('#j3-types-btn', 'Type and Category ticks are grouped by asset class.', ++step, total);
+      await guidedReviewStep(() => { const box = $('#j3-types-list input[data-key="facility|Conference"]'); if (box) box.scrollIntoView({ block: 'nearest' }); return box; }, 'Tick a Facility Type: only those remain.', ++step, total);
+      await guidedReviewStep('#j3-events-btn', 'Upcoming lists public events not yet ended.', ++step, total);
       await guidedReviewStep('#j3-events-past', 'Past lists the public events that have ended.', ++step, total);
-      await guidedReviewStep('#j3-reset-filters', 'Reset clears the new filters too.', ++step, total);
-      await guidedReviewStep(() => $('#asset-tree .tree-check[data-res="j3-rf-001"]'), 'Select one REVIEW FIXTURE — calendar shows exactly one lane.', ++step, total, (el) => {
+      await guidedReviewStep('#j3-reset-filters', 'Reset filters clears these filters too.', ++step, total);
+      await guidedReviewStep(() => $('#asset-tree .tree-check[data-res="j3-rf-001"]'), 'Tick one asset: it joins Selected assets.', ++step, total, (el) => {
         j3SelectFixtures(['j3-rf-001']);
         if (!el.checked) activateGuidedClickable(el);
       });
-      await guidedReviewStep('#j3-reset-filters', 'Reset selection context before 5-lane boundary.', ++step, total, () => j3ResetFilters());
-      await guidedReviewStep('#asset-search', 'No-match keyword — labelled empty prototype state.', ++step, total, (el) => {
+      await guidedReviewStep('#j3-reset-filters', 'Reset filters before the next selection.', ++step, total, () => j3ResetFilters());
+      await guidedReviewStep('#asset-search', 'No match: the list says so and offers Reset filters.', ++step, total, (el) => {
         el.value = 'zzzz-no-match-j3';
         el.dispatchEvent(new Event('input', { bubbles: true }));
       });
-      await guidedReviewStep('#j3-reset-filters', 'Recover from no-match via Reset.', ++step, total);
-      await guidedReviewStep(() => $('#asset-tree .tree-check[data-res="j3-rf-001"]'), 'Select five fixtures for the five-lane calendar boundary.', ++step, total, () => {
+      await guidedReviewStep('#j3-reset-filters', 'Reset filters brings the list back.', ++step, total);
+      await guidedReviewStep(() => $('#asset-tree .tree-check[data-res="j3-rf-001"]'), 'Tick five assets: all five join Selected assets.', ++step, total, () => {
         j3SelectFixtures(['j3-rf-001', 'j3-rf-002', 'j3-rf-003', 'j3-rf-004', 'j3-rf-005']);
       });
-      await guidedReviewStep('#asset-search', 'Select all twenty REVIEW FIXTURE lanes deterministically.', ++step, total, () => {
+      await guidedReviewStep('#asset-search', 'Select all twenty facilities at once: 20 selected.', ++step, total, () => {
         j3SelectFixtures(J3_FIXTURE_CATALOG.filter((a) => a.assetClass === 'facility').map((a) => a.id));
       });
-      showToast('Journey 3 guided review finished — Booking/Cart/Book and J2 Demo settings were not exposed.');
+      showToast('Journey 3 guided demonstration finished.');
     } catch (error) {
       if (error && error.guidedStop) showToast('Playback stopped.');   // unified build, slice 2
-      else { console.error(error); showToast('Guided Journey 3 review recovered — inspect console evidence'); }
+      else { console.error(error); showToast('The Journey 3 demonstration stopped. Reload the page to start again.'); }
     } finally {
       playJourneyActive = false;
       playBtn.disabled = false;
@@ -3479,25 +3507,25 @@ const k1Focus = (() => {
     j3ResetBootState();
     beginGuidedReview('complete', total);
     try {
-      await guidedReviewStep(completeBtn, 'Short Journey 3 path: search, hierarchy, capacity and selection.', ++step, total, () => j3OpenExplorer(completeBtn), REVIEW_COMPLETE_STEP_MS);
-      await guidedReviewStep(() => $('#asset-tree [data-toggle="j3v-south"]'), 'Venue/category hierarchy expand.', ++step, total, null, REVIEW_COMPLETE_STEP_MS);
-      await guidedReviewStep('#asset-search', 'Keyword filter on the shared explorer.', ++step, total, (el) => {
+      await guidedReviewStep(completeBtn, 'Short tour: search, venues, capacity and selection.', ++step, total, () => j3OpenExplorer(completeBtn), REVIEW_COMPLETE_STEP_MS);
+      await guidedReviewStep(() => $('#asset-tree [data-toggle="j3v-south"]'), 'Open a venue in the list.', ++step, total, null, REVIEW_COMPLETE_STEP_MS);
+      await guidedReviewStep('#asset-search', 'Type a keyword: the list narrows.', ++step, total, (el) => {
         el.value = 'Studio';
         el.dispatchEvent(new Event('input', { bubbles: true }));
       }, REVIEW_COMPLETE_STEP_MS);
       j3ExpandFilters();
-      await guidedReviewStep('#j3-capacity-from', 'Valid capacity bounds remain local.', ++step, total, (el) => {
+      await guidedReviewStep('#j3-capacity-from', 'Enter a valid capacity range.', ++step, total, (el) => {
         el.value = '80';
         el.dispatchEvent(new Event('input', { bubbles: true }));
       }, REVIEW_COMPLETE_STEP_MS);
-      await guidedReviewStep('#j3-reset-filters', 'Reset and select one lane — review only, no Book.', ++step, total, () => {
+      await guidedReviewStep('#j3-reset-filters', 'Reset filters, then tick one asset.', ++step, total, () => {
         j3ResetFilters();
         j3SelectFixtures(['j3-rf-010']);
       }, REVIEW_COMPLETE_STEP_MS);
-      showToast('Journey 3 Play complete finished — REVIEW FIXTURE only; not Gate A approval.');
+      showToast('Journey 3 short demonstration finished.');
     } catch (error) {
       if (error && error.guidedStop) showToast('Playback stopped.');   // unified build, slice 2
-      else { console.error(error); showToast('Guided Journey 3 complete recovered — inspect console evidence'); }
+      else { console.error(error); showToast('The Journey 3 demonstration stopped. Reload the page to start again.'); }
     } finally {
       playJourneyActive = false;
       playBtn.disabled = false;
@@ -4374,7 +4402,7 @@ const k1Focus = (() => {
     list.innerHTML = '';
     J2_ASSETS.forEach((asset) => {
       const li = document.createElement('li');
-      li.innerHTML = `<span class="asset-name">${asset.name}</span><span class="asset-venue">${asset.venue} · Sample</span>`;
+      li.innerHTML = `<span class="asset-name">${asset.name}</span><span class="asset-venue">${asset.venue}${document.documentElement.getAttribute('data-presentation') === 'client' ? '' : ' · Sample'}</span>`;
       list.appendChild(li);
     });
   }
@@ -4816,6 +4844,7 @@ const k1Focus = (() => {
   let packageEditor = null;
   let pricingEditor = null;
   let pickerContext = null;
+  let mismatchEditorTrigger = null;   // Step b32 (S2): Edit details' own opener while the mismatch dialog is open above it
   let cartItemEditor = null;
   let cartViewMode = 'compact';
   let openLineActionsId = null;
@@ -5350,19 +5379,31 @@ const k1Focus = (() => {
     picker.style.bottom = 'auto';
   }
 
+  function pickerKeepsEditor() {   // Step b29 (L-27): on desktop the Cart item editor's lists open inside it; phone widths keep the close-and-reopen path
+    const dialog = getCartItemEditorDialog();
+    if (!dialog?.open) return false;
+    if (pickerContext === 'package-editor' && cartItemEditorTargetsStagedSelection()) return true;
+    if (pickerContext === 'item-editor') return true;   // Step b32 (S2)
+    return !isNarrowViewport() && (pickerContext === 'package-editor' || !!morePickerReturn);
+  }
+
   function positionStagedPackagePicker() {
     const picker = $('#large-data-picker');
     const dialog = getCartItemEditorDialog();
-    const trigger = $('#package-picker-btn');
+    const trigger = pickerContext === 'item-editor' ? $('#cie-item-picker-btn') : morePickerReturn ? $(`#cie-panel-more-content [data-inline-picker][data-field="${morePickerReturn.field}"]`) : $('#package-picker-btn');   // Step b32 (S2)
     if (!picker || !dialog || !trigger) return;
     const dialogRect = dialog.getBoundingClientRect();
     const triggerRect = trigger.getBoundingClientRect();
     const padding = 16;
     const width = Math.max(0, Math.min(520, dialogRect.width - padding * 2, window.innerWidth - padding * 2));
     const height = Math.max(120, Math.min(360, window.innerHeight - padding * 2, dialogRect.height - padding * 2));
-    const minTop = dialogRect.top + padding;
-    const maxTop = Math.max(minTop, dialogRect.bottom - padding - height);
-    const requestedTop = triggerRect.bottom + 8;
+    const measured = picker.getBoundingClientRect().height;
+    const shown = Math.min(height, measured > 0 ? measured : height);
+    const editorHead = dialog.querySelector('.cart-item-editor-head');
+    const minTop = Math.max(dialogRect.top + padding, editorHead ? editorHead.getBoundingClientRect().bottom + 8 : 0);
+    const maxTop = Math.max(minTop, window.innerHeight - padding - shown);
+    let requestedTop = triggerRect.bottom + 8;
+    if (requestedTop + shown > window.innerHeight - padding && triggerRect.top - 8 - shown >= minTop) requestedTop = triggerRect.top - 8 - shown;
     const top = Math.max(minTop, Math.min(requestedTop, maxTop));
     const left = Math.max(padding, Math.min(triggerRect.left, window.innerWidth - width - padding));
     const setImportant = (property, value) => picker.style.setProperty(property, value, 'important');
@@ -5372,7 +5413,7 @@ const k1Focus = (() => {
     setImportant('top', `${top}px`);
     setImportant('right', 'auto');
     setImportant('bottom', 'auto');
-    setImportant('max-height', `${height}px`);
+    setImportant('max-height', `${Math.min(height, Math.max(120, window.innerHeight - padding - top))}px`);
   }
 
   function setPickerAria(open, type) {
@@ -5411,9 +5452,7 @@ const k1Focus = (() => {
       && inlinePickerField === nextField;
     if (equivalentRequest) {
       const dialog = getCartItemEditorDialog();
-      const stagedPackageEditor = pickerContext === 'package-editor'
-        && cartItemEditorTargetsStagedSelection()
-        && !!dialog?.open;
+      const stagedPackageEditor = pickerKeepsEditor();
       if (stagedPackageEditor) positionStagedPackagePicker();
       $('#large-data-filter')?.focus();
       return;
@@ -5433,9 +5472,7 @@ const k1Focus = (() => {
     filteredPicker = filterCatalog(type, '');
     const picker = $('#large-data-picker');
     const dialog = getCartItemEditorDialog();
-    const stagedPackageEditor = pickerContext === 'package-editor'
-      && cartItemEditorTargetsStagedSelection()
-      && !!dialog?.open;
+    const stagedPackageEditor = pickerKeepsEditor();
     pickerParentBeforeOpen = picker.parentElement;
     pickerStyleBeforeOpen = picker.getAttribute('style');
     picker.classList.add('open');
@@ -5460,6 +5497,7 @@ const k1Focus = (() => {
     setPickerAria(true, type);
     $('#large-data-filter').focus();
     renderPicker();
+    if (stagedPackageEditor) positionStagedPackagePicker();   // Step b29 (L-27): again, with the rows drawn, so the real height is known
   }
 
   function pickerFocusReturn(type) {
@@ -5505,6 +5543,10 @@ const k1Focus = (() => {
         return;
       }
     }
+    if (context === 'item-editor') {   // Step b32 (S2): the list closes back onto Edit details' Item field
+      if (refocus && opts?.reopenParent !== false) $('#cie-item-picker-btn')?.focus();
+      return;
+    }
     if (context === 'package-editor' && restore && packageEditor) {
       renderPackageEditor();
       if (opts?.reopenParent !== false) {
@@ -5523,6 +5565,14 @@ const k1Focus = (() => {
       return;
     }
     const context = pickerContext;
+    if (context === 'item-editor') {   // Step b32 (S2): the same commit as the Cart's own Item field (rules, mismatch and pricing unchanged)
+      closePicker({ restore: false, refocus: false });
+      $('#cie-item-picker-btn')?.focus();
+      setCommitted('item', rec.id);
+      announceLive(rec.name + ' selected.');
+      syncStagedItemField();
+      return;
+    }
     if (context === 'package-editor' && packageEditor) {
       packageEditor.package = rec.id;
       const meta = PACKAGES[rec.id] || { type: 'none', includedItems: [] };
@@ -5621,7 +5671,7 @@ const k1Focus = (() => {
       // from it instead of leaving the page; lists opened elsewhere (package editor, Cart lines) behave as before.
       // KA1 (22 Oct 2026, L-08): a list opened from a Cart line's editor (the editor closed for it) closes like Escape — the editor comes back with
       // focus on its button; before, Tab dropped focus out of the page and the editor did not come back. Every other list's Tab is unchanged.
-      if (morePickerReturn || (pickerContext === 'package-editor' && !cartItemEditorTargetsStagedSelection())) { e.preventDefault(); closePicker({ restore: true, refocus: true }); return; }
+      if (morePickerReturn || pickerContext === 'item-editor' || (pickerContext === 'package-editor' && !cartItemEditorTargetsStagedSelection())) { e.preventDefault(); closePicker({ restore: true, refocus: true }); return; }   // b32: Edit details' Item list too
       closePicker({ restore: false, refocus: !pickerContext && !pickerHost });
     }
     else if (!fromFilter && (e.key.length === 1 || e.key === 'Backspace')) {
@@ -5645,7 +5695,7 @@ const k1Focus = (() => {
     if (isJ3Journey()) return getJ3BrowseRows();
     if (exOn()) return exBrowseRows();
     const rows = [];
-    rows.push({ kind: 'venue', key: 'venue', name: 'Northside Leisure Centre', level: 1, expanded: expandedNodes.has('venue'), journey: true, meta: 'Venue · Journey fixtures' });
+    rows.push({ kind: 'venue', key: 'venue', name: 'Northside Leisure Centre', level: 1, expanded: expandedNodes.has('venue'), journey: true, meta: CLIENT_VIEW ? 'Venue' : 'Venue · Journey fixtures' });
     if (expandedNodes.has('venue')) {
       rows.push({ kind: 'category', key: 'halls', name: 'Halls', level: 2, expanded: expandedNodes.has('halls'), meta: 'Category' });
       if (expandedNodes.has('halls')) {
@@ -5760,6 +5810,35 @@ const k1Focus = (() => {
     if (assetTreeDrawn && assetTreeDrawn.kept) renderAssetTree();
   }
 
+  // Step b34 (11 Nov 2026, D2/D3, Director approved): the shared Explorer shows each asset capacity as Journey 3 does (shown when the capacity is
+  // set and not 1, as in the existing side panel) and the selected count with a breakdown by class (the existing Show selected panel).
+  function exShowCapacity(a) {
+    return !isJ3Journey() && exOn() && !!a.assetClass && !!a.capacity && Number(a.capacity) !== 1;
+  }
+
+  function exRenderSelectedCount(strip) {
+    let el = document.getElementById('ex-selected-count');
+    if (isJ3Journey() || !exOn()) { if (el) el.hidden = true; return; }
+    if (!el) {
+      el = document.createElement('p');
+      el.id = 'ex-selected-count';
+      el.className = 'ex-selected-count';
+      strip.parentNode.insertBefore(el, strip);
+    }
+    el.hidden = false;
+    const byClass = { facility: 0, resource: 0, accommodation: 0 };
+    let n = 0;
+    selectedAssets.forEach((id) => {
+      const a = findJ3Asset(id) || exFindAsset(id) || reviewAssets.find((x) => x.id === id) || ASSETS.find((x) => x.id === id);   // as the chips resolve it
+      if (!a) return;
+      n += 1;
+      const known = EX_CATALOG.find((x) => x.id === id) || a;
+      byClass[byClass[known.assetClass] === undefined ? 'resource' : known.assetClass] += 1;   // a generated sample asset is a resource
+    });
+    const parts = J3_CLASSES.filter((c) => byClass[c.key]).map((c) => byClass[c.key] + ' ' + (byClass[c.key] === 1 ? c.label : c.plural));
+    el.textContent = n + ' selected' + (parts.length ? ' · ' + parts.join(', ') : '');
+  }
+
   function renderSelectedStrip() {
     const strip = $('#asset-selected-strip');
     if (!strip) return;
@@ -5775,6 +5854,7 @@ const k1Focus = (() => {
       strip.appendChild(chip);
     });
     if (isJ3Journey()) j3RenderLauncherSummary();
+    exRenderSelectedCount(strip);
     if (isContextualWorkspace()) contextualSyncAssetSummary();
   }
 
@@ -5857,9 +5937,7 @@ const k1Focus = (() => {
     window.addEventListener('resize', () => {
       if (!pickerOpen || !pickerType) return;
       const dialog = getCartItemEditorDialog();
-      const stagedPackageEditor = pickerContext === 'package-editor'
-        && cartItemEditorTargetsStagedSelection()
-        && !!dialog?.open;
+      const stagedPackageEditor = pickerKeepsEditor();
       if (stagedPackageEditor) positionStagedPackagePicker();
       else if (!isNarrowViewport()) positionPicker(pickerType);
     });
@@ -6293,16 +6371,42 @@ const k1Focus = (() => {
   function j4AddAllSync() {
     if (!['1', '4'].includes(document.body.dataset.journey)) return;
     let b = $('#j4-add-all');
-    if (!b) {
-      b = document.createElement('button');
-      b.type = 'button'; b.id = 'j4-add-all'; b.className = 'btn-secondary j4-add-all';
-      $('#j9-review-launch').appendChild(b);
-      b.addEventListener('click', j4AddAllInCategory);
+    if (!b) {   // step b37: Add all lives in a More actions menu on the Current selection card (the Director, 12 Nov 2026, 1:26 PM); the keys of a Cart line menu
+      const more = document.createElement('div');
+      more.className = 'j4-more'; more.id = 'j4-more';
+      more.innerHTML = '<button type="button" class="btn-ghost btn-sm j4-more-toggle" id="j4-more-toggle" aria-haspopup="menu" aria-expanded="false" aria-controls="j4-more-menu" aria-label="More actions for the current selection" title="More actions"><span aria-hidden="true">⋮</span></button>'
+        + '<div class="j4-more-menu" id="j4-more-menu" role="menu" aria-label="More actions for the current selection" hidden>'
+        + '<button type="button" class="j4-add-all" id="j4-add-all" role="menuitem" tabindex="-1" aria-labelledby="j4-add-all-label" aria-describedby="j4-add-all-help"><span class="j4-add-all-label" id="j4-add-all-label"></span><span class="j4-add-all-help" id="j4-add-all-help"></span></button></div>';
+      $('#j9-review-launch').appendChild(more);
+      b = $('#j4-add-all');
+      const toggle = $('#j4-more-toggle'), menu = $('#j4-more-menu');
+      const setOpen = (open, to) => { menu.hidden = !open; toggle.setAttribute('aria-expanded', String(open)); more.classList.toggle('is-open', open); if (to) to.focus(); };
+      toggle.addEventListener('click', () => { const opening = menu.hidden; setOpen(opening, opening ? b : null); });
+      toggle.addEventListener('keydown', (event) => { if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return; event.preventDefault(); setOpen(true, b); });
+      menu.addEventListener('keydown', (event) => {
+        if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) { event.preventDefault(); b.focus(); }
+        else if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setOpen(false, toggle); }
+        else if (event.key === 'Tab') setOpen(false);
+      });
+      document.addEventListener('click', (event) => { if (!menu.hidden && !more.contains(event.target)) setOpen(false); });
+      b.addEventListener('click', () => {
+        setOpen(false);
+        j4AddAllInCategory();
+        const f = document.activeElement;
+        if ((!f || f === document.body || menu.contains(f)) && toggle.getClientRects().length) toggle.focus();   // nothing was free: the menu closed, so focus returns to its toggle
+      });
     }
-    const name = j4AddAllName();
-    b.hidden = !name;
-    if (name) b.textContent = `Add all in ${name}`;
+    const name = j4AddAllName(), more = $('#j4-more'), menu = $('#j4-more-menu');
+    more.hidden = !name;
+    if (!name && !menu.hidden) { menu.hidden = true; $('#j4-more-toggle').setAttribute('aria-expanded', 'false'); more.classList.remove('is-open'); }
+    if (name) {   // step b36: the label says what is added and when; the tooltip says how (the Director, 12 Nov 2026); step b37 also shows the tooltip words as help under the label
+      const label = `Add all ${name} at this time`, tip = `Adds the other ${name} at the same date and time, each as its own Cart line. Any that are not free are left out and named.`;
+      if ($('#j4-add-all-label').textContent !== label) $('#j4-add-all-label').textContent = label;
+      if ($('#j4-add-all-help').textContent !== tip) $('#j4-add-all-help').textContent = tip;
+      b.title = tip;
+    }
   }
+
   function j9CarryTake() {   // read once: a reload of Journey 9 is the plain Journey 9
     let c = null;
     try { c = JSON.parse(sessionStorage.getItem(J9_CARRY) || 'null'); sessionStorage.removeItem(J9_CARRY); } catch (e) { return null; }
@@ -7004,10 +7108,18 @@ const k1Focus = (() => {
       if (stagedValue != null) valueInput.value = String(stagedValue);
       valueInput.addEventListener('input', () => {
         valueInput.removeAttribute('aria-invalid');
+        // Step b32 (F1): the typed value is kept on the staged selection, so a later refresh of these fields (opening Edit details) shows it instead of an empty field.
+        if (stagedSelection) {
+          const typed = valueInput.value !== '' && Number.isFinite(Number(valueInput.value)) ? Number(valueInput.value) : null;
+          if (meta.type === 'quantity') stagedSelection.packageQuantity = typed; else stagedSelection.packageAttendees = typed;
+        }
         updatePrimaryAction();
         renderCurrentSelectionSummary();
       });
     }
+    host.querySelectorAll('[data-staged-included]').forEach((box) => box.addEventListener('change', () => {   // Step b32 (F1): the Included Items too
+      if (stagedSelection) stagedSelection.includedItems = Array.from(host.querySelectorAll('[data-staged-included]:checked')).map((el) => el.dataset.stagedIncluded);
+    }));
   }
 
   function getStagedPackageState(showErrors) {
@@ -7144,10 +7256,10 @@ const k1Focus = (() => {
     $('#cart-unavailable').hidden = phase !== 'unavailable';
     const createdItems = createdBookingItems();
     const successMessage = $('#cart-success .success-message');
-    const successQuiet = $('#cart-success .success-quiet');
+    const successQuiet = $('#cart-success .success-quiet:not(.success-accounting)');   // step b26 (review F1): the sample note, never the accounting line before it
     if (successMessage) {
       const copy = createdItems.length > 1
-        ? ` Booking is created with ${createdItems.length} items: ${createdItems.map((item) => `${ASSETS.find((asset) => asset.id === item.asset)?.name || item.asset} · ${formatShortDate(new Date(item.date + 'T00:00:00'))} · ${formatSelectionTime(item.startH, item.startM)}–${formatSelectionTime(item.endH, item.endM)}`).join('; ')}.`
+        ? ` Booking is created with ${createdItems.length} items.`   // step b26 (L-04, F-N4): a short headline; the items follow as a list
         : ' Booking is created.';
       const icon = successMessage.querySelector('.status-icon');
       if (icon) { while (icon.nextSibling) icon.nextSibling.remove(); icon.after(document.createTextNode(copy)); }
@@ -7156,12 +7268,25 @@ const k1Focus = (() => {
       successQuiet.textContent = 'Sample — nothing was saved.';
       let accounting = $('#f1-success-accounting');
       if (createdItems.length > 1) {
-        if (!accounting) { accounting = document.createElement('p'); accounting.id = 'f1-success-accounting'; accounting.className = 'success-quiet'; successQuiet.after(accounting); }
+        if (!accounting) { accounting = document.createElement('p'); accounting.id = 'f1-success-accounting'; accounting.className = 'success-quiet success-accounting'; successQuiet.before(accounting); }   // step b26 (L-04, V2-01): after the items, before the sample note
         accounting.textContent = draft.created.pendingCount
-          ? `Priced subtotal AU$ ${draft.created.pricedSubtotal.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · ${draft.created.pendingCount} price(s) pending; no combined total yet.`
+          ? `Priced subtotal AU$ ${draft.created.pricedSubtotal.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · ${draft.created.pendingCount} price${draft.created.pendingCount === 1 ? '' : 's'} pending; no combined total yet.`
           : `Priced total AU$ ${draft.created.total.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`;
       } else accounting?.remove();
     }
+    // Step b26 (L-04, F-N4): a multi-item booking lists its items, one per line, the same text as before. Built after the sample note and the accounting line are written,
+    // as on the accepted Master: built first (the first b26 build), the customer page (D0) showed the emptied sample note as a blank line at 2 and 3 items (observed 8 Nov, 12:18 AM).
+    // Review F2: keyboard focus after Book lands on the headline, so the headline is described by the list and the accounting line (announced with it, as the long sentence was).
+    let itemList = $('#f1-success-items');
+    if (successMessage && createdItems.length > 1) {
+      if (!itemList) { itemList = document.createElement('ul'); itemList.id = 'f1-success-items'; itemList.className = 'success-items'; successMessage.after(itemList); }
+      itemList.replaceChildren(...createdItems.map((item) => {
+        const row = document.createElement('li');
+        row.textContent = `${ASSETS.find((asset) => asset.id === item.asset)?.name || item.asset} · ${formatShortDate(new Date(item.date + 'T00:00:00'))} · ${formatSelectionTime(item.startH, item.startM)}–${formatSelectionTime(item.endH, item.endM)}`;
+        return row;
+      }));
+      successMessage.setAttribute('aria-describedby', 'f1-success-items f1-success-accounting');
+    } else { itemList?.remove(); successMessage?.removeAttribute('aria-describedby'); }
 
     const confirmBtn = $('#confirm-booking-btn');
     const helper = $('#confirm-helper');
@@ -7343,7 +7468,7 @@ const k1Focus = (() => {
       ? '<span class="cart-line-status is-pending" title="Price pending — review required">Attention</span>'
       : `<span class="cart-line-status is-ready" title="${escapeHtml(line.priceStatus || 'Calculated · sample')}">${readyState}</span>`;
     const priceMarkup = amountPending
-      ? '<span class="cart-line-price-pending" role="status" aria-label="Price pending" title="Price pending"><span aria-hidden="true">＄◷</span></span>'
+      ? '<span class="cart-line-price-pending" role="status" aria-label="Price pending" title="Price pending"><span aria-hidden="true">＄◷</span><span class="cart-line-price-pending-words" aria-hidden="true">Price pending</span></span>'
       : `<b>AU$ ${amount.toLocaleString('en-AU', { minimumFractionDigits: 2 })}</b>`;
     const editingBadge = isEditingLine ? '<span class="cart-line-badge">Editing</span>' : '';
     const selected = selectedLineIds.has(line.id);
@@ -7462,6 +7587,7 @@ const k1Focus = (() => {
         li.className = 'cart-line' + (isEditingLine ? ' is-editing' : '') + (selectedLineIds.has(line.id) ? ' is-selected' : '');
         li.innerHTML = renderCompactLineSummary(line, lineNum, asset, item, pkg, isEditingLine, false);
       }
+      if (lines.length >= 10 && line.groupIndex !== undefined && GROUP_DEFS[line.groupIndex] && !j1MultiDay(line) && formatShortDate(new Date(line.date + 'T12:00:00')) === GROUP_DEFS[line.groupIndex][1]) li.classList.add('is-in-date-group');   // b35 P3: the group head shows this date
       if (openLineActionsId === line.id) li.classList.add('has-open-actions');
       list.appendChild(li);
     });
@@ -7700,6 +7826,7 @@ const k1Focus = (() => {
     if (!host) return;
     if (!stagedSelection) {
       host.innerHTML = '';
+      placeCurrentSelectionTotal(null);   // Step b32
       return;
     }
     const s = stagedSelection;
@@ -7712,6 +7839,8 @@ const k1Focus = (() => {
       const when = `${formatShortDate(new Date(s.date + 'T12:00:00'))} · ${formatSelectionTime(s.startH, s.startM)}–${endDateSuffix}${formatSelectionTime(s.endH, s.endM)} · ${hours} hour${hours !== 1 ? 's' : ''}`;
       const item = getItemRecord(getCommitted('item')).label;
       const row = (label, value) => `<div class="current-selection-summary-row" data-summary-row="${label.toLowerCase()}"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`;
+      host.classList.remove('is-compact');
+      placeCurrentSelectionTotal(null);
       host.innerHTML = `<div class="current-selection-resource"><strong>${escapeHtml(asset.name)}</strong><span>${escapeHtml(asset.venue)}</span></div><dl>${row('When', when)}${row('Item', item)}</dl>`;
       return;
     }
@@ -7720,24 +7849,64 @@ const k1Focus = (() => {
     const endDateSuffix = endDate !== s.date ? ` ${formatShortDate(new Date(endDate + 'T12:00:00'))}` : '';
     const when = j1MultiDay(s) ? j1DailyDescription(s)
       : `${formatShortDate(new Date(s.date + 'T12:00:00'))} · ${formatSelectionTime(s.startH, s.startM)}–${endDateSuffix}${formatSelectionTime(s.endH, s.endM)} · ${hours} hour${hours !== 1 ? 's' : ''}`;
+    // Step b32 (Director Concern #1, S3): a compact, read-only card. The Item is the heading; the resource and venue identify it; the date and time (with the
+    // duration only when the selection spans days); Attendees or Quantity when the Package uses one; the Total from the real pricing state. Package, configuration,
+    // allocation and concession are edited and shown in Edit details. A missing required value keeps its existing words on the card.
     const item = getItemRecord(getCommitted('item')).label;
-    const packageId = getCommitted('package');
-    const packageRecord = getPackageRecord(packageId);
-    const packageMetadata = packageMeta(packageId);
+    const packageMetadata = packageMeta(getCommitted('package'));
     const packageState = getStagedPackageState(false);
-    let packageSummary = packageRecord.label;
-    if (packageMetadata.type === 'quantity') packageSummary += ` · ${packageState.quantity == null ? 'Quantity required' : `Qty ${packageState.quantity}`}`;
-    else if (packageMetadata.type === 'attendees') packageSummary += ` · ${packageState.attendees == null ? 'Attendees required' : `${packageState.attendees} attendees`}`;
-    const configuration = $('#cfg-configuration')?.selectedOptions?.[0]?.textContent || configurationLabel($('#cfg-configuration')?.value);
-    const allocation = $('#allocation-summary')?.textContent || asset.name;
-    const amountRegion = $('#amount-region');
-    const amount = isJourney7Route() && stagedSelection && !j7IsAcceptedGraph(stagedSelection).ok ? 'Not priced yet' : amountRegion && !amountRegion.hidden ? amountRegion.querySelector('.amount-value')?.textContent : 'Quote pending';
-    const concession = getConcessionRecord(getCommitted('concession')).label;
-    const pricing = [amount, concession].filter(Boolean).join(' · ');
-    const row = (label, value) => `<div class="current-selection-summary-row" data-summary-row="${label.toLowerCase()}"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`;
+    let people = null;
+    let required = '';
+    if (packageMetadata.type === 'quantity') { if (packageState.quantity == null) required = 'Quantity required'; else people = ['Quantity', `Qty ${packageState.quantity}`]; }
+    else if (packageMetadata.type === 'attendees') { if (packageState.attendees == null) required = 'Attendees required'; else people = ['Attendees', `${packageState.attendees} attendees`]; }
+    // The Director's reference (8:20 PM): an icon tile beside the Item and venue; date, time and attendees on one line with small icons; Recurring inside the same card; the Total in its own bar.
+    const sameDay = !(j1MultiDay(s) || endDate !== s.date);
+    const meta = sameDay
+      ? [['Date', formatShortDate(new Date(s.date + 'T12:00:00')), 'date'], ['Time', `${formatSelectionTime(s.startH, s.startM)}–${formatSelectionTime(s.endH, s.endM)}`, 'time']]
+      : [['When', when, 'date']];
+    if (people) meta.push([people[0], people[1], 'people']);
+    host.classList.add('is-compact');
     host.innerHTML = `
-      <div class="current-selection-resource"><strong title="${escapeHtml(asset.name)}">${escapeHtml(asset.name)}</strong><span title="${escapeHtml(asset.venue)}">${escapeHtml(asset.venue)}</span></div>
-      <dl>${row('When', when)}${row('Item', item)}${row('Package', packageSummary)}${row('Configuration', configuration)}${row('Allocation', allocation)}${row('Pricing', pricing)}</dl>`;
+      <div class="current-selection-heading"><span class="current-selection-icon" aria-hidden="true">${csIcon('date')}</span><div class="current-selection-heading-text">
+        <p class="current-selection-item">${escapeHtml(item)}</p>
+        <div class="current-selection-resource"><strong title="${escapeHtml(asset.name)}">${escapeHtml(asset.name)}</strong><span title="${escapeHtml(asset.venue)}">${escapeHtml(asset.venue)}</span></div></div></div>
+      <dl class="current-selection-meta">${meta.map(([label, value, icon]) => `<div data-summary-row="${label.toLowerCase()}"><dt class="visually-hidden">${escapeHtml(label)}</dt><dd><span class="current-selection-meta-icon" aria-hidden="true">${csIcon(icon)}</span>${escapeHtml(value)}</dd></div>`).join('')}</dl>
+      ${required ? `<p class="current-selection-required" data-summary-row="required">${escapeHtml(required)}</p>` : ''}`;
+    placeCurrentSelectionTotal(currentSelectionAmountState());
+  }
+
+  function csIcon(name) {   // Step b32: small inline line icons (no new dependency); decorative, aria-hidden where used
+    return ({
+    date: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17M8 14h2M14 14h2M8 17h2"/></svg>',
+    time: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
+    people: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5c0-3.1 2.5-5.5 5.5-5.5s5.5 2.4 5.5 5.5"/><circle cx="16.5" cy="9" r="2.4"/><path d="M16 14.1c2.6.3 4.5 2.5 4.5 5.4"/></svg>'
+    })[name] || '';
+  }
+
+  function placeCurrentSelectionTotal(value) {   // Step b32: Recurring follows the details inside the card, then the Total bar (DOM order = reading order; no focus-order change)
+    const host = $('#staged-summary');
+    if (!host) return;
+    let total = $('#current-selection-total');
+    if (value == null || value === '') { if (total) total.hidden = true; return; }   // Step b32 v2 (V3): an empty amount hides the bar, as null does
+    const launch = $('#j9-review-launch');
+    const together = !!launch && launch.parentElement === host.parentElement;
+    if (together && host.nextElementSibling !== launch) host.after(launch);
+    if (!total) { total = document.createElement('dl'); total.id = 'current-selection-total'; total.className = 'current-selection-total-bar'; total.setAttribute('aria-live', 'polite'); }   // Step b32 v2 (V1): announced, as the Master's Pricing row was inside #staged-summary's live region
+    const anchor = together ? launch : host;
+    if (anchor.nextElementSibling !== total) anchor.after(total);
+    total.hidden = false;
+    if (total.dataset.value !== value) { total.dataset.value = value; total.innerHTML = `<div data-summary-row="total"><dt>Total</dt><dd>${escapeHtml(value)}</dd></div>`; }   // Step b32 v2 (V1): rewritten only when the amount changes, so it is announced once
+  }
+
+  function currentSelectionAmountState() {   // Step b32 (F3): the same rules as updateConfigureForm's Total, from state, so the card never shows a stale 'Quote pending'
+    const s = stagedSelection;
+    if (!s) return '';
+    if (isJourney7Route() && !j7IsAcceptedGraph(s).ok) return 'Not priced yet';
+    const item = getCommitted('item');
+    const pkg = getCommitted('package');
+    const priced = !isJourney9Route() && isCompatible(item, pkg) && isJourneyItem(item) && isJourneyPackage(pkg) && !j1MultiDay(s);
+    const amountValue = $('#amount-region .amount-value');
+    return priced && amountValue ? amountValue.textContent : 'Quote pending';
   }
 
   function updateConfigureForm() {
@@ -7771,7 +7940,9 @@ const k1Focus = (() => {
 
     if (!compatible && isJourneyItem(item) && isJourneyPackage(pkg)) {
       const dlg = $('#mismatch-dialog');
-      if (!dlg.open) openMismatchDialog($('#cfg-item-input'));
+      const editorItem = getCartItemEditorDialog()?.open && cartItemEditorTargetsStagedSelection() ? $('#cie-item-picker-btn') : null;   // Step b32 (S2)
+      if (!dlg.open && editorItem) mismatchEditorTrigger = lastDialogTrigger;
+      if (!dlg.open) openMismatchDialog(editorItem || $('#cfg-item-input'));
     }
 
     updatePrimaryAction();
@@ -8135,6 +8306,9 @@ const k1Focus = (() => {
       tab.removeAttribute('aria-pressed');
     });
     setStagedPricingSurface(draftTarget);
+    syncStagedItemField(draftTarget);   // Step b32 (S2)
+    const configTab = $('#cie-tab-config');
+    if (configTab) configTab.textContent = draftTarget ? 'Item & config' : 'Config';
     const selection = draftTarget ? stagedSelection : cartLines.find((line) => line.id === cartItemEditor?.ids?.[0]);
     const daily = j1MultiDay(selection);
     const form = $('#time-form');
@@ -8249,7 +8423,7 @@ const k1Focus = (() => {
         // be changed by mouse, touch or keyboard. As the Package picker already does (#package-picker-btn), close the editor first, open the list,
         // and reopen the editor on More afterwards, with focus back on this button (closePicker).
         const editor = getCartItemEditorDialog();
-        if (editor && editor.open && !cartItemEditorTargetsStagedSelection()) { morePickerReturn = { lineId, field: btn.dataset.field }; editor.close(); }
+        if (editor && editor.open && !cartItemEditorTargetsStagedSelection()) { morePickerReturn = { lineId, field: btn.dataset.field }; if (isNarrowViewport()) editor.close(); }
         openPicker(btn.dataset.field, { host: cartLines.find((l) => l.id === lineId), field: btn.dataset.field });
       });
     });
@@ -8460,6 +8634,34 @@ const k1Focus = (() => {
     if (!dialog.open) dialog.showModal();
     focusEditorTab(tab);
     updateCartUI();
+  }
+
+  function syncStagedItemField(draftTarget = cartItemEditorTargetsStagedSelection()) {   // Step b32 (Director Concern #1, S2): Item in Edit details for a new selection
+    const panel = $('#cie-panel-config');
+    if (!panel) return;
+    let row = $('#cie-item-row');
+    if (!row) {   // built here, not in index.html, so the customer page (frozen markup, same app.js) gets it too
+      row = document.createElement('label');
+      row.className = 'dialog-field cie-item-row';
+      row.id = 'cie-item-row';
+      row.append('Item');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'inline-picker-btn';
+      button.id = 'cie-item-picker-btn';
+      row.appendChild(button);
+      const intro = $('#configuration-desc');
+      if (intro) intro.after(row); else panel.prepend(row);
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        if (!cartItemEditorTargetsStagedSelection() || !stagedSelection) return;
+        openPicker('item', { context: 'item-editor' });
+      });
+      $('#cfg-item')?.addEventListener('change', () => syncStagedItemField());
+    }
+    row.hidden = !draftTarget;
+    const button = $('#cie-item-picker-btn');
+    if (button && draftTarget) button.textContent = getCommittedLabel('item') || 'Choose item';
   }
 
   function openStagedSelectionEditor(trigger) {
@@ -9033,14 +9235,14 @@ const k1Focus = (() => {
         const rowLabel = generated
           ? ' aria-label="' + escapeHtml(a.name) + ', generated sample resource, ' + escapeHtml(a.venue) + ', ' + escapeHtml(a.category) + '"'
           : (!isJ3Journey()
-            ? ' aria-label="' + escapeHtml(a.name) + (a.assetClass ? ', ' + j3ClassLabel(a) + ', ' + escapeHtml(a.assetType) : ', Resource') + ', ' + escapeHtml(a.venue) + ', ' + escapeHtml(a.category) + '"'
+            ? ' aria-label="' + escapeHtml(a.name) + (a.assetClass ? ', ' + j3ClassLabel(a) + ', ' + escapeHtml(a.assetType) : ', Resource') + ', ' + escapeHtml(a.venue) + ', ' + escapeHtml(a.category) + (exShowCapacity(a) ? ', capacity ' + a.capacity : '') + '"'
             : '');
         const metaHtml = isJ3Journey()
           ? '<span class="j3-capacity-badge">' + a.capacity + '</span>'
-          : (generated || a.assetClass ? '' : '<span class="tree-meta">' + r.meta + '</span>');
+          : (exShowCapacity(a) ? '<span class="j3-capacity-badge" title="Capacity ' + a.capacity + '" aria-hidden="true">' + a.capacity + '</span>' : (generated || a.assetClass ? '' : '<span class="tree-meta">' + r.meta + '</span>'));   // step b34 (D2)
         const infoName = escapeHtml(a.name);
         const infoHtml = !$('#asset-info-dialog') ? '' : '<button type="button" class="tree-info" data-info="' + a.id + '" aria-label="About ' + infoName + '" title="About ' + infoName + '"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"/></svg></button>';
-        html += '<div class="tree-row' + rowClass + active + '" id="' + rowId + '" role="treeitem" aria-level="' + r.level + '"' + rowLabel + ' data-idx="' + i + '" data-res="' + a.id + '" style="top:' + top + 'px;padding-left:' + (8 + ind) + 'px"><input type="checkbox" class="tree-check' + te + '" data-res="' + a.id + '" aria-label="Select ' + a.name + (a.assetClass ? ', ' + j3ClassLabel(a) + ', ' + a.assetType : '') + '"' + checked + '>' + j3RowNameHtml(a) + metaHtml + infoHtml + '</div>';
+        html += '<div class="tree-row' + rowClass + active + '" id="' + rowId + '" role="treeitem" aria-level="' + r.level + '"' + rowLabel + ' data-idx="' + i + '" data-res="' + a.id + '" style="top:' + top + 'px;padding-left:' + (8 + ind) + 'px"><input type="checkbox" class="tree-check' + te + '" data-res="' + a.id + '" aria-label="Select ' + a.name + (a.assetClass ? ', ' + j3ClassLabel(a) + ', ' + a.assetType : '') + (exShowCapacity(a) ? ', capacity ' + a.capacity : '') + '"' + checked + '>' + j3RowNameHtml(a) + metaHtml + infoHtml + '</div>';
       } else {
         const exp = r.expanded ? '▾' : '▸';
         const fixtureClass = r.kind === 'fixture-group' ? ' scalability-fixture-group' : '';
@@ -9065,7 +9267,7 @@ const k1Focus = (() => {
     const selCount = selectedAssets.size;
     if (isJ3Journey()) {
       const eligible = j3GetEligibleAssets().length;
-      $('#asset-count-chip').textContent = J3_FIXTURE_CATALOG.length + ' sample assets';
+      $('#asset-count-chip').textContent = J3_FIXTURE_CATALOG.length + (document.documentElement.getAttribute('data-presentation') === 'client' ? ' assets' : ' sample assets');
       const showStart = total ? win.start + 1 : 0;
       const showEnd = total ? win.end : 0;
       const copyEl = $('#asset-window-copy');
@@ -9540,8 +9742,10 @@ const k1Focus = (() => {
           const height = (timeToSlot(c.endH, c.endM || 0) - timeToSlot(c.startH, c.startM || 0)) * slotH;
           evEl.style.top = `${top}px`;
           evEl.style.height = `${height}px`;
-          evEl.innerHTML = '<strong>BK-LOCAL-001</strong> <span class="event-status">Created — sample · Confirmed ✓</span>';
-          evEl.setAttribute('aria-label', 'Created booking BK-LOCAL-001 — sample.');
+          const cvC = document.documentElement.getAttribute('data-presentation') === 'client';   // step b40: the Client view drops the repeated sample qualifier
+          evEl.innerHTML = '<strong>BK-LOCAL-001</strong> <span class="event-status">' + (cvC ? 'Created · Confirmed ✓' : 'Created — sample · Confirmed ✓') + '</span>';
+          evEl.setAttribute('aria-label', cvC ? 'Created booking BK-LOCAL-001. Confirmed.' : 'Created booking BK-LOCAL-001 — sample.');
+          evEl.title = cvC ? 'BK-LOCAL-001 Created · Confirmed' : 'BK-LOCAL-001 Created — sample · Confirmed';
           col.appendChild(evEl);
         });
 
@@ -10171,10 +10375,11 @@ const k1Focus = (() => {
   // Unified build, slice 7: the journey menu, Play all 16, a scripted demonstration from the fresh fixture, and ask before a Cart would be lost.
   const UNIFIED_NAMES = { 1: 'Create booking & Cart', 2: 'Modes, views & date', 3: 'Search & selected assets', 4: 'Timeslots & calendar', 5: 'Existing booking actions',
     6: 'Reschedule & reallocation', 7: 'New-booking pricing', 8: 'Existing pricing change', 9: 'Recurring booking', 10: 'Blocks (Maintenance)',
-    11: 'Diary notes', 12: 'Public-event actions (review only)', 13: 'Configuration & capacity', 14: 'Location hand-offs',
+    11: 'Diary notes', 12: CLIENT_VIEW ? 'Public-event actions' : 'Public-event actions (review only)', 13: 'Configuration & capacity', 14: 'Location & handoffs',
     15: 'Agenda, Custom view & export', 16: 'Rights, settings & states' };
   const UNIFIED_AUTOPLAY = 'optimoUnified.autoplay.v1';
   const UNIFIED_ALL = 'optimoUnified.playAll.v1';
+  const unifiedClientNow = () => document.documentElement.getAttribute('data-presentation') === 'client';   /* step b41: from the Client view a demonstration plays in the review view, that page load only */
   let unifiedAllStoppedAt = null;
   let unifiedAllRestartAsked = false;
   let unifiedAllRunActive = false;   // v3: a Play all step's demonstration really began on this page — boot() → closeAllJourneyOverlays() also calls endGuidedReview()
@@ -10185,7 +10390,7 @@ const k1Focus = (() => {
       .observe(c, { childList: true, characterData: true, subtree: true });
   }
   const unifiedEsc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
-  function unifiedAllRead() { try { const s = JSON.parse(sessionStorage.getItem(UNIFIED_ALL) || 'null'); return s && s.running && Date.now() - s.at < 3600000 ? s : null; } catch (e) { return null; } }
+  function unifiedAllRead() { try { const s = JSON.parse(sessionStorage.getItem(UNIFIED_ALL) || 'null'); if (s && s.running && Date.now() - s.at < 3600000 && Date.now() >= s.at) return s; if (s) sessionStorage.removeItem(UNIFIED_ALL); return null; } catch (e) { return null; } }   /* step b43: a record that is not current (future, expired, stopped) is removed on read */
   function unifiedAllWrite(s) { try { if (s) sessionStorage.setItem(UNIFIED_ALL, JSON.stringify({ ...s, at: Date.now() })); else sessionStorage.removeItem(UNIFIED_ALL); } catch (e) { /* no storage */ } }
   // unified build, slice 10 (R1 — the Director's Q1 condition, 29 Oct 2026 8:30 PM: "Do not silently discard user work"): a Booking Cart kept in the
   // context while the person is in a non-booking workspace (Maintenance, or another journey reached from there) — its lines and its booking journey.
@@ -10227,7 +10432,7 @@ const k1Focus = (() => {
     d.hidden = false; keep.focus();
   }
   function unifiedStartScript(key, mode, restart) {   // a scripted demonstration starts from the journey's fresh review fixture: reload, then play
-    if (!((window.UNIFIED_SCRIPTS || {})[key])) return false;
+    if (!((window.UNIFIED_SCRIPTS || {})[key]) && !unifiedClientNow()) return false;
     if (playJourneyActive) return true;
     const go = () => {
       try { sessionStorage.setItem(UNIFIED_AUTOPLAY, JSON.stringify({ key, mode, at: Date.now() })); } catch (e) { playUnifiedScript(key, mode); return; }
@@ -10239,7 +10444,7 @@ const k1Focus = (() => {
     return true;
   }
   function unifiedPlayThis() {
-    if ((window.UNIFIED_SCRIPTS || {})[UNIFIED_KEY]) { unifiedStartScript(UNIFIED_KEY, 'journey'); return; }
+    if ((window.UNIFIED_SCRIPTS || {})[UNIFIED_KEY] || unifiedClientNow()) { unifiedStartScript(UNIFIED_KEY, 'journey'); return; }
     const b = document.getElementById('btn-play-journey');
     if (b && !b.disabled) unifiedGuardCart(`Playing the Journey ${UNIFIED_KEY} demonstration starts it again from its review fixture`, 'Play the demonstration', () => b.click());
     else showToast(`Journey ${UNIFIED_KEY} has no demonstration to play.`);
@@ -10258,6 +10463,12 @@ const k1Focus = (() => {
     const btn = document.getElementById('unified-journey-btn'), menu = document.getElementById('unified-journey-menu'); if (!btn || !menu || menu.hidden) return;
     menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); if (refocus) btn.focus();
   }
+  function unifiedClientHeading() {   /* step b42 (I-2): in the Client view, J1, J2, J3, J9, J14, J15 and J16 show the page heading the other journeys have, worded with the menu name */
+    if (!CLIENT_VIEW || ![1, 2, 3, 9, 14, 15, 16].includes(UNIFIED_KEY) || document.getElementById('client-page-title')) return;
+    const cal = document.getElementById('calendar'); if (!cal) return;
+    const h = document.createElement('h1'); h.id = 'client-page-title'; h.className = 'client-page-title'; h.textContent = UNIFIED_NAMES[UNIFIED_KEY] || '';
+    cal.insertBefore(h, cal.querySelector('.timeslot-legend-wrap'));
+  }
   function unifiedMountJourneyMenu() {   // in the top bar (Journey 13: its own header) — never over the page
     const j13 = document.body.dataset.journey === '13';
     const host = j13 ? document.querySelector('#j13-standalone-surface .top') : document.getElementById('top-bar');
@@ -10265,7 +10476,7 @@ const k1Focus = (() => {
     let items = '';
     for (let k = 1; k <= 16; k += 1) items += `<li><a class="uj-link" href="?journey=${k}" data-k="${k}"${k === UNIFIED_KEY ? ' aria-current="page"' : ''}><span class="uj-k" aria-hidden="true">${k}</span><span class="uj-t">${unifiedEsc(UNIFIED_NAMES[k])}</span><span class="visually-hidden">, Journey ${k}</span></a></li>`;
     const wrap = document.createElement('div'); wrap.className = 'unified-journeys'; wrap.id = 'unified-journeys';
-    const label = `J${UNIFIED_KEY} — Journey ${UNIFIED_KEY} of 16, ${UNIFIED_NAMES[UNIFIED_KEY] || ''}: choose a journey or play a demonstration`;   // v3: the name holds every visible form (J2 / Journey 2 / Journey 2 of 16 · name)
+    const label = `J${UNIFIED_KEY} — Journey ${UNIFIED_KEY} of 16, ${UNIFIED_NAMES[UNIFIED_KEY] || ''}: choose a journey${CLIENT_VIEW ? '' : ' or play a demonstration'}`;   // v3: the name holds every visible form (J2 / Journey 2 / Journey 2 of 16 · name)
     wrap.innerHTML = `<button type="button" class="unified-journey-btn" id="unified-journey-btn" aria-expanded="false" aria-controls="unified-journey-menu" aria-label="${unifiedEsc(label).replace(/"/g, '&quot;')}">`
       + `<span class="uj-label"><span class="uj-word">Journey </span><span class="uj-j">J</span>${UNIFIED_KEY}<span class="uj-of"> of 16</span></span><span class="uj-name">${unifiedEsc(UNIFIED_NAMES[UNIFIED_KEY] || '')}</span>`
       + '<span class="uj-caret" aria-hidden="true">▾</span></button>'
@@ -10277,11 +10488,12 @@ const k1Focus = (() => {
     const sim = document.createElement('span'); sim.className = 'unified-sim'; sim.id = 'unified-sim'; sim.textContent = 'Simulated data · no server';
     sim.title = 'Simulated data — nothing is saved'; wrap.after(sim);   // Gate A AT-SIM
     const btn = wrap.querySelector('#unified-journey-btn'), menu = wrap.querySelector('#unified-journey-menu');
+    if (CLIENT_VIEW) btn.setAttribute('aria-label', btn.getAttribute('aria-label') + ' or play a demonstration');   /* step b42: the menu holds the Play actions in the Client view too (b41) */
     btn.addEventListener('click', () => { if (menu.hidden) unifiedMenuOpen(); else unifiedMenuClose(true); });
     wrap.addEventListener('keydown', (e) => {
       if (menu.hidden) return;
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); unifiedMenuClose(true); return; }
-      const list = [...menu.querySelectorAll('.uj-link, .uj-act')]; const i = list.indexOf(document.activeElement);
+      const list = [...menu.querySelectorAll('.uj-link, .uj-act')]; const i = list.indexOf(document.activeElement);   /* step b42: the Play actions show in the Client view too (b41), so the arrow keys reach them in both views */
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const m = list.length; list[(i < 0 ? 0 : i + (e.key === 'ArrowDown' ? 1 : m - 1)) % m].focus(); }
       else if (e.key === 'Home' || e.key === 'End') { e.preventDefault(); list[e.key === 'Home' ? 0 : list.length - 1].focus(); }
     });
@@ -10306,7 +10518,7 @@ const k1Focus = (() => {
   function unifiedAllStart() {
     unifiedGuardCart('Playing all 16 journeys starts each one from its review fixture', 'Play all 16', () => {
       unifiedAllWrite({ running: true, k: 1, results: {} }); unifiedSyncMenu();
-      if (UNIFIED_KEY === 1 && !playJourneyActive) unifiedAllRunHere(); else location.assign(location.pathname + '?journey=1');
+      if (UNIFIED_KEY === 1 && !playJourneyActive && !unifiedClientNow()) unifiedAllRunHere(); else location.assign(location.pathname + '?journey=1');
     });
   }
   function unifiedAllRunHere() {   // this journey's own demonstration, as a step of Play all
@@ -10348,11 +10560,11 @@ const k1Focus = (() => {
   }
   function unifiedAfterBoot() {   // after the journey's boot: Play all continues here, or a scripted demonstration plays from the fresh fixture
     let fresh = null;
-    try { const a = JSON.parse(sessionStorage.getItem(UNIFIED_AUTOPLAY) || 'null'); sessionStorage.removeItem(UNIFIED_AUTOPLAY); if (a && a.key === UNIFIED_KEY && Date.now() - a.at < 60000) fresh = a; } catch (e) { /* no storage */ }
+    try { const a = JSON.parse(sessionStorage.getItem(UNIFIED_AUTOPLAY) || 'null'); sessionStorage.removeItem(UNIFIED_AUTOPLAY); if (a && a.key === UNIFIED_KEY && Date.now() - a.at < 60000 && Date.now() >= a.at) fresh = a; } catch (e) { /* no storage */ }
     const all = unifiedAllRead();
     if (all && all.k === UNIFIED_KEY) { unifiedAllRunHere(); return; }
     if (all) { unifiedAllWrite(null); unifiedSyncMenu(); }   // a Play all left behind: the person went elsewhere
-    if (fresh) playUnifiedScript(fresh.key, fresh.mode);
+    if (fresh) { if ((window.UNIFIED_SCRIPTS || {})[fresh.key]) playUnifiedScript(fresh.key, fresh.mode); else { const b = document.getElementById('btn-play-journey'); if (b && !b.disabled) b.click(); } }   /* step b41: a journey without a script plays with its own button */
   }
   document.addEventListener('click', (e) => {   // Stop in the guided-review card also ends Play all; Restart during Play all goes back to Journey 1
     if (!(e.target instanceof Element) || !unifiedAllRead()) return;
@@ -10461,7 +10673,7 @@ const k1Focus = (() => {
     const completeBtn = $('#btn-play-complete');
     playBtn.disabled = true;
     completeBtn.disabled = true;
-    const total = 29;
+    const total = 32;   // Step b32 (S6): three steps more, through Edit details
     playJourneyStep = 0;
     resetJourney();
     beginGuidedReview('journey', total);
@@ -10473,9 +10685,12 @@ const k1Focus = (() => {
       await guidedReviewStep('#date-today', 'Return to the Journey fixture week', ++playJourneyStep, total);
       await guidedReviewStep(() => $('#asset-tree .tree-check[data-res="hall2"]'), 'Select another resource in the hierarchy', ++playJourneyStep, total, (el) => { if (!el.checked) activateGuidedClickable(el); });
       await guidedReviewStep('.cal-day-col[data-asset="hall1"][data-date="2026-08-29"] .cal-slot[data-slot="12"]', 'Stage Hall 1 · 14:00–17:00', ++playJourneyStep, total, activateGuidedCalendarSlot);
-      await guidedReviewStep('#cfg-item-input', 'Open the scalable Item picker', ++playJourneyStep, total);
+      await guidedReviewStep('#current-selection-details-toggle', 'Open Edit details for the staged selection', ++playJourneyStep, total);
+      await guidedReviewStep('#cie-tab-config', 'Open Item & config', ++playJourneyStep, total);
+      await guidedReviewStep('#cie-item-picker-btn', 'Open the scalable Item picker', ++playJourneyStep, total);
       await guidedReviewStep('#ldp-item-opt-studio-lighting', 'Choose a mismatched Item', ++playJourneyStep, total, activateGuidedClickable, REVIEW_PLAY_DIALOG_MS);
       await guidedReviewStep('#mismatch-fix', 'Recover with the matching Item', ++playJourneyStep, total);
+      await guidedReviewStep('#cart-item-editor-close', 'Close Edit details', ++playJourneyStep, total);
       await guidedReviewStep('#cart-primary-action', 'Add the Item-only selection to Cart', ++playJourneyStep, total);
       await guidedReviewStep(() => $('.cart-line [data-select-line]'), 'Select the staged Cart line', ++playJourneyStep, total);
       setCartViewMode('detailed');
@@ -10716,6 +10931,7 @@ const k1Focus = (() => {
     section.hidden = false;
     section.inert = false;
     section.removeAttribute('aria-hidden');
+    if (document.documentElement.getAttribute('data-presentation') === 'client') { const t7 = $('#j7-route-status-title'); if (t7) t7.textContent = 'Items and packages'; }   // step b39: the Client view page title
     j7SyncRouteState();
   }
 
@@ -10732,7 +10948,7 @@ const k1Focus = (() => {
     setSheetExpanded(isNarrowViewport());
     const attendees = $('#cfg-package-attendees');
     if (attendees) { attendees.value = '25'; attendees.dispatchEvent(new Event('input', { bubbles: true })); }
-    setCurrentSelectionDetailsExpanded(true, { moveFocus: false });
+    setCurrentSelectionDetailsExpanded(false);   // Step b32 (S1): the compact card; editing is in Edit details
     ['#cfg-item', '#cfg-package', '#cfg-concession', '#cfg-configuration', '#cfg-package-attendees'].forEach((selector) => {
       const field = $(selector);
       field?.addEventListener('change', () => window.setTimeout(j7SyncRouteState, 0));
@@ -11045,6 +11261,7 @@ const k1Focus = (() => {
     if (document.body.dataset.journey !== '9') $('#j9-open-review')?.addEventListener('click', j9CarryGo);   // step b15; Journey 9 wires its own
     const unifiedRestored = unifiedRestoreState();   // unified build, slice 6: the context of a Booking / Maintenance switch, before anything renders
     unifiedMountJourneyMenu();   // unified build, slice 7: the journey menu in the top bar
+    unifiedClientHeading();   /* step b42: the Client view page heading where a journey has none */
     const isJ9 = document.body.dataset.journey === '9';
     const isJ2 = document.body.dataset.journey === '2';
     const isJ3 = document.body.dataset.journey === '3';
@@ -11288,6 +11505,9 @@ const k1Focus = (() => {
       $('#mismatch-dialog').close();
       restoreFocus();
     });
+    $('#mismatch-dialog').addEventListener('close', () => {   // Step b32 (S2): after a mismatch raised from Edit details, the editor's own opener is restored
+      if (mismatchEditorTrigger) { lastDialogTrigger = mismatchEditorTrigger; mismatchEditorTrigger = null; }
+    });
 
     $('#remove-dialog').addEventListener('close', () => { j9PendingRemoval = null; });
     $('#remove-keep').addEventListener('click', () => { $('#remove-dialog').close(); restoreFocus(); });
@@ -11377,7 +11597,7 @@ const k1Focus = (() => {
     $('#package-picker-btn').addEventListener('click', () => {
       if (!packageEditor) return;
       const dialog = getCartItemEditorDialog();
-      if (dialog && dialog.open && !cartItemEditorTargetsStagedSelection()) dialog.close();
+      if (dialog && dialog.open && !cartItemEditorTargetsStagedSelection() && isNarrowViewport()) dialog.close();
       openPicker('package', { host: packageEditor, field: 'package', context: 'package-editor' });
     });
     $('#package-editor-fields').addEventListener('input', (event) => {
@@ -12300,6 +12520,7 @@ const k1Focus = (() => {
     $('#amount-region').textContent = '';
     renderCalendar();
     $('#ldp-live').textContent = '';
+    if (document.documentElement.getAttribute('data-presentation') === 'client') { const t8 = $('#j4-overview-title'); if (t8) t8.textContent = 'Existing booking pricing'; const a8 = [...document.querySelectorAll('#j5-loaded-content dd')].find((d) => d.textContent === 'Private booking · sample data'); if (a8) a8.textContent = 'Private booking'; }   // step b39: the Client view page title and Access (J8 does not run the J5 renderer)
     window.setTimeout(() => j8OpenHub(j8BookingBlock()), 0);   // OC-3: focus returns to the calendar block
     window.__j8Review = {
       getState: () => j8State,
@@ -12731,7 +12952,7 @@ const k1Focus = (() => {
         node.type = 'button';
         node.id = 'j12-public-event';
         node.dataset.j12Event = 'fixture';
-        node.innerHTML = `<strong>${FIXTURE.title}</strong><span class="j12-event-meta">${FIXTURE.assetName} · ${FIXTURE.time}</span><span class="j12-event-tag">Public event · sample</span>`;
+        node.innerHTML = `<strong>${FIXTURE.title}</strong><span class="j12-event-meta">${FIXTURE.assetName} · ${FIXTURE.time}</span><span class="j12-event-tag">${document.documentElement.getAttribute('data-presentation') === 'client' ? 'Public event' : 'Public event · sample'}</span>`;
         col.appendChild(node);
       } else if (node.parentElement !== col) {
         col.appendChild(node);
@@ -12824,7 +13045,7 @@ const k1Focus = (() => {
       button.classList.remove('is-active');
       button.setAttribute('aria-pressed', 'false');
     });
-    setHidden($('j12-route-status'), false);
+    setHidden($('j12-route-status'), (document.documentElement.getAttribute('data-presentation') === 'client') && (document.body.dataset.j14Entry === 'open' || location.hash === '#settings' || /^#agenda/.test(location.hash)));   /* step b42: Journey 15 (#agenda) shows its own heading */ // step b39: the Client view shows Journey 12's title on Journey 12 only
     setHidden($('j12-event-actions-panel'), true);
     setHidden($('j12-boundary-dialog'), false);
     hookCalendar();
@@ -12920,6 +13141,7 @@ const k1Focus = (() => {
       question = document.createElement('div'); question.id = 'j13-leave-modal'; question.className = 'modal open'; question.setAttribute('role', 'dialog'); question.setAttribute('aria-modal', 'true'); question.setAttribute('aria-labelledby', 'j13-leave-title');
       question.innerHTML = '<div class="dialog"><h2 id="j13-leave-title">Leave without applying your layout change?</h2><div class="dialog-actions"><button type="button" class="btn" data-j13-leave="stay">Stay</button><button type="button" class="btn primary" data-j13-leave="leave">Leave</button></div></div>';
       previousInert = { shell: shell.inert, top: top.inert }; shell.inert = true; top.inert = true;
+      question.style.setProperty('--j13-leave-top', Math.max(8, Math.round(top.getBoundingClientRect().bottom) + 8) + 'px');   // step b27 (L-15, review F1): on desktop the question sits 8 px under the top bar (styles.css)
       root().append(question);
       const stayButton = question.querySelector('[data-j13-leave="stay"]'), leaveButton = question.querySelector('[data-j13-leave="leave"]');
       stayButton.addEventListener('click', stay);
@@ -13170,6 +13392,7 @@ const k1Focus = (() => {
             el.classList.add("is-selected");
             el.setAttribute("aria-pressed", "true");
             announce("Seat block " + el.getAttribute("data-seat") + " selected");
+            if (document.documentElement.getAttribute("data-presentation") === "client") { var sc = root()?.querySelector(".seating-svg-wrap svg > text:last-of-type"); if (sc) sc.textContent = "Block " + el.getAttribute("data-seat") + " selected"; }   // step b39: the caption follows the selection
           }
           el.addEventListener("click", selectSeat);
           el.addEventListener("keydown", function(e) {
@@ -13182,6 +13405,15 @@ const k1Focus = (() => {
           loading: { title: "Loading map presentation", body: "Simulated loading state from asset description pattern", pill: "Map placeholder · Loading", cls: "status-loading" },
           unavailable: { title: "No location available", body: "Venue fallback also missing in this sample", pill: "Map placeholder · No location", cls: "status-unavailable" }
         };
+        if (document.documentElement.getAttribute("data-presentation") === "client") {   // step b39: the Client view words for the handoff screens (the controls and their actions are unchanged)
+          root()?.querySelectorAll(".btn-review-handoff").forEach(function(b) { b.textContent = "View details"; });
+          var b39s = byId("btn-review-seating"); if (b39s) b39s.textContent = "View seating map";
+          var b39a = byId("j14-dialog-ack"); if (b39a) b39a.textContent = "Done";
+          var b39h = byId("handoff-dialog-panel"); b39h = b39h && b39h.querySelector(".dialog-body h3"); if (b39h) b39h.textContent = "Identifiers for this handoff";
+          var b39c = root()?.querySelector(".seating-svg-wrap svg > text:last-of-type"), b39k = root()?.querySelector(".seat-block.is-selected");
+          if (b39c) b39c.textContent = "Block " + (b39k ? b39k.getAttribute("data-seat") : "A") + " selected";
+        }
+        if (document.documentElement.getAttribute('data-presentation') === 'client') { mapPlaceholders.available.title = 'Venue map'; const mt = byId('map-placeholder-title'); if (mt) mt.textContent = 'Venue map'; }   // v5: the Client view
 
         root()?.querySelectorAll('input[name="map-state"]').forEach(function(radio) {
           radio.addEventListener("change", function() {
@@ -13217,10 +13449,13 @@ const k1Focus = (() => {
 
         function openDialog(triggerEl, destinationKey) {
           lastFocus = triggerEl;
-          byId("j14-dialog-destination").textContent = destinationKey;
+          var cvD = document.documentElement.getAttribute("data-presentation") === "client";   // step b39: the Client view
+          byId("j14-dialog-destination").textContent = (cvD && destinationKey === "Review seating-map handoff") ? "Seating map" : destinationKey;
           var list = byId("j14-dialog-params");
           list.innerHTML = "";
           var rows = paramTemplates[destinationKey] || [["context", "Sample"]];
+          if (cvD) rows = rows.filter(function(p) { return !/^(known fault|handoff mode|route pattern|route|target|target behaviour)$/.test(p[0]); })
+            .map(function(p) { return [p[0], p[1].replace(/ \((placeholder|label only|fixture)\)/g, "").replace(/-fixture\b/g, "")]; });   // step b39: identifiers without review qualifiers
           rows.forEach(function(pair) {
             var li = document.createElement("li");
             li.innerHTML = "<span>" + pair[0] + "</span><span>" + pair[1] + "</span>";
@@ -13258,7 +13493,8 @@ const k1Focus = (() => {
           // is not added: it replaced this one within the same frame, so nothing was shown and the acknowledgement was not read.
           closeDialog(true, true);
           var toast = window.__journey10Shared && window.__journey10Shared.showToast;
-          if (toast) toast("Preview acknowledged locally — no navigation"); else announce("Preview acknowledged locally — no navigation");
+          var ackMsg = document.documentElement.getAttribute("data-presentation") === "client" ? "Handoff details closed. Nothing was opened." : "Preview acknowledged locally — no navigation";   // step b39: the Client view
+          if (toast) toast(ackMsg); else announce(ackMsg);
         });
         document.addEventListener("keydown", function(e) {
           if (dialog.hidden) return;
@@ -13401,6 +13637,8 @@ const k1Focus = (() => {
     if (!state.open || event.key !== 'Escape') return;
     const sheet = $('handoff-dialog');
     if (sheet && !sheet.hidden) return; // Journey 14's own handoff sheet handles Escape first (accepted behaviour)
+    const settings = document.getElementById('j16-settings-dialog');
+    if (settings && !settings.hidden) return; // step b33: the Diary settings dialog, opened over this panel, handles Escape first
     event.preventDefault();
     event.stopImmediatePropagation();
     backToEventActions();
@@ -13536,9 +13774,9 @@ const k1Focus = (() => {
     const details = r.kind === 'public'
       ? '<button type="button" class="j15-details-btn" data-j15-details aria-expanded="false">Details</button>' +
         '<div class="j15-details" hidden><div class="j15-mini-actions"><button type="button" class="j15-btn" disabled>Bookings</button><button type="button" class="j15-btn" disabled>Guest List</button></div>' +
-        '<div class="j15-why">Bookings opens a dialog with a known fault today. Guest List is an external handoff.</div></div>'
+        '<div class="j15-why">' + (document.documentElement.getAttribute('data-presentation') === 'client' ? 'Bookings and Guest List are not available in this demo.' : 'Bookings opens a dialog with a known fault today. Guest List is an external handoff.') + '</div></div>'
       : '<button type="button" class="j15-details-btn" data-j15-details aria-expanded="false">Details</button>' +
-        '<div class="j15-details" hidden><div class="j15-why">The Corporate Booking link is an external handoff and is not opened in this sample.</div></div>';
+        '<div class="j15-details" hidden><div class="j15-why">' + (document.documentElement.getAttribute('data-presentation') === 'client' ? 'Booking details are kept in Corporate Booking.' : 'The Corporate Booking link is an external handoff and is not opened in this sample.') + '</div></div>';
     return `${dateCell}` +
       `<td class="j15-c-time"><b>${r.start}</b><span> – ${r.end}</span></td>` +
       `<td class="j15-c-event"><div class="j15-title-line">${esc(r.title)}</div><div class="j15-cat">${esc(r.category)}</div></td>` +
@@ -14035,10 +14273,9 @@ const k1Focus = (() => {
   }, true);
 
   function init() {
-    if (document.body.dataset.j14Entry === 'open') return; // the Journey 14 in-Diary view must stay untouched
     // Step b22 (7 Nov 2026): the Settings entry on every route with the view bar - saved settings act on every route since b17, but only Journey 12 could open them.
     const bar = $('#view-bar');
-    if (document.body.dataset.journey !== '12') {
+    if (document.body.dataset.journey !== '12' || document.body.dataset.j14Entry === 'open') {   // step b33 (11 Nov 2026): the Journey 14 in-Diary view (Journey 12's screen) gets the entry too, off Journey 12's aids
       if (!bar || document.body.dataset.journey === '13') return;   // Journey 13's configuration screen hides the Diary (styles.css: #app-shell display none)
       state.away = true;   // off Journey 12: the entry and its dialog only; the rights strip, the review guide and the readiness marker stay on Journey 12
     } else document.body.dataset.j16Candidate = 'ready'; // review-readiness marker, Diary route only (Journey 15's marker is unchanged)
@@ -14081,3 +14318,37 @@ const k1Focus = (() => {
   document.addEventListener('DOMContentLoaded', () => window.setTimeout(() => { init(); window.dispatchEvent(new CustomEvent('diary-settings-load')); }, 80));   /* step b17: every route, not only the Diary route */
 })();
 
+/* Step b40 (13 Nov 2026, the calendar booking overlap; the Director, 13 Nov 2026, 2:17 PM): one fit pass for every calendar card.
+   A card keeps its true start and duration. A card whose text fits is not touched. Otherwise the card clips at its own border and each inline text part
+   takes at most the card width with an ellipsis (fit-lines, fit-ib); a part that would still cross the bottom border is made transparent, its words stay in
+   the page and the card name (fit-cut); when not even the first line fits, the card shows one compact line (fit-short). Controls are never hidden. */
+(function () {
+  const PARTS = 'strong, span';
+  const done = new WeakMap();
+  const shown = (el) => el.getClientRects().length > 0;
+  const innerBox = (card) => { const r = card.getBoundingClientRect(), cs = getComputedStyle(card); return { top: r.top + parseFloat(cs.borderTopWidth), bottom: r.bottom - parseFloat(cs.borderBottomWidth) }; };
+  const flow = (el) => { const p = getComputedStyle(el).position; return p !== 'absolute' && p !== 'fixed' && shown(el); };
+  const leaves = (card) => [...card.querySelectorAll(PARTS)].filter((p) => !p.querySelector(PARTS) && p.textContent.trim() && flow(p));
+  const crosses = (card) => { const b = innerBox(card); return [...card.querySelectorAll(PARTS + ', button, a, input')].some((p) => { if (!flow(p)) return false; const r = p.getBoundingClientRect(); return r.height > 0 && (r.bottom > b.bottom + 0.5 || r.top < b.top - 0.5); }); };
+  const keyOf = (card) => { const r = card.getBoundingClientRect(); return r.width.toFixed(1) + '|' + r.height.toFixed(1) + '|' + card.textContent; };
+  function fitCard(card) {
+    if (done.get(card) === keyOf(card)) return;
+    if (card.classList.contains('fit-lines')) { card.classList.remove('fit-lines', 'fit-short'); card.querySelectorAll('.fit-cut, .fit-ib').forEach((p) => p.classList.remove('fit-cut', 'fit-ib')); }
+    if (shown(card) && crosses(card)) {
+      card.querySelectorAll(PARTS).forEach((p) => { if (getComputedStyle(p).display === 'inline') p.classList.add('fit-ib'); });
+      card.classList.add('fit-lines');
+      if (crosses(card)) {
+        const first = leaves(card)[0];
+        if (first && first.getBoundingClientRect().bottom > innerBox(card).bottom + 0.5) card.classList.add('fit-short');
+        else { const b = innerBox(card); leaves(card).forEach((p, i) => { if (i && p.getBoundingClientRect().bottom > b.bottom + 0.5) p.classList.add('fit-cut'); }); }
+      }
+    }
+    done.set(card, keyOf(card));
+  }
+  let queued = false;
+  const run = () => { queued = false; document.querySelectorAll('.cal-event:not(.stack-card)').forEach(fitCard); };
+  const queue = () => { if (!queued) { queued = true; window.requestAnimationFrame(run); } };
+  new MutationObserver(queue).observe(document.documentElement, { childList: true, subtree: true });
+  window.addEventListener('resize', queue);
+  queue();
+})();

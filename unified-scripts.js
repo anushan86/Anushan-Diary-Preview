@@ -59,15 +59,19 @@ window.UNIFIED_SCRIPTS = Object.assign(window.UNIFIED_SCRIPTS || {}, {
    * configure form's own scalable pickers, the attendees bound, the configuration
    * select and the Cart's single primary action, then reads the route note.
    */
-  7: [
-    { at: '#cfg-item-input', say: 'Open the Item list in the existing Booking Cart' },
+  7: [   /* Step b32 (Director Concern #1, S6): the same pricing walk, through Edit details instead of the inline form */
+    { at: '#current-selection-details-toggle', say: 'Open Edit details for the new selection' },
+    { at: '#cie-tab-config', say: 'Open Item & config inside Edit details' },
+    { at: '#cie-item-picker-btn', say: 'Open the Item list inside Edit details' },
     { at: '#ldp-item-opt-community-hall', say: 'Keep Community Hall Hire — the accepted local Item' },
-    { at: '#cfg-package-input', say: 'Open the private Package list' },
+    { at: '#cie-tab-package', say: 'Open the private Package tab' },
+    { at: '#package-picker-btn', say: 'Open the private Package list' },
     { at: '#ldp-package-opt-private-day', say: 'Keep Private Day Hire — the accepted local Package' },
-    { at: '#cfg-package-attendees', act: 'fill', value: '25', say: 'Enter 25 attendees, the local fixture bound' },
-    { at: '#cfg-configuration', act: 'select', value: 'theatre', say: 'Set the Theatre configuration the accepted graph uses' },
-    { at: '#cfg-concession-input', say: 'Open the Price concession list' },
-    { at: '#ldp-concession-opt-review-fixture', say: 'Keep the review-fixture concession' },
+    { at: '#package-value', act: 'fill', value: '25', say: 'Enter 25 attendees, the local fixture bound' },
+    { at: '#package-apply', say: 'Apply the Package and its 25 attendees' },
+    { at: '#cie-tab-pricing', say: 'Open Pricing to review the concession' },
+    { at: '#pricing-apply', say: 'Keep the review-fixture concession' },
+    { at: '#cart-item-editor-close', say: 'Close Edit details: the compact card shows the result' },
     { at: '#cart-primary-action', say: 'Stage the priced selection into the Booking Cart' },
     { at: '#j7-route-note', say: 'Read the route note: pricing is staged, no Booking is created' }
   ],

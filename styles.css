@@ -1047,6 +1047,20 @@ body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data
   font-weight: 600;
 }
 .cal-event:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 1px; }
+/* Step b30 (L-57): a half-hour under a booking card can take keyboard focus. It is shown over the card as a tinted band with side bars, so no line runs through the card's text. Above ordinary booking cards, below the pinned day header and time column; the mouse still reaches the card. In forced-colours mode the outline is drawn instead of the band. The crosshair must not replace the band. */
+.cal-slot:not(.free, .selectable, .stack-slot):focus-visible {
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+  outline-color: transparent;
+  background: rgba(46, 115, 223, 0.22) !important;
+  box-shadow: inset 5px 0 0 var(--focus), inset -5px 0 0 var(--focus), inset 0 1px 0 rgba(46, 115, 223, 0.6), inset 0 -1px 0 rgba(46, 115, 223, 0.6) !important;
+}
+/* Journey 1's classified cards are at z-index 2 and its time column is already at 5. */
+body[data-journey="1"] .cal-slot:not(.free, .selectable, .stack-slot):focus-visible { z-index: 3; }
+/* Only while such a half-hour has focus: the time column stays above the band, and a raised card in that column steps down so the band shows. */
+body:not([data-journey="1"]) .cal-lane-body:has(.cal-slot:not(.free, .selectable, .stack-slot):focus-visible) > .cal-time-gutter { z-index: 3; }
+.cal-day-col:has(> .cal-slot:not(.free, .selectable, .stack-slot):focus-visible) > :is(.j12-public-event, .j2-event-selected) { z-index: 1; }
 .event-status { font-size: 10px; font-weight: 600; }
 .now-line {
   position: absolute;
@@ -1369,6 +1383,10 @@ button.stack-card:hover { filter: brightness(0.98); border-color: var(--diary-bo
 }
 .success-message { font-size: 16px; font-weight: 600; color: var(--success); margin: 0 0 4px; }
 .success-quiet { margin: 0; }
+/* Step b26 (8 Nov 2026, L-04): a multi-item booking lists its items under a short headline (F-N4); the accounting line is deliberate body text after the items, before the quiet sample note (V2-01). */
+.success-items { margin: 2px 0 6px; padding-left: 22px; color: var(--text); font-size: 14px; line-height: 1.45; }
+.success-items li + li { margin-top: 1px; }
+.success-quiet.success-accounting { margin: 0 0 4px; color: var(--text); font-size: 14px; font-variant-numeric: tabular-nums; }
 .handoff-boundary {
   margin-top: 10px;
   padding: 9px 10px;
@@ -4947,7 +4965,7 @@ body[data-journey="3"] .j3-vis-card-badge {
   :is(body[data-journey="1"], body[data-journey="4"], body[data-journey="5"], body[data-journey="7"], body[data-journey="9"]) .booking-cart .cart-line,
   :is(body[data-journey="1"], body[data-journey="4"], body[data-journey="5"], body[data-journey="7"], body[data-journey="9"]) #cart-sheet-panel .booking-cart .cart-line {
     border: none;
-    border-bottom: 1px solid #eef2f8;
+    border-bottom: 1px solid #cbd6e3;
     border-radius: 0;
     background: #fff;
   }
@@ -4958,7 +4976,7 @@ body[data-journey="3"] .j3-vis-card-badge {
   :is(body[data-journey="1"], body[data-journey="4"], body[data-journey="5"], body[data-journey="7"], body[data-journey="9"]) .booking-cart .cart-line:not(.is-selected):hover,
   :is(body[data-journey="1"], body[data-journey="4"], body[data-journey="5"], body[data-journey="7"], body[data-journey="9"]) #cart-sheet-panel .booking-cart .cart-line:not(.is-selected):hover {
     background: #fafcff;
-    border-bottom-color: #e2e9f3;
+    border-bottom-color: #bccad9;
   }
   :is(body[data-journey="1"], body[data-journey="4"], body[data-journey="5"], body[data-journey="7"], body[data-journey="9"]) .booking-cart .cart-line.is-selected,
   :is(body[data-journey="1"], body[data-journey="4"], body[data-journey="5"], body[data-journey="7"], body[data-journey="9"]) #cart-sheet-panel .booking-cart .cart-line.is-selected {
@@ -6109,9 +6127,6 @@ body[data-contextual-workspace="true"] .contextual-panel-close svg { width: 16px
   body[data-contextual-workspace="true"][data-lines="5"] {
     --cw-cart-panel: 350px;
   }
-  body[data-contextual-workspace="true"][data-lines="30"] {
-    --cw-cart-panel: 379px;
-  }
   body[data-contextual-workspace="true"]:not([data-lines="0"])[data-has-selection="false"]:has(#cart-body[data-cart-view="detailed"]) {
     --cw-cart-panel: 379px;
   }
@@ -6683,8 +6698,8 @@ body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-bod
 body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-body[data-cart-view="compact"] .cart-line:has(.cart-line-status.is-pending) .cart-line-summary {
   grid-template-columns: 18px 26px minmax(0, 1fr) auto 28px 28px;
   grid-template-areas:
-    "select number item price delete more"
-    ". . datetime datetime datetime datetime";
+    "select number item status delete more"
+    ". . datetime price price price";
 }
 :is(:is(body[data-journey="1"], body[data-journey="7"], body[data-journey="9"])[data-contextual-workspace="true"], body[data-journey="4"], body[data-journey="5"]) .booking-cart .cart-line-price-pending {
   color: #8a5708;
@@ -7553,6 +7568,8 @@ body[data-journey="7"] .j7-route-note { margin:0; color:#667085; font-size:10px;
 }
 /* Journey 8 isolated UJ-09 — route-scoped candidate styles */
 body[data-journey="8"] .j5-workflow-dialog { width: min(900px, calc(100vw - 32px)); max-height: min(760px, calc(100vh - 32px)); }
+/* Step b28 (8 Nov 2026, the J8 dialog fit): on desktop windows shorter than 736 px the dialog may use 16 px more height, so its footer keeps its usual clearance and the content does not scroll at 1280 x 720. Only the cap changes. */
+@media (min-width:1024px) and (max-height:735px) { body[data-journey="8"] .j5-workflow-dialog { max-height: calc(100vh - 16px); } }
 body[data-journey="8"] #j4-details-dialog { z-index: 20; }
 body[data-journey="8"] #j5-workflow-dialog { z-index: 30; }
 body[data-journey="8"] .j5-action-hub { display: block; }
@@ -8420,7 +8437,7 @@ body[data-journey="13"] #j13-standalone-surface .change span { color:var(--j13-m
 body[data-journey="13"] #j13-standalone-surface .arrow { align-self:center; color:var(--j13-blue); font-weight:900; }
 body[data-journey="13"] #j13-standalone-surface .dialog-note { margin-top:14px; padding:10px; border:1px solid #ebd28b; border-radius:8px; background:var(--j13-amber-bg); color:#704600; }
 body[data-journey="13"] #j13-standalone-surface .dialog-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:17px; }
-body[data-journey="13"] #j13-standalone-surface .toast { position:fixed; right:24px; bottom:24px; z-index:210; max-width:360px; padding:13px 16px; border-radius:10px; background:#153e2b; color:#fff; box-shadow:0 10px 30px rgba(22,44,68,.09); font-weight:750; transform:translateY(120px); opacity:0; transition:.25s; }
+body[data-journey="13"] #j13-standalone-surface .toast { position:fixed; right:24px; bottom:24px; z-index:210; max-width:360px; padding:13px 16px; border-radius:10px; background:#153e2b; color:#fff; box-shadow:0 10px 30px rgba(22,44,68,.09); font-weight:750; transform:translateY(120px); opacity:0; transition:transform .25s, opacity .25s; }
 body[data-journey="13"] #j13-standalone-surface .toast.show { transform:none; opacity:1; }
 body[data-journey="13"] #j13-standalone-surface :focus-visible { outline:3px solid #80adff; outline-offset:2px; }
 body[data-journey="13"] .skip-link, body[data-journey="13"] #review-rail, body[data-journey="13"] #app-shell { display:none!important; }
@@ -8438,6 +8455,8 @@ body[data-journey="13"] #j13-standalone-surface .side a.nav { font:inherit; text
 }
 /* J13 v2 F2: only the new leave question; inherited Review dialog remains unchanged. */
 body[data-journey="13"] #j13-standalone-surface #j13-leave-modal { max-width:none; width:auto; border:0; z-index:300; }
+/* Step b27 (8 Nov 2026, L-15 R-1): on desktop the leave question sits just under the J13 top bar (app.js measures it: --j13-leave-top), not in the centre, so at the page's opening scroll the layout cards stay in view below it (centred, it covered the chosen card). Tablet and phone unchanged. */
+@media (min-width:1024px) { body[data-journey="13"] #j13-standalone-surface #j13-leave-modal { align-items:flex-start; padding-top:var(--j13-leave-top, 72px); } }
 /* ===== Journey 14 CSS re-scoped for the in-Diary panel ===== */
 #j14-diary-panel #j14-standalone-surface[hidden] { display: none !important; }
 
@@ -9932,6 +9951,10 @@ li.is-conflict .j9-occ-status { color: #b42318; }
 .tree-info:hover { background: rgba(31, 94, 168, 0.1); }
 .tree-info:focus-visible { outline: 2px solid var(--diary-blue-500); outline-offset: 1px; }
 .tree-row > .tree-meta + .tree-info, .tree-row > .j3-capacity-badge + .tree-info { margin-left: 0; }
+/* Step b34 (D2/D3): the Journey 3 capacity badge on the shared Explorer rows, and the selected count over the selected chips. */
+body[data-explorer-filters="on"] .j3-capacity-badge { flex: none; font-size: 10px; font-weight: 700; color: var(--text-quiet); background: #f0f4fa; border: 1px solid var(--line-soft); border-radius: 0; padding: 2px 7px; line-height: 1.2; margin-right: 4px; }
+body[data-explorer-filters="on"] .ex-selected-count { margin: 6px 8px 2px; font-size: 12px; font-weight: 600; line-height: 1.3; color: var(--text); flex-shrink: 0; }
+body[data-explorer-filters="on"] .ex-selected-count[hidden] { display: none; }
 .asset-info-dialog { width: min(460px, calc(100vw - 32px)); }
 .asset-info-list { margin: 0 0 12px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
 .asset-info-list > div { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 10px; }
@@ -9971,3 +9994,243 @@ li.is-conflict .j9-occ-status { color: #b42318; }
 .j9-carry-back[hidden] { display: none !important; }
 .j4-add-all { align-self: flex-start; min-height: 44px; }
 .j4-add-all[hidden] { display: none !important; }
+/* Step b32 (Director Concern #1; the Director's reference of 10 Nov 2026, 8:20 PM): the compact Current selection card in the Optimo palette (white surface, navy text, blue
+   accents). The Item with an icon tile and its resource and venue; date, time and Attendees on one line; Recurring inside the same card; the Total in its own light-blue bar.
+   Only the compact card is styled (J9's card has no .is-compact and is unchanged). Contrast on white: #102f52 14.6:1, #1f2f45 13:1, #4a5b73 7:1, #5b6b82 5.5:1; #102f52 on #eaf1fd 13:1;
+   #1452b8 on #eaf1fd 6.3:1; #7a4100 on #fff4e0 7.6:1. */
+.booking-cart .cart-current-selection:has(.current-selection-summary.is-compact) .current-selection-head { padding-left: 9px; border-left: 3px solid #1f5fd1; }
+.booking-cart .cart-current-selection:has(.current-selection-summary.is-compact) .current-selection-details-toggle::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 5px; vertical-align: -1px; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20h4L19 9l-4-4L4 16v4z'/%3E%3Cpath d='M13.5 6.5l4 4'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20h4L19 9l-4-4L4 16v4z'/%3E%3Cpath d='M13.5 6.5l4 4'/%3E%3C/svg%3E") center / contain no-repeat; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact { margin: 0; padding: 12px; background: #ffffff; border: 1px solid #d7e1ed; border-radius: 8px; color: #102f52; font-size: 12px; font-weight: 500; line-height: 1.35; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact:has(+ .j9-review-launch:not([hidden])) { border-bottom: 0; border-radius: 8px 8px 0 0; padding-bottom: 10px; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact + .j9-review-launch:not([hidden]) { margin: 0; padding: 0 12px 12px; border: 1px solid #d7e1ed; border-top: 0; border-radius: 0 0 8px 8px; background: #ffffff; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact + .j9-review-launch:not([hidden])::before { content: ""; display: block; height: 1px; margin: 0 0 10px; background: #e3eaf3; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact + .j9-review-launch #j9-open-review { width: auto; align-self: flex-start; padding: 0 18px; border: 0; border-radius: 999px; background: #eaf1fd; color: #1452b8; font-weight: 700; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact + .j9-review-launch #j9-open-review:hover { background: #dbe7fb; }
+/* Step b32 v2 (V2): on J1 and J4 "Add all in <category>" shares the launch with Recurring: a matching outline pill on the same row (wraps when narrow); J7 keeps v1's spacing */
+.booking-cart .cart-current-selection .current-selection-summary.is-compact + .j9-review-launch:not([hidden]) { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px 8px; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact + .j9-review-launch:not([hidden])::before { flex: 0 0 100%; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact + .j9-review-launch .j4-add-all { width: auto; align-self: center; padding: 0 16px; border: 1px solid #c4d4ea; border-radius: 999px; background: #ffffff; color: #1452b8; font-weight: 700; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact + .j9-review-launch .j4-add-all:hover { background: #f3f7fd; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact .current-selection-heading { display: flex; align-items: center; gap: 12px; margin: 0 0 10px; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact .current-selection-icon { display: inline-flex; flex: 0 0 40px; align-items: center; justify-content: center; height: 40px; border-radius: 8px; background: #eaf1fd; color: #1f5fd1; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact .current-selection-icon svg { width: 22px; height: 22px; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact .current-selection-heading-text { min-width: 0; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact .current-selection-item { margin: 0 0 2px; color: #102f52; font-size: 14px; font-weight: 760; line-height: 1.25; overflow-wrap: anywhere; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact .current-selection-resource { margin: 0; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact .current-selection-resource strong { color: #4a5b73; font-size: 11.5px; font-weight: 600; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact .current-selection-resource span { color: #5b6b82; font-size: 11.5px; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact .current-selection-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 0; margin: 0; padding: 10px 0 0; border-top: 1px solid #e3eaf3; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact .current-selection-meta > div { display: flex; align-items: center; padding: 0 10px; border-left: 1px solid #d7e1ed; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact .current-selection-meta > div:first-child { padding-left: 0; border-left: 0; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact .current-selection-meta dd { display: inline-flex; align-items: center; gap: 5px; margin: 0; color: #1f2f45; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact .current-selection-meta > div[data-summary-row="when"] dd { white-space: normal; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact .current-selection-meta > div:is([data-summary-row="attendees"], [data-summary-row="quantity"]) { flex-basis: 100%; padding-left: 0; border-left: 0; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact .current-selection-meta-icon { display: inline-flex; flex: 0 0 auto; color: #1f5fd1; }
+.booking-cart .cart-current-selection .current-selection-summary.is-compact .current-selection-required { margin: 8px 0 0; padding: 4px 8px; border-left: 3px solid #b86e00; background: #fff4e0; color: #7a4100; font-size: 11.5px; font-weight: 700; }
+.booking-cart .cart-current-selection .current-selection-total-bar { display: block; margin: 10px 0 0; padding: 10px 12px; border-radius: 8px; background: #eaf1fd; }
+.booking-cart .cart-current-selection .current-selection-total-bar[hidden] { display: none; }
+.booking-cart .cart-current-selection .current-selection-total-bar > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.booking-cart .cart-current-selection .current-selection-total-bar dt { color: #102f52; font-size: 13px; font-weight: 760; }
+.booking-cart .cart-current-selection .current-selection-total-bar dd { margin: 0; color: #102f52; font-size: 17px; font-weight: 800; }
+.cart-item-editor-dialog #cie-item-row { margin-bottom: 12px; }
+/* Step b32 (S5/F2): for a new selection, Edit details' Pricing tab keeps its hidden cart-line controls hidden (.dialog-field and the grids set display, which beat [hidden]); the
+   Item field is hidden for Cart lines. Cart-line editing is unchanged. */
+.cart-item-editor-dialog[data-editor-target="staged-selection"] #cie-panel-pricing [hidden],
+.cart-item-editor-dialog #cie-item-row[hidden] { display: none !important; }
+/* Step b32 v3 (the Director's refinement of 10 Nov 2026, 10:11 PM: a denser compact card for carts of up to about 30 entries; theme, Edit details, Recurring, Total and Add to cart kept).
+   One CSS density pass over v2; only the compact card (.is-compact, J1, J4, J7) and the Clear cart band above it change. Tighter padding and gaps; a 32 px icon tile; date, time and
+   Attendees on one line, the icons as separators (they wrap only when too long, with no stray divider); no divider band above Recurring; Recurring and Add all as 30 px pills (desktop target size: WCAG 2.2 AA asks 24 px; was 44 px);
+   a slimmer Total bar. Colours unchanged (the v2 palette and contrast above). */
+#booking-cart > #cart-body:has(> #cart-current-selection:not([hidden]) > .current-selection-summary.is-compact) { padding-top: 4px; }
+#booking-cart > #cart-body:has(> #cart-current-selection:not([hidden]) > .current-selection-summary.is-compact) #clear-cart-btn { min-height: 26px; padding-top: 3px; padding-bottom: 3px; }
+#booking-cart #cart-current-selection:not([hidden]):has(> .current-selection-summary.is-compact) { padding: 6px 7px 8px; }
+#booking-cart #cart-current-selection:has(> .current-selection-summary.is-compact) .current-selection-head { margin-bottom: 6px; }
+#booking-cart #cart-current-selection .current-selection-summary.is-compact { padding: 8px 9px; }
+#booking-cart #cart-current-selection .current-selection-summary.is-compact:has(+ .j9-review-launch:not([hidden])) { padding-bottom: 6px; }
+#booking-cart #cart-current-selection .current-selection-summary.is-compact .current-selection-heading { gap: 10px; margin: 0 0 6px; }
+#booking-cart #cart-current-selection .current-selection-summary.is-compact .current-selection-icon { flex-basis: 32px; height: 32px; border-radius: 7px; }
+#booking-cart #cart-current-selection .current-selection-summary.is-compact .current-selection-icon svg { width: 18px; height: 18px; }
+#booking-cart #cart-current-selection .current-selection-summary.is-compact .current-selection-item { margin: 0 0 1px; line-height: 1.2; }
+#booking-cart #cart-current-selection .current-selection-summary.is-compact .current-selection-meta { gap: 3px 8px; padding-top: 6px; }
+#booking-cart #cart-current-selection .current-selection-summary.is-compact .current-selection-meta > div,
+#booking-cart #cart-current-selection .current-selection-summary.is-compact .current-selection-meta > div:is([data-summary-row="attendees"], [data-summary-row="quantity"]) { flex-basis: auto; padding: 0; border-left: 0; }
+#booking-cart #cart-current-selection .current-selection-summary.is-compact .current-selection-meta dd { gap: 3px; font-size: 11.5px; }
+#booking-cart #cart-current-selection .current-selection-summary.is-compact .current-selection-required { margin-top: 6px; padding: 3px 8px; }
+#booking-cart #cart-current-selection .current-selection-summary.is-compact + .j9-review-launch:not([hidden]) { padding: 0 9px 8px; gap: 6px; }
+#booking-cart #cart-current-selection .current-selection-summary.is-compact + .j9-review-launch:not([hidden])::before { display: none; }
+#booking-cart #cart-current-selection .current-selection-summary.is-compact + .j9-review-launch #j9-open-review,
+#booking-cart #cart-current-selection .current-selection-summary.is-compact + .j9-review-launch .j4-add-all { min-height: 30px; padding: 0 12px; font-size: 12px; }
+#booking-cart #cart-current-selection .current-selection-total-bar { margin-top: 6px; padding: 6px 10px; }
+#booking-cart #cart-current-selection .current-selection-total-bar dt { font-size: 12.5px; }
+#booking-cart #cart-current-selection .current-selection-total-bar dd { font-size: 15px; line-height: 1.2; }
+/* Step b32 v4 (the Director, 10 Nov 2026, 10:37 PM: "no need this much big button; somewhere else; icon only"): Recurring becomes a 28 px icon button in the card's header row,
+   right of Edit details (the same tinted fill #eaf1fd and blue icon #1452b8; tab order unchanged: Edit details, then Recurring). Its name stays "Recurring" (the text is kept and sized
+   to 0, so the button is still named by it); a tooltip shows the word on hover and keyboard focus. The Recurring row leaves the card. CSS only; J9's card (no .is-compact) is unchanged.
+   v5: the header keeps the icon's 34 px only while the launch shows after the card (Recurring is absent while a Cart line is edited and for a multi-day selection). */
+#booking-cart #cart-current-selection:not([hidden]):has(> .current-selection-summary.is-compact) { position: relative; }
+#booking-cart #cart-current-selection:has(> .current-selection-summary.is-compact + .j9-review-launch:not([hidden])) .current-selection-head { padding-right: 34px; }
+#booking-cart #cart-current-selection .current-selection-summary.is-compact + .j9-review-launch #j9-open-review { position: absolute; top: 6px; right: 7px; display: inline-flex; align-items: center; justify-content: center; width: 28px; min-width: 28px; height: 28px; min-height: 28px; padding: 0; border-radius: 7px; font-size: 0; gap: 0; }
+#booking-cart #cart-current-selection .current-selection-summary.is-compact + .j9-review-launch #j9-open-review svg { width: 16px; height: 16px; margin: 0; flex: 0 0 16px; }
+#booking-cart #cart-current-selection .current-selection-summary.is-compact + .j9-review-launch #j9-open-review::after { content: "Recurring" / ""; position: absolute; top: calc(100% + 6px); right: 0; z-index: 6; display: none; padding: 3px 8px; border-radius: 5px; background: #102f52; color: #ffffff; font-size: 11.5px; font-weight: 600; line-height: 1.3; white-space: nowrap; pointer-events: none; }
+#booking-cart #cart-current-selection .current-selection-summary.is-compact + .j9-review-launch #j9-open-review:is(:hover, :focus-visible)::after { display: block; }
+#booking-cart #cart-current-selection .current-selection-summary.is-compact + .j9-review-launch:not([hidden]):not(:has(.j4-add-all:not([hidden]))) { padding-bottom: 2px; }
+
+/* b35 (Booking Cart P1-P3; P4 above): Director authorised 11 Nov 2026, 10:19 PM. */
+/* P1: the words Price pending beside the pending-price icon; on Journey 1 the pending line keeps the Ready line layout (price on the second row). */
+.booking-cart .cart-line-price-pending .cart-line-price-pending-words { margin-left: 4px; letter-spacing: 0; font-size: 11px; font-weight: 650; white-space: nowrap; }
+:is(body[data-journey="1"], body[data-journey="4"], body[data-journey="5"], body[data-journey="7"], body[data-journey="9"]) :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-body[data-cart-view="compact"] .cart-line-price-pending { color: #8a5708; }   /* the words meet text contrast (about 6.4:1); the detailed view colour */
+/* P2: the status summary on one line: the status card takes the room its words need. */
+:is(body[data-journey="1"], body[data-journey="4"], body[data-journey="5"], body[data-journey="7"], body[data-journey="9"]) :is(.booking-cart, #cart-sheet-panel .booking-cart) .cart-high-volume-summaries { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr) minmax(max-content, 1.25fr); }
+:is(body[data-journey="1"], body[data-journey="4"], body[data-journey="5"], body[data-journey="7"], body[data-journey="9"]) :is(.booking-cart, #cart-sheet-panel .booking-cart) #cart-summary-status-count { white-space: nowrap; }
+/* P3: inside a date group the line does not repeat the date its group head shows. */
+.booking-cart #cart-body .cart-line.is-in-date-group .cart-line-schedule-date { display: none !important; }
+
+/* b36 (Booking Cart; the Director approved 12 Nov 2026, 8:41 AM). C3 (clearer line dividers) is in place above, in the 601 px block. */
+/* C2: the line list fits its lines: the bordered box no longer stretches to fill the panel; it shrinks and scrolls when the lines do not fit. */
+@media (min-width: 601px) {
+  :is(body[data-journey="1"], body[data-journey="4"], body[data-journey="5"], body[data-journey="7"], body[data-journey="9"]) :is(.booking-cart, #cart-sheet-panel .booking-cart) .items-scroll { flex: 0 1 auto; }
+}
+
+/* b37 (Booking Cart; the Director approved 12 Nov 2026, 1:26 PM): Add all moves from the Current selection card into a More actions menu on that card.
+   The toggle is the 28 px More actions toggle of a Cart line (#edf4fc, #075fb8 on it 5.6:1), at the right end of the card header; Recurring moves left beside it.
+   The menu opens under the toggle in the Cart line menu look; its one item shows the label and, under it, the help (#4a5b73 on white 7:1). The pill row leaves the card. */
+#booking-cart #cart-current-selection:has(#j4-more:not([hidden])) { position: relative; }
+#booking-cart #cart-current-selection #j4-more[hidden] { display: none !important; }
+#booking-cart #cart-current-selection #j4-more-toggle { position: absolute; top: 6px; right: 7px; z-index: 2; display: inline-flex; align-items: center; justify-content: center; width: 28px; min-width: 28px; height: 28px; min-height: 28px; padding: 0; border: 1px solid #b9cce5; border-radius: 7px; background: #edf4fc; color: #075fb8; font-size: 18px; font-weight: 800; line-height: 1; }
+#booking-cart #cart-current-selection #j4-more-toggle:hover, #booking-cart #cart-current-selection #j4-more.is-open #j4-more-toggle { background: #dbe7fb; }
+#booking-cart #cart-current-selection:has(#j4-more:not([hidden])) .current-selection-head { padding-right: 63px; column-gap: 6px; }   /* v2: 4 px between Edit details, Recurring and the toggle, so Current selection stays on one line */
+#booking-cart #cart-current-selection:has(#j4-more:not([hidden])) #j9-open-review { right: 39px; }
+#booking-cart #cart-current-selection .current-selection-summary.is-compact + .j9-review-launch:not([hidden]):has(#j4-more) { padding-bottom: 2px; }
+#booking-cart #cart-current-selection #j4-more-menu { position: absolute; top: 38px; right: 7px; z-index: 50; width: min(272px, calc(100% - 14px)); padding: 5px; border: 1px solid #b9c9df; border-radius: 8px; background: #ffffff; box-shadow: 0 10px 24px rgba(20, 42, 72, 0.2); }
+#booking-cart #cart-current-selection #j4-more-menu[hidden] { display: none; }
+#booking-cart #cart-current-selection #j4-more-menu #j4-add-all { display: grid; gap: 3px; width: 100%; min-height: 44px; margin: 0; padding: 8px 10px; border: 0; border-radius: 5px; background: transparent; color: #075fb8; text-align: left; white-space: normal; cursor: pointer; }
+#booking-cart #cart-current-selection #j4-more-menu #j4-add-all:is(:hover, :focus) { background: #edf4fc; }
+#booking-cart #cart-current-selection #j4-more-menu .j4-add-all-label { font-size: 12.5px; font-weight: 700; line-height: 1.3; }
+#booking-cart #cart-current-selection #j4-more-menu .j4-add-all-help { color: #4a5b73; font-size: 11.5px; font-weight: 500; line-height: 1.35; }
+
+/* Step b38 (12 Nov 2026): the Client view. html[data-presentation="client"] is set only by ?view=client (kept for the browser tab; ?view=review ends it).
+   A reversible client-demo presentation: review aids, repeated sample notes and internal wording are hidden; labels, prices, availability,
+   errors, status messages and every working booking control stay (demonstration switches are hidden). The header pill Simulated data stays as the one sample-data indication. */
+html[data-presentation="client"] { --review-rail-w: 0px; }
+html[data-presentation="client"] body { grid-template-columns: minmax(0, 1fr); }
+html[data-presentation="client"] #j14-diary-panel #j14-standalone-surface { --review-rail-w: 0px; grid-template-columns: minmax(0, 1fr); }
+html[data-presentation="client"] #j10-route-status { padding-top: 0; padding-bottom: 0; border: 0; background: transparent; }
+html[data-presentation="client"] .j15-c-booking .j15-details-btn { display: block; }
+html[data-presentation="client"] .review-rail,
+html[data-presentation="client"] .review-rail-panel,
+html[data-presentation="client"] #review-demo-panel,
+html[data-presentation="client"] #review-fixture-bar,
+html[data-presentation="client"] .calendar-caption,
+html[data-presentation="client"] .lane-note,
+html[data-presentation="client"] #asset-window-copy,
+html[data-presentation="client"] #asset-tree .scalability-fixture-group > .tree-meta,
+html[data-presentation="client"] .fixture-caption,
+html[data-presentation="client"] #claim-boundary,
+html[data-presentation="client"] .j3-vis-card-badge,
+html[data-presentation="client"] #j4-overview :not(:is(h1, :has(h1))),
+html[data-presentation="client"] #j7-route-status :not(:is(h1, :has(h1))),
+html[data-presentation="client"] #j10-route-status :not(:is(h1, :has(h1), .j10-action-row, .j10-action-row *)),
+html[data-presentation="client"] #j11-route-status :not(:is(h1, :has(h1))),
+html[data-presentation="client"] #j12-route-status :not(:is(h1, :has(h1))),
+html[data-presentation="client"] #j4-selection-guidance,
+html[data-presentation="client"] #j5-playback-controls,
+html[data-presentation="client"] .j5-readonly-pill,
+html[data-presentation="client"] .j5-local-pill,
+html[data-presentation="client"] #j5-details-intro > p,
+html[data-presentation="client"] .j5-actions-subtitle,
+html[data-presentation="client"] #j5-review-boundary,
+html[data-presentation="client"] .badge-fixture,
+html[data-presentation="client"] [data-j5-command="update-stale"],
+html[data-presentation="client"] [data-j5-command="update-failure"],
+html[data-presentation="client"] [data-j5-command="copy-stale"],
+html[data-presentation="client"] [data-j5-command="remove-failure"],
+html[data-presentation="client"] [data-j5-command="permission-change"],
+html[data-presentation="client"] [data-j5-command="j6-conflict"],
+html[data-presentation="client"] [data-j5-command="j6-error"],
+html[data-presentation="client"] [data-j5-command="j6-loading"],
+html[data-presentation="client"] [data-j5-command="j6-stale"],
+html[data-presentation="client"] [data-j5-command="j6-permission-change"],
+html[data-presentation="client"] [data-j5-command="j6-noop-submit"],
+html[data-presentation="client"] [data-j5-command^="j6-resource-"]:not([data-j5-command="j6-resource-page"]):not([data-j5-command="j6-resource-select"]),
+html[data-presentation="client"] .j12-panel-sub .j12-pill,
+html[data-presentation="client"] .j12-event-chips .j12-pill-grey,
+html[data-presentation="client"] #j14-location-entry > p,
+html[data-presentation="client"] .j12-section-boundaries,
+html[data-presentation="client"] .j12-action-capacity,
+html[data-presentation="client"] .j12-action-maps,
+html[data-presentation="client"] .j12-action-external,
+html[data-presentation="client"] .j12-review-notice,
+html[data-presentation="client"] .j12-panel-boundary,
+html[data-presentation="client"] .j12-evidence-heading,
+html[data-presentation="client"] .j12-panel-footnote,
+html[data-presentation="client"] #panel-venue .map-state-controls,
+html[data-presentation="client"] #map-status-text,
+html[data-presentation="client"] #panel-venue .badge-evidence,
+html[data-presentation="client"] #panel-external .external-card:not([data-handoff-id="tableplan"]):not([data-handoff-id="bookingmgr"]) .badge-unverified,
+html[data-presentation="client"] #handoff-dialog-panel p:has(> #j14-dialog-evidence),
+html[data-presentation="client"] #j13-standalone-surface .banner,
+html[data-presentation="client"] #j13-standalone-surface .top .user,
+html[data-presentation="client"] #j13-standalone-surface .heading .step,
+html[data-presentation="client"] #j13-standalone-surface .notice,
+html[data-presentation="client"] #j13-standalone-surface .review > p,
+html[data-presentation="client"] #j13-standalone-surface .evidence,
+html[data-presentation="client"] #j13-standalone-surface .boundary,
+html[data-presentation="client"] #j13-standalone-surface .actions .link,
+html[data-presentation="client"] #j14-standalone-surface .preview-banner,
+html[data-presentation="client"] #handoff-workspace .panel-sub,
+html[data-presentation="client"] #j15-guide,
+html[data-presentation="client"] .j15-note-line,
+html[data-presentation="client"] #j16-guide,
+html[data-presentation="client"] #j16-settings-dialog .j16-hint:not(#j16-seg-hint),
+html[data-presentation="client"] .j15-sub,
+html[data-presentation="client"] .unified-journey-menu .uj-note,
+html[data-presentation="client"] #j16-settings-dialog .j16-block:not(:has(input, select, textarea, button, .j16-row, #j16-seg-hint)),
+html[data-presentation="client"] .screen-ids,
+html[data-presentation="client"] #panel-venue .meta-grid > .meta-row:nth-child(4),
+html[data-presentation="client"] #map-placeholder-body,
+html[data-presentation="client"] #panel-seating p:has(+ #btn-review-seating),
+html[data-presentation="client"] #panel-external > p:first-child,
+html[data-presentation="client"] #panel-external .external-card > p,
+html[data-presentation="client"] #btn-demo-failure,
+html[data-presentation="client"] #j4-details-boundary,
+html[data-presentation="client"] #j10-block-description,
+html[data-presentation="client"] #j11-notes-description,
+html[data-presentation="client"] .j12-status,
+html[data-presentation="client"] #j13-standalone-surface .review-tag,
+html[data-presentation="client"] #j16-rights-strip > span:not(.j16-right) { display: none !important; }
+
+/* Step b39 (13 Nov 2026): the Client view, client-demo cleanup. The page heading of each journey's status section is shown in one compact style;
+   the handoff screens' review notes and the J3 sample caption are hidden. Scoped to html[data-presentation="client"]; the review view is unchanged. */
+html[data-presentation="client"] :is(#j4-overview, #j7-route-status, #j10-route-status, #j11-route-status, #j12-route-status):not([hidden]) { display: block; margin: 0; padding: 10px 16px 4px; border: 0; background: transparent; box-shadow: none; min-height: 0; }
+html[data-presentation="client"] :is(#j4-overview, #j7-route-status, #j10-route-status, #j11-route-status, #j12-route-status) :is(div, h1) { display: block; margin: 0; padding: 0; border: 0; background: transparent; }
+html[data-presentation="client"] :is(#j4-overview, #j7-route-status, #j10-route-status, #j11-route-status, #j12-route-status) h1 { font-size: 18px; line-height: 1.3; font-weight: 700; color: var(--diary-navy-deep); }
+html[data-presentation="client"] #j10-route-status .j10-action-row { display: flex; margin-top: 8px; }
+html[data-presentation="client"] #j3-fixture-caption,
+html[data-presentation="client"] #panel-seating .meta-grid > .meta-row:nth-child(4),
+html[data-presentation="client"] #handoff-dialog-panel .dialog-body > p:first-child,
+html[data-presentation="client"] #j14-dialog-boundary { display: none !important; }
+
+/* Step b40 (13 Nov 2026, the Director's 2:17 PM screenshot): calendar cards fit their own box at their true duration. app.js adds these classes only to a card
+   whose text does not fit: fit-lines (clipped at the card border; fit-ib: an inline text part at most the card width with an ellipsis, still inline-level so
+   the page text is unchanged), fit-cut (a part that would cross the bottom border is transparent; its words stay in the page and the card name) and
+   fit-short (one compact line when not even the first line fits: thin top and bottom borders, 9 px text centred in the slot). Colours are unchanged. */
+.cal-event.fit-lines { overflow: hidden !important; padding-top: 1px !important; padding-bottom: 1px !important; }
+.cal-event.fit-lines .fit-ib { display: inline-block; vertical-align: top; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-event.fit-lines strong:not(.fit-ib), .cal-event.fit-lines span:not(.fit-ib) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-event.fit-lines button { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-event.fit-lines .fit-cut { opacity: 0; }
+.cal-event.fit-short { padding-top: 0 !important; padding-bottom: 0 !important; border-top-width: 1px !important; border-bottom-width: 1px !important; font-size: 9px !important; line-height: calc(var(--slot-h) - 2px) !important; white-space: nowrap; text-overflow: ellipsis; }
+.cal-event.fit-short .fit-ib { display: inline; }
+/* The created booking card says Confirmed itself: the slot tick under it (taller than a slot, it showed through the card and crossed its border) is not drawn. */
+.cal-day-col:has(> .cal-event.created-event) .cal-slot.created::before { content: none; }
+
+/* Step b41 (13 Nov 2026, the Director, 8:49 PM): the journey menu shows Play this journey and Play all 16 journeys in the Client view too; a demonstration plays in the review view for that playback only (index.html, app.js). */
+
+/* Step b42 (14 Nov 2026, I-2): the Client view page heading on J1, J2, J3, J9, J14, J15 and J16, in the style of the b39 headings (app.js adds it in the Client view only). */
+.client-page-title { display: none; }
+html[data-presentation="client"] .client-page-title { display: block; margin: 0; padding: 10px 16px 4px; font-size: 18px; line-height: 1.3; font-weight: 700; color: var(--diary-navy-deep); }
+/* Step b42 v3: in the Client view the page heading also shows above the Journey 15 Agenda and Custom view surfaces. */
+html[data-presentation="client"] body[data-j15-view] #calendar > #client-page-title.client-page-title { display: block !important; }
+
+/* Step b43 (14 Nov 2026, F3 of b42): in the Client view the Journey 13 page heading uses the b39 and b42 heading style. */
+html[data-presentation="client"] body[data-journey="13"] #j13-standalone-surface .heading h1 { font-size: 18px; line-height: 1.3; font-weight: 700; color: var(--diary-navy-deep); }

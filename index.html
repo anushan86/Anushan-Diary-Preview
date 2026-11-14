@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="optimo-core">
 <head>
+<script>/* Step b40 (13 Nov 2026): the Client view is the default (the Director, 13 Nov 2026, 2:17 PM). ?view=review shows the review view and ?view=client the Client view; the choice is kept for this browser tab, also through the Journey 15 and 16 redirects below. Set before the first paint. The customer pages D0 and D1 have their own index.html. */
+(function () { var k = 'optimo.presentation.v1';
+  try { var v = new URLSearchParams(location.search).get('view'); if (v === 'client' || v === 'review') sessionStorage.setItem(k, v);
+    /* step b41: while a demonstration starts or Play all runs, this page load shows the review view (every guided step can be seen); the stored choice is kept */
+    /* step b43: only for the journey the record names, so leaving a running Play all for another journey keeps the chosen view */
+    var demo = false; try { var a = JSON.parse(sessionStorage.getItem('optimoUnified.autoplay.v1') || 'null'), p = JSON.parse(sessionStorage.getItem('optimoUnified.playAll.v1') || 'null'); var jq = Number(new URLSearchParams(location.search).get('journey')) || 1; if (jq === 12 && /^#agenda/.test(location.hash)) jq = 15; else if (jq === 12 && /^#settings/.test(location.hash)) jq = 16; demo = !!(a && a.key === jq && Date.now() - a.at < 60000 && Date.now() >= a.at) || !!(p && p.running && p.k === jq && Date.now() - p.at < 3600000 && Date.now() >= p.at); } catch (e) { demo = false; }
+    if (!demo && sessionStorage.getItem(k) !== 'review') document.documentElement.setAttribute('data-presentation', 'client');
+  } catch (e) { document.documentElement.setAttribute('data-presentation', 'client'); } })();</script>
+
 <script>/* Journey 16 candidate routing: ?journey=16 → J12 Diary with Settings review. Plain URL keeps the Master default (Journey 1). */
 (function () { var q = location.search, p = location.pathname;
   if (/[?&]journey=16(&|$)/.test(q)) location.replace(p + '?journey=12' + (location.hash || '#settings')); })();</script>
