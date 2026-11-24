@@ -44,7 +44,7 @@ window.UNIFIED_SCRIPTS = Object.assign(window.UNIFIED_SCRIPTS || {}, {
     { at: '#j6-open-booking', say: 'Start a Booking reschedule in the local review fixture' },
     { at: '#j6-start', act: 'fill', value: '10:00', say: 'Change the start time to 10:00 — the duration recalculates' },
     { at: '[data-j5-command="j6-check"]', say: 'Check availability — the local fixture reports it available' },
-    { at: '[data-j5-command="j6-check"]', say: 'Continue to the preview blocker: the HTTP 400 defect boundary' },
+    { at: '[data-j5-command="j6-check"]', say: 'Continue: the Booking preview is not available yet' },
     { at: '[data-j5-command="workflow-cancel"]', say: 'Cancel without loss — the original booking is unchanged' },
     { at: '#j6-open-multi', say: 'Open Multiple reschedule: heterogeneous selection, no commit' },
     { at: '[data-j5-command="workflow-cancel"]', say: 'Cancel the multi-item review without loss' },
@@ -89,7 +89,7 @@ window.UNIFIED_SCRIPTS = Object.assign(window.UNIFIED_SCRIPTS || {}, {
     { at: '[data-j8-command="apply-pricing"]', say: 'Review the proposed pricing change' },
     { at: '[data-j8-command="sales-proceed"]', say: 'Proceed past the sales category confirmation' },
     { at: '[data-j8-command="branch-confirm"]', say: 'Confirm the branch to open the proposed result' },
-    { at: '[data-j8-command="patch-preview"]', say: 'Review the patch preview: it is blocked at HTTP 400' },
+    { at: '[data-j8-command="patch-preview"]', say: 'Preview changes: the preview is not available yet' },
     { at: '[data-j8-command="terminal-cancel"]', say: 'Cancel without loss — the original booking is unchanged' }
   ],
 

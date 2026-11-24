@@ -10,10 +10,12 @@
   --diary-brand-accent: #f5cd45;
   --diary-brand-accent-border: #ffe680;
 
+  --diary-blue-800: #123f7c;   /* step b48 (W-09): used by the J5, J6 and J8 action rules but never defined, so their colour was dropped */
   --diary-blue-700: #174f9b;
   --diary-blue-600: #1f66bd;
   --diary-blue-500: #2e73df;
   --diary-blue-400: #2e73df;
+  --diary-blue-300: #6f97d8;   /* step b48 (W-09): the action button border, never defined before */
   --diary-blue-200: #adc7f4;
   --diary-blue-100: #dce9ff;
   --diary-blue-075: #e8f1ff;
@@ -29,6 +31,7 @@
   --diary-disabled-bg: #eef0f4;
   --diary-disabled-text: #98a2b3;
   --diary-danger: #c83b32;
+  --diary-danger-strong: #a3312a;   /* step b51 (K7): the darker danger red (text and hover fill on white) */
   --diary-danger-bg: #fff0ef;
   --diary-warning: #9a6700;
   --diary-warning-bg: #fff8e8;
@@ -79,7 +82,7 @@
   --review-rail-w: 40px;
   --top-bar-h: 56px;
   --view-bar-h: auto;
-  --assets-w: 220px;
+  --assets-w: 240px;   /* step b46 (W-08): 220 -> 240 px, fewer cut names */
   --cart-w: 440px;
   --slot-h: 10px;
   --gutter-w: 52px;
@@ -593,8 +596,8 @@ body {
 .selected-strip {
   display: flex;
   gap: 6px;
-  flex-wrap: nowrap;
-  overflow-x: auto;
+  flex-wrap: wrap;   /* step b46 (W-08): the chips wrap instead of scrolling sideways */
+  overflow-x: visible;
   margin: 0 8px 6px;
   padding-bottom: 2px;
   scrollbar-width: thin;
@@ -811,6 +814,18 @@ body {
   color: var(--text);
   white-space: nowrap;
 }
+.timeslot-legend-sample {   /* step b52 (X-1): the Sample colours tag; step b53 build 2: the containing block of its hidden words */
+  position: relative;
+  flex: none;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--canvas);
+  color: var(--text-quiet);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
 .calendar-scroll { flex: 1; overflow: auto; position: relative; }
 .calendar-grid { min-width: 680px; }
 .cal-header {
@@ -1014,11 +1029,9 @@ body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data
     color-mix(in srgb, var(--timeslot-color) 16%, transparent) 8px
   );
 }
-.cal-event.facility-not-in-use.timeslot-coloured {
-  opacity: 0.78;
+.cal-event.facility-not-in-use.timeslot-coloured {   /* step b53 (O3): no fade and the shared card ink, text at least 4.5 : 1 */
   border-style: dotted;
   background: color-mix(in srgb, var(--timeslot-color) 10%, var(--canvas));
-  color: var(--text-quiet);
 }
 .cal-event.timeslot-colour-unavailable {
   background: var(--surface);
@@ -1034,9 +1047,8 @@ body[data-slot-layout="column"]:is([data-journey="1"], [data-journey="3"], [data
     color-mix(in srgb, var(--text-quiet) 12%, transparent) 8px
   );
 }
-.cal-event.facility-not-in-use.timeslot-colour-unavailable {
+.cal-event.facility-not-in-use.timeslot-colour-unavailable {   /* step b53 (O3): no fade on its text */
   border-style: dotted;
-  opacity: 0.82;
 }
 .cal-event.created-event {
   background: rgba(20, 134, 111, 0.2);
@@ -2224,14 +2236,16 @@ body[data-lines]:not([data-lines="0"]):not([data-lines="1"]):not([data-lines="2"
   align-items: center;
 }
 .cart-item-editor-title-wrap { grid-area: title; }
-.cart-item-editor-tabs {
+.cart-item-editor-tabs {   /* step b48 (W-12): one connected tab bar */
   grid-area: tabs;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  align-items: center;
+  gap: 0;
+  align-items: flex-end;
+  border-bottom: 1px solid var(--diary-border-strong);
 }
 .cart-item-editor-tab {
+  margin: 0 0 -1px -1px;
   min-height: 30px;
   padding: 5px 10px;
   border: 1px solid var(--diary-border-strong);
@@ -2251,13 +2265,17 @@ body[data-lines]:not([data-lines="0"]):not([data-lines="1"]):not([data-lines="2"
   border-color: var(--diary-blue-700);
   color: var(--diary-blue-700);
 }
+.cart-item-editor-tab:first-child { margin-left: 0; }
 .cart-item-editor-tab[aria-selected="true"] {
-  border-color: var(--cobalt);
-  background: var(--cobalt-soft);
+  position: relative;
+  z-index: 1;
+  border-color: var(--diary-border-strong);
+  border-bottom-color: var(--surface);
+  background: var(--surface);
   color: var(--cobalt);
-  box-shadow: inset 0 0 0 1px rgba(49, 104, 232, 0.12);
+  box-shadow: inset 0 3px 0 var(--cobalt);
 }
-.cart-item-editor-tab:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.cart-item-editor-tab:focus-visible { position: relative; z-index: 2; outline: 2px solid var(--focus); outline-offset: 2px; }
 .cart-item-editor-head .dialog-close { grid-area: close; justify-self: end; }
 .cart-item-editor-panels { min-height: 0; }
 .editor-tabpanel { padding: 0 20px 4px; }
@@ -2311,7 +2329,9 @@ body[data-lines]:not([data-lines="0"]):not([data-lines="1"]):not([data-lines="2"
   background: var(--diary-blue-050);
 }
 .dialog-head h2 { margin: 2px 0 0; }
-.dialog-close { width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 0; background: var(--surface); font-size: 22px; cursor: pointer; }
+/* Step b48 (W-13): one close button for every window: 44 x 44 px, square, 1 px border, the same x. Navy heads keep their own inverted colour rules. */
+.dialog-close { box-sizing: border-box; flex: none; width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0; border: 1px solid #b9c4d4; border-radius: 0; background: var(--surface); color: var(--diary-navy); font-size: 22px; font-weight: 400; line-height: 1; cursor: pointer; }
+.dialog-close:hover { background: var(--diary-blue-050); border-color: var(--diary-blue-700); }
 .dialog-intro { color: var(--text-quiet); margin-top: 14px !important; margin-bottom: 12px !important; }
 .workflow-dialog .dialog-actions { padding: 14px 0 18px; margin-top: 12px; border-top: 1px solid var(--line-soft); }
 .segmented { border: 0; margin-top: 10px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
@@ -2550,10 +2570,10 @@ body[data-journey="1"] .mode-btn:hover {
   background: rgba(255,255,255,0.08);
 }
 body[data-journey="1"] .mode-btn.is-active {
-  background: var(--j1-yellow);
-  color: var(--j1-navy-deep);
-  border-color: var(--j1-yellow);
-  font-weight: 700;
+  background: var(--diary-blue-500);
+  color: var(--diary-surface);
+  border-color: transparent;
+  font-weight: 600;
 }
 body[data-journey="1"] .user-identity { color: rgba(255,255,255,0.9); }
 
@@ -3472,7 +3492,7 @@ body[data-journey="2"] .mode-group { display: flex; align-items: center; gap: 4p
 body[data-journey="2"] .mode-btn {
   min-height: 32px;
   background: transparent;
-  border: 1px solid rgba(255,255,255,0.2);
+  border: 1px solid transparent;
   color: rgba(255,255,255,0.85);
   cursor: pointer;
   padding: 6px 12px;
@@ -3487,14 +3507,7 @@ body[data-journey="2"] .mode-btn[aria-pressed="true"] {
   border-color: transparent;
 }
 body[data-journey="2"] .mode-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-body[data-journey="2"] .mode-indicator {
-  font-size: 12px;
-  font-weight: 600;
-  color: rgba(255,255,255,0.9);
-  padding: 4px 8px;
-  border-radius: 0;
-  background: rgba(255,255,255,0.1);
-}
+body[data-journey="2"] .mode-indicator { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; padding: 0; margin: -1px; border: 0; }   /* step b45 (W-01): the pressed mode button already shows the mode; the live announcement stays */
 
 body[data-journey="2"] .date-range-label {
   font-weight: 600;
@@ -3504,36 +3517,15 @@ body[data-journey="2"] .date-range-label {
   font-size: 14px;
 }
 
-body[data-journey="2"] .view-group,
-body[data-journey="2"] .control-group-label {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-}
-body[data-journey="2"] .control-group-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-quiet);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-body[data-journey="2"] #view-group .view-btn {
-  min-height: 32px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  padding: 5px 8px;
-  font-size: 12px;
-  border-radius: 0;
-  cursor: pointer;
-  font-family: inherit;
-}
+/* step b46 (W-14): the J2 view buttons use the shared joined look of the other journeys; the Standard: label (aria-hidden, as before) is hidden visually */
+body[data-journey="2"] #view-group { display: flex; flex-wrap: wrap; gap: 2px; }
+body[data-journey="2"] #view-group .control-group-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; padding: 0; margin: -1px; border: 0; }
+body[data-journey="2"] #view-group .view-btn:focus-visible { position: relative; z-index: 1; }   /* step b46 (W-14): the focused view button is drawn above its neighbours, as the b21 view strip, so its ring is not covered */
 body[data-journey="2"] #view-group .view-btn[aria-pressed="true"] {
   background: var(--cobalt);
   color: var(--surface);
   border-color: var(--cobalt);
 }
-body[data-journey="2"] .view-advanced { border-color: var(--diary-border-strong); }
 
 body[data-journey="2"] .j2-selected-assets {
   background: var(--diary-surface);
@@ -5859,21 +5851,21 @@ body[data-contextual-workspace="true"] {
   overflow-x: hidden;
 }
 
-body[data-contextual-workspace="true"] .contextual-panel-close {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  border: 1px solid var(--line);
+body[data-contextual-workspace="true"] .contextual-panel-close {   /* step b48 (W-13): the one close button */
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border: 1px solid #b9c4d4;
   border-radius: 0;
   background: var(--surface);
-  color: var(--text);
+  color: var(--diary-navy);
   display: grid;
   place-items: center;
   padding: 0;
   cursor: pointer;
 }
-body[data-contextual-workspace="true"] .contextual-panel-close:hover { background: var(--canvas); }
-body[data-contextual-workspace="true"] .contextual-panel-close svg { width: 16px; height: 16px; }
+body[data-contextual-workspace="true"] .contextual-panel-close:hover { background: var(--diary-blue-050); border-color: var(--diary-blue-700); }
+body[data-contextual-workspace="true"] .contextual-panel-close svg { width: 18px; height: 18px; }
 :is(body[data-contextual-workspace="true"], body[data-journey="4"], body[data-journey="5"]) .cart-line-compact-item { display: none; }
 
 @media (width > 600px) {
@@ -6729,6 +6721,7 @@ body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-bod
 }
 :is(body[data-journey="1"], body[data-journey="4"], body[data-journey="5"], body[data-journey="7"], body[data-journey="9"]) .booking-cart .current-selection-head .eyebrow {
   display: block;
+  white-space: nowrap;   /* step b51 (W-18, b37 F2): one line at any zoom or text size */
   margin-bottom: 1px;
   color: #607089;
   font-size: 8px;
@@ -6905,11 +6898,9 @@ body[data-journey="1"][data-contextual-workspace="true"] .booking-cart #cart-bod
 
 /* Isolated correction 2 retry 1 — smaller visible close control, 44px accessible hit target retained. */
 @media (min-width: 601px) {
-  body[data-contextual-workspace="true"] .contextual-cart-close { width: 44px; height: 44px; min-width: 44px; border-color: transparent; background: transparent; }
-  body[data-contextual-workspace="true"] .contextual-cart-close::before { content: ""; position: absolute; inset: 4px; border: 1px solid var(--line); background: #fff; pointer-events: none; }
-  body[data-contextual-workspace="true"] .contextual-cart-close svg { position: relative; z-index: 1; width: 14px; height: 14px; }
-  body[data-contextual-workspace="true"] .contextual-cart-close:hover { background: transparent; }
-  body[data-contextual-workspace="true"] .contextual-cart-close:hover::before { background: var(--canvas); }
+  body[data-contextual-workspace="true"] .contextual-cart-close { width: 44px; height: 44px; min-width: 44px; border-color: #b9c4d4; background: #fff; }   /* step b48 (W-13): the box drawn full size */
+  body[data-contextual-workspace="true"] .contextual-cart-close svg { position: relative; z-index: 1; width: 18px; height: 18px; }
+  body[data-contextual-workspace="true"] .contextual-cart-close:hover { background: var(--diary-blue-050); border-color: var(--diary-blue-700); }
 }
 
 
@@ -7188,7 +7179,8 @@ body[data-journey="5"] .j5-action-grid { grid-template-columns: repeat(6, minmax
 body[data-journey="5"] .j5-action , body[data-journey="6"] .j5-action, body[data-journey="8"] .j5-action { min-height: 42px; padding: 8px; color: var(--diary-blue-800); background: #fff; border: 1px solid var(--diary-blue-300); font-weight: 750; cursor: pointer; }
 body[data-journey="5"] .j5-action { padding-inline: 4px; }
 body[data-journey="5"] .j5-action:hover:not(:disabled) , body[data-journey="6"] .j5-action:hover:not(:disabled), body[data-journey="8"] .j5-action:hover:not(:disabled) { color: #fff; background: var(--diary-blue-700); border-color: var(--diary-blue-700); }
-body[data-journey="5"] .j5-action-caution , body[data-journey="6"] .j5-action-caution, body[data-journey="8"] .j5-action-caution { color: #8a342b; border-color: #dfaaa5; }
+body[data-journey="5"] .j5-action-caution , body[data-journey="6"] .j5-action-caution, body[data-journey="8"] .j5-action-caution { color: var(--diary-danger-strong); border-color: var(--diary-danger); }   /* step b48 (W-09): the danger style */
+body[data-journey="5"] .j5-action-caution:hover:not(:disabled) , body[data-journey="6"] .j5-action-caution:hover:not(:disabled), body[data-journey="8"] .j5-action-caution:hover:not(:disabled) { color: #fff; background: var(--diary-danger-strong); border-color: var(--diary-danger-strong); }
 body[data-journey="5"] .j5-action:disabled , body[data-journey="6"] .j5-action:disabled, body[data-journey="8"] .j5-action:disabled { color: var(--diary-disabled-text); background: var(--diary-disabled-bg); border-color: var(--diary-border); cursor: not-allowed; }
 body[data-journey="5"] .j5-review-boundary , body[data-journey="6"] .j5-review-boundary, body[data-journey="8"] .j5-review-boundary { margin: 0 20px 10px; padding: 10px 12px; font-size: 12px; line-height: 1.45; color: var(--diary-text); background: var(--diary-blue-050); border-left: 3px solid var(--diary-blue-500); }
 body[data-journey="5"] .j5-action-announcement , body[data-journey="6"] .j5-action-announcement, body[data-journey="8"] .j5-action-announcement { min-height: 36px; margin: 0 20px 14px; padding: 8px 10px; font-size: 11px; line-height: 1.4; color: var(--diary-text-secondary); border: 1px dashed var(--diary-border-strong); }
@@ -7346,60 +7338,60 @@ body[data-journey="5"] .j6-workflow-label, body[data-journey="6"] .j6-workflow-l
 }
 
 /* J12 I-2 B / I-3 only. Existing Journey 6 renderer, commands and styles are not forked. */
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule):has(.j12tc-setup) #j5-workflow-description { display:none; } /* Keep the original spoken description; D0 blanks its exact B06 sentence. */
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence { margin:12px 0; border:1px solid var(--diary-border-strong); background:#fff; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence > summary { display:flex; align-items:center; gap:8px; min-height:var(--diary-control-touch,44px); padding:0 12px; color:var(--diary-blue-700); font-size:13px; font-weight:700; cursor:pointer; list-style:none; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence > summary::-webkit-details-marker { display:none; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule):has(.j12tc-setup) #j5-workflow-description { display:none; } /* Keep the original spoken description; D0 blanks its exact B06 sentence. */
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence { margin:12px 0; border:1px solid var(--diary-border-strong); background:#fff; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence > summary { display:flex; align-items:center; gap:8px; min-height:var(--diary-control-touch,44px); padding:0 12px; color:var(--diary-blue-700); font-size:13px; font-weight:700; cursor:pointer; list-style:none; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence > summary::-webkit-details-marker { display:none; }
 /* L-18 (27 Oct 2026): the disclosure triangle is decoration; the empty alt text keeps ▸/▾ out of every name and description. */
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence > summary::before { content:'▸' / ''; color:var(--diary-blue-500); }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence[open] > summary::before { content:'▾' / ''; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence > summary:focus-visible { outline:2px solid var(--diary-blue-500); outline-offset:-2px; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence-content { display:grid; gap:10px; padding:0 12px 12px; font-size:12px; line-height:1.45; color:var(--diary-text); }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence-content > p, body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence-content > div { margin:0; padding:9px 11px; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence .j6-public-banner { color:#0d3155; background:#eaf4ff; border-left:4px solid var(--diary-blue-500); }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence .j6-defect-note { color:#6f4b00; background:var(--diary-warning-bg); border-left:4px solid #c18d13; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence .j6-entry-note, body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence .j6-resource-state { color:var(--diary-text-secondary); border:1px dashed var(--diary-border-strong); }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence .j5-inline-note { color:var(--diary-text-secondary); background:#f7f9fc; border-left:3px solid var(--diary-blue-500); }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence .j12tc-review-controls { display:flex; flex-wrap:wrap; gap:8px; padding:0; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence .j12tc-review-label { margin:0; padding:0; color:var(--diary-text-secondary); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .dialog-close { width:var(--diary-control-touch,44px); height:var(--diary-control-touch,44px); }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) input:not([type="checkbox"]):not([type="radio"]), body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) select, body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) button { min-height:var(--diary-control-touch,44px); box-sizing:border-box; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j5-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:10px; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j5-form-grid label, body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-different-time-row label { display:grid; gap:5px; color:var(--diary-navy); font-size:11px; font-weight:800; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j5-form-grid input:not([type="checkbox"]), body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j5-form-grid select, body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-different-time-row input { width:100%; padding:8px 10px; color:var(--diary-text); background:#fff; border:1px solid var(--diary-border-strong); font:inherit; font-weight:500; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j5-form-grid input:focus-visible, body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j5-form-grid select:focus-visible { outline:2px solid var(--diary-blue-500); outline-offset:1px; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-different-time-rows { display:grid; gap:10px; margin-top:12px; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-different-time-row { display:grid; grid-template-columns:minmax(100px,1fr) repeat(3,minmax(0,1fr)); align-items:end; gap:8px; padding:10px; border:1px solid var(--diary-border); background:#fff; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) #j5-workflow-footer { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence > summary::before { content:'▸' / ''; color:var(--diary-blue-500); }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence[open] > summary::before { content:'▾' / ''; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence > summary:focus-visible { outline:2px solid var(--diary-blue-500); outline-offset:-2px; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence-content { display:grid; gap:10px; padding:0 12px 12px; font-size:12px; line-height:1.45; color:var(--diary-text); }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence-content > p, body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence-content > div { margin:0; padding:9px 11px; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence .j6-public-banner { color:#0d3155; background:#eaf4ff; border-left:4px solid var(--diary-blue-500); }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence .j6-defect-note { color:#6f4b00; background:var(--diary-warning-bg); border-left:4px solid #c18d13; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence .j6-entry-note, body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence .j6-resource-state { color:var(--diary-text-secondary); border:1px dashed var(--diary-border-strong); }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence .j5-inline-note { color:var(--diary-text-secondary); background:#f7f9fc; border-left:3px solid var(--diary-blue-500); }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence .j12tc-review-controls { display:flex; flex-wrap:wrap; gap:8px; padding:0; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j12tc-evidence .j12tc-review-label { margin:0; padding:0; color:var(--diary-text-secondary); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .dialog-close { width:var(--diary-control-touch,44px); height:var(--diary-control-touch,44px); }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) input:not([type="checkbox"]):not([type="radio"]), body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) select, body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) button { min-height:var(--diary-control-touch,44px); box-sizing:border-box; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j5-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:10px; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j5-form-grid label, body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j6-different-time-row label { display:grid; gap:5px; color:var(--diary-navy); font-size:11px; font-weight:800; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j5-form-grid input:not([type="checkbox"]), body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j5-form-grid select, body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j6-different-time-row input { width:100%; padding:8px 10px; color:var(--diary-text); background:#fff; border:1px solid var(--diary-border-strong); font:inherit; font-weight:500; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j5-form-grid input:focus-visible, body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j5-form-grid select:focus-visible { outline:2px solid var(--diary-blue-500); outline-offset:1px; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j6-different-time-rows { display:grid; gap:10px; margin-top:12px; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j6-different-time-row { display:grid; grid-template-columns:minmax(100px,1fr) repeat(3,minmax(0,1fr)); align-items:end; gap:8px; padding:10px; border:1px solid var(--diary-border); background:#fff; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) #j5-workflow-footer { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }
 /* Step b25 (7 Nov 2026, L-17): the Journey 12 reschedule window takes the approved Journey 5/6 window rules (values as above, lines body[data-journey="5"] .j5-workflow-*), as Journey 6 shows this same window. */
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) { width: min(720px, calc(100vw - 32px)); max-width: 720px; max-height: min(840px, calc(100vh - 32px)); padding: 0; overflow: auto; color: var(--diary-text); background: #fff; border: 1px solid var(--diary-border-strong); }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j5-workflow-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 20px 14px; color: #fff; background: var(--diary-navy); border-bottom: 3px solid var(--diary-brand-accent); }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j5-workflow-head h2 { margin: 0; color: #fff; font-size: 20px; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j5-workflow-head .dialog-close { flex: none; color: #fff; background: transparent; border-color: var(--diary-blue-200); }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) #j5-workflow-kicker { color: var(--diary-blue-200); }   /* the label on the navy header, as Journeys 5 and 6 (.j4-kicker) */
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j5-workflow-body { padding: 16px 20px 8px; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j5-workflow-description { margin: 0 0 14px; color: var(--diary-text-secondary); font-size: 12px; line-height: 1.45; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j5-workflow-stage { min-height: 120px; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j5-workflow-announcement { min-height: 20px; margin-top: 10px; color: var(--diary-text-secondary); font-size: 11px; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) #j5-workflow-footer { position: sticky; bottom: 0; padding: 12px 20px; background: #fff; border-top: 1px solid var(--diary-border); }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-public-banner, body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-defect-note { margin: 10px 0 0; padding: 10px 12px; font-size: 11px; line-height: 1.45; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-public-banner { color: #0d3155; background: #eaf4ff; border-left: 4px solid var(--diary-blue-500); }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-defect-note { color: #6f4b00; background: var(--diary-warning-bg); border-left: 4px solid #c18d13; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-stage-card { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--diary-border-strong); background: #fbfcfe; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-stage-card h3 { margin: 0; color: var(--diary-navy); font-size: 17px; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-stage-card p { margin: 0; font-size: 12px; line-height: 1.5; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-stage-card.j6-open { color: #0b5f45; background: #f0fbf6; border-left: 4px solid #1b8c63; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-stage-card.j6-blocked { color: #6f4b00; background: var(--diary-warning-bg); border-left: 4px solid #c18d13; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-stage-card.j6-unverified { color: #4f3f79; background: #f6f2ff; border-left: 4px solid #8064bb; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-stage-card.j6-safety { color: #0d3155; background: #eaf4ff; border-left: 4px solid var(--diary-blue-500); }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-stage-card .j6-indivisible { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 10px; background: #fff; border: 1px solid var(--diary-border); }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-stage-card .j6-indivisible strong { color: var(--diary-navy); }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-stage-card .j6-indivisible span { color: var(--diary-text-secondary); font-size: 11px; }
-body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-workflow-label { display: inline-flex; align-items: center; justify-self: start; min-height: 24px; padding: 3px 8px; color: #4f3f79; background: #f6f2ff; border: 1px solid #cbbde8; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) { width: min(720px, calc(100vw - 32px)); max-width: 720px; max-height: min(840px, calc(100vh - 32px)); padding: 0; overflow: auto; color: var(--diary-text); background: #fff; border: 1px solid var(--diary-border-strong); }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j5-workflow-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 20px 14px; color: #fff; background: var(--diary-navy); border-bottom: 3px solid var(--diary-brand-accent); }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j5-workflow-head h2 { margin: 0; color: #fff; font-size: 20px; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j5-workflow-head .dialog-close { flex: none; color: #fff; background: transparent; border-color: var(--diary-blue-200); }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) #j5-workflow-kicker { color: var(--diary-blue-200); }   /* the label on the navy header, as Journeys 5 and 6 (.j4-kicker) */
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j5-workflow-body { padding: 16px 20px 8px; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j5-workflow-description { margin: 0 0 14px; color: var(--diary-text-secondary); font-size: 12px; line-height: 1.45; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j5-workflow-stage { min-height: 120px; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j5-workflow-announcement { min-height: 20px; margin-top: 10px; color: var(--diary-text-secondary); font-size: 11px; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) #j5-workflow-footer { position: sticky; bottom: 0; padding: 12px 20px; background: #fff; border-top: 1px solid var(--diary-border); }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j6-public-banner, body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j6-defect-note { margin: 10px 0 0; padding: 10px 12px; font-size: 11px; line-height: 1.45; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j6-public-banner { color: #0d3155; background: #eaf4ff; border-left: 4px solid var(--diary-blue-500); }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j6-defect-note { color: #6f4b00; background: var(--diary-warning-bg); border-left: 4px solid #c18d13; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j6-stage-card { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--diary-border-strong); background: #fbfcfe; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j6-stage-card h3 { margin: 0; color: var(--diary-navy); font-size: 17px; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j6-stage-card p { margin: 0; font-size: 12px; line-height: 1.5; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j6-stage-card.j6-open { color: #0b5f45; background: #f0fbf6; border-left: 4px solid #1b8c63; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j6-stage-card.j6-blocked { color: #6f4b00; background: var(--diary-warning-bg); border-left: 4px solid #c18d13; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j6-stage-card.j6-unverified { color: #4f3f79; background: #f6f2ff; border-left: 4px solid #8064bb; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j6-stage-card.j6-safety { color: #0d3155; background: #eaf4ff; border-left: 4px solid var(--diary-blue-500); }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j6-stage-card .j6-indivisible { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 10px; background: #fff; border: 1px solid var(--diary-border); }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j6-stage-card .j6-indivisible strong { color: var(--diary-navy); }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j6-stage-card .j6-indivisible span { color: var(--diary-text-secondary); font-size: 11px; }
+body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j6-workflow-label { display: inline-flex; align-items: center; justify-self: start; min-height: 24px; padding: 3px 8px; color: #4f3f79; background: #f6f2ff; border: 1px solid #cbbde8; font-size: 10px; font-weight: 800; text-transform: uppercase; }
 @media(max-width:640px) {
-  body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j5-form-grid, body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) .j6-different-time-row { grid-template-columns:1fr; }
-  body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) #j5-workflow-footer { justify-content:stretch; }
-  body[data-journey="12"] #j5-workflow-dialog:has(.j12tc-reschedule) #j5-workflow-footer button { flex:1 1 45%; }
+  body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j5-form-grid, body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) .j6-different-time-row { grid-template-columns:1fr; }
+  body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) #j5-workflow-footer { justify-content:stretch; }
+  body:is([data-journey="6"],[data-journey="12"]) #j5-workflow-dialog:has(.j12tc-reschedule) #j5-workflow-footer button { flex:1 1 45%; }
 }
 
 /* Journey 7 route-scoped evidence status; all Product controls remain Master-owned. */
@@ -7572,6 +7564,7 @@ body[data-journey="8"] .j5-workflow-dialog { width: min(900px, calc(100vw - 32px
 @media (min-width:1024px) and (max-height:735px) { body[data-journey="8"] .j5-workflow-dialog { max-height: calc(100vh - 16px); } }
 body[data-journey="8"] #j4-details-dialog { z-index: 20; }
 body[data-journey="8"] #j5-workflow-dialog { z-index: 30; }
+body[data-journey="8"] .j5-workflow-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }   /* step b48 (X-3): the x on the title row */
 body[data-journey="8"] .j5-action-hub { display: block; }
 body[data-journey="8"] .j5-action-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 body[data-journey="8"] .j5-action { min-height: 52px; text-align: left; }
@@ -8296,7 +8289,7 @@ body[data-journey="12"] .j12-panel-head { display: flex; align-items: center; ga
 body[data-journey="12"] .j12-head-icon, body[data-journey="12"] .j12-card-icon { display: grid; place-items: center; flex: none; }
 body[data-journey="12"] .j12-head-icon { width: 34px; height: 34px; border-radius: 10px; background: #ebf2ff; color: #225ed8; }
 body[data-journey="12"] .j12-panel-head h2 { margin: 0; font-size: 23px; line-height: 1.15; letter-spacing: -.025em; }
-body[data-journey="12"] #j12-event-actions-close { display: grid; place-items: center; flex: none; width: 44px; height: 44px; min-width: 44px; min-height: 44px; margin-left: auto; border: 1px solid #d7ddea; border-radius: 10px; background: #fff; color: #43506a; font-size: 21px; line-height: 1; }
+body[data-journey="12"] #j12-event-actions-close { display: grid; place-items: center; flex: none; width: 44px; height: 44px; min-width: 44px; min-height: 44px; margin-left: auto; border: 1px solid #b9c4d4; border-radius: 0; background: #fff; color: var(--diary-navy); font-size: 22px; line-height: 1; }
 body[data-journey="12"] #j12-event-actions-close:hover { background: #f5f7fb; }
 body[data-journey="12"] #j12-event-actions-close:focus-visible { outline: 3px solid #ffbf47; outline-offset: 2px; }
 body[data-journey="12"] .j12-panel-sub { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 9px 0 15px 45px; }
@@ -8634,16 +8627,16 @@ body[data-journey="12"] .j14-diary-back span { font-size: 18px; line-height: 1; 
 body[data-journey="12"] .j14-diary-titles { flex: 1; min-width: 0; }
 body[data-journey="12"] .j14-diary-titles h2 { margin: 0; color: #17243c; font-size: 20px; line-height: 1.2; letter-spacing: -.02em; }
 body[data-journey="12"] .j14-diary-context { margin: 3px 0 0; color: #5f6b7d; font-size: 12.2px; line-height: 1.35; }
-body[data-journey="12"] .j14-diary-close {
+body[data-journey="12"] .j14-diary-close {   /* step b48 (W-13): the one close button (square) */
   display: grid;
   place-items: center;
   flex: none;
   width: 44px;
   height: 44px;
-  border: 1px solid #d7ddea;
-  border-radius: 10px;
+  border: 1px solid #b9c4d4;
+  border-radius: 0;
   background: #fff;
-  color: #43506a;
+  color: var(--diary-navy);
   font-size: 22px;
   line-height: 1;
   cursor: pointer;
@@ -8713,6 +8706,9 @@ body[data-j15-view="custom"] #slot-layout-control { visibility: hidden; }
 .j15-head .j15-title { margin: 0; font-size: 20px; font-weight: 600; color: var(--text); letter-spacing: 0; }
 .j15-head .j15-context { font-size: 12px; color: var(--text-quiet); }
 .j15-head .j15-count { margin-left: auto; font-size: 12px; color: var(--text-quiet); }
+.j3-calendar-empty { margin: 40px auto; max-width: 440px; padding: 0 16px; text-align: center; font-size: 14px; line-height: 1.5; color: var(--text-quiet); }   /* step b45 (W-05) */
+body[data-journey="3"] #asset-selected-strip:empty::after { content: "None yet"; display: block; padding: 4px 16px 8px; font-size: 12px; color: var(--text-quiet); }
+.j15-head h2[tabindex="-1"]:focus { outline: none; }   /* step b45 (W-04): the heading takes focus for screen readers only; it is not a control */
 
 /* one honest line, no box */
 .j15-note-line {
@@ -8864,7 +8860,8 @@ body[data-j15-view="custom"] #slot-layout-control { visibility: hidden; }
 .j15-dialog header { display: flex; align-items: flex-start; gap: 10px; padding: 14px 16px 12px; border-bottom: 1px solid var(--line); }
 .j15-dialog header h2 { margin: 0; flex: 1; font-size: 15px; font-weight: 600; }
 .j15-dialog header p { margin: 3px 0 0; color: var(--text-quiet); font-size: 11.5px; }
-.j15-x { border: 0; background: none; font-size: 18px; line-height: 1; color: var(--text-quiet); cursor: pointer; padding: 4px 6px; }
+.j15-x { box-sizing: border-box; flex: none; width: 44px; height: 44px; min-width: 44px; padding: 0; border: 1px solid #b9c4d4; border-radius: 0; background: #fff; font-size: 22px; line-height: 1; color: var(--diary-navy); cursor: pointer; }   /* step b48 (W-13) */
+.j15-x:hover { background: var(--diary-blue-050); border-color: var(--diary-blue-700); }
 .j15-dialog .j15-body { overflow: auto; padding: 14px 16px; min-height: 0; }
 .j15-dialog footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--line); }
 
@@ -9051,7 +9048,8 @@ body[data-j15-view="custom"] #slot-layout-control { visibility: hidden; }
 .j16-dialog header { display: flex; align-items: flex-start; gap: 10px; padding: 14px 16px 12px; border-bottom: 1px solid var(--line); }
 .j16-dialog header h2 { margin: 0; flex: 1; font-size: 15px; font-weight: 600; }
 .j16-dialog header p { margin: 3px 0 0; color: var(--text-quiet); font-size: 11.5px; }
-.j16-x { border: 0; background: none; font-size: 18px; line-height: 1; color: var(--text-quiet); cursor: pointer; padding: 4px 6px; }
+.j16-x { box-sizing: border-box; flex: none; width: 44px; height: 44px; min-width: 44px; padding: 0; border: 1px solid #b9c4d4; border-radius: 0; background: #fff; font-size: 22px; line-height: 1; color: var(--diary-navy); cursor: pointer; }   /* step b48 (W-13) */
+.j16-x:hover { background: var(--diary-blue-050); border-color: var(--diary-blue-700); }
 .j16-body { overflow: auto; padding: 14px 16px; min-height: 0; }
 .j16-dialog footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--line); }
 .j16-block { margin: 0 0 16px; }
@@ -9215,13 +9213,15 @@ body:is([data-journey="3"], [data-journey="4"], [data-journey="5"], [data-journe
    calendar and never crosses the lane title, the legend or the day headers. Same red line and marker as before. */
 .cal-lane-body { position: relative; }
 .cal-lane-body > .now-line.cal-now-line { z-index: 6; }
+.cal-day-col > .now-line.cal-now-line { left: 0; right: 0; z-index: 6; }   /* step b46 (W-07): drawn in the today column */
+.cal-day-col > .now-line.cal-now-line::before { left: 0; }   /* step b47 (F9): the square starts at the today column edge, not 5 px into the day before */
 /* Journey 2 on the Journey 12 calendar */
 body[data-journey="2"] .cal-slot.selectable { cursor: crosshair; touch-action: none; }
 body[data-journey="2"] .cal-event[role="button"] { cursor: pointer; }
 body[data-journey="2"] .cal-event.j2-event-selected { outline: 3px solid var(--focus); outline-offset: 1px; z-index: 3; }
 
 /* Journey 10 on the Journey 12 calendar density; the New card and Block keep their content in the Journey 12 card style */
-body[data-journey="10"] { --slot-h: 10px; }
+body[data-journey="10"] { --slot-h: inherit; }   /* step b47 (CAL-DEC-04): J10 takes the J12 row height from the page root, fitted as J12 (W-06), not a fixed 10 px */
 body[data-journey="10"] .cal-event.j10-selection-card {
   height: auto !important;
   min-height: 0;
@@ -9855,6 +9855,8 @@ body .j15-btn-primary:not(:disabled):not([aria-disabled="true"]), body .j16-btn-
 body .j15-btn-primary:not(:disabled):not([aria-disabled="true"]):hover, body .j16-btn-primary:not(:disabled):hover, body .unified-confirm-btn.is-primary:not(:disabled):hover, body[data-journey="13"] #j13-standalone-surface .btn.primary:not(:disabled):hover { background: #eec133; border-color: var(--diary-brand-accent-border); color: var(--diary-navy-deep); }
 body .j15-btn-primary:not(:disabled):not([aria-disabled="true"]):active, body .j16-btn-primary:not(:disabled):active, body .unified-confirm-btn.is-primary:not(:disabled):active, body[data-journey="13"] #j13-standalone-surface .btn.primary:not(:disabled):active { background: #e2b420; border-color: var(--diary-brand-accent-border); color: var(--diary-navy-deep); }
 #j14-diary-panel #j14-standalone-surface .btn-primary:not(:disabled):hover { background: #eec133; }
+#j14-diary-panel #j14-standalone-surface .btn-primary.btn-review-handoff { background: var(--diary-surface); color: var(--diary-blue-500); border-color: var(--diary-border-strong); }   /* step b46 (W-10): View details in the secondary style; the yellow primary stays for main actions */
+#j14-diary-panel #j14-standalone-surface .btn-primary.btn-review-handoff:not(:disabled):hover { background: var(--diary-blue-075); }
 
 /* C1 dialog */
 .j9-dialog-proposed { width: min(620px, calc(100vw - 32px)); }
@@ -10234,3 +10236,15 @@ html[data-presentation="client"] body[data-j15-view] #calendar > #client-page-ti
 
 /* Step b43 (14 Nov 2026, F3 of b42): in the Client view the Journey 13 page heading uses the b39 and b42 heading style. */
 html[data-presentation="client"] body[data-journey="13"] #j13-standalone-surface .heading h1 { font-size: 18px; line-height: 1.3; font-weight: 700; color: var(--diary-navy-deep); }
+/* step b51 (W-17, b36 F3 and F4): in the Cart at 601 px and wider, one rule at each date-group boundary (the group head draws no top line of its own, as it already does at 1100 px and wider)
+   and the edge under the last line in the divider colour (#cbd6e3, was #e4ebf4). */
+@media (min-width: 601px) {
+  :is(body[data-journey="1"], body[data-journey="4"], body[data-journey="5"], body[data-journey="7"], body[data-journey="9"]) .booking-cart .group-head,
+  :is(body[data-journey="1"], body[data-journey="4"], body[data-journey="5"], body[data-journey="7"], body[data-journey="9"]) #cart-sheet-panel .booking-cart .group-head {
+    border-top: 0;
+  }
+  :is(body[data-journey="1"], body[data-journey="4"], body[data-journey="5"], body[data-journey="7"], body[data-journey="9"]) .booking-cart .items-scroll,
+  :is(body[data-journey="1"], body[data-journey="4"], body[data-journey="5"], body[data-journey="7"], body[data-journey="9"]) #cart-sheet-panel .booking-cart .items-scroll {
+    border-bottom-color: #cbd6e3;
+  }
+}

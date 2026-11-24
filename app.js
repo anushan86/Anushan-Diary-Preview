@@ -105,10 +105,11 @@ const k1Focus = (() => {
   const DIARY_AREA_COLOUR = { hall1: '#5b3f8c', hall2: '#5b3f8c', studio1: '#0b6e62', studio2: '#0b6e62' };
   function diaryStored() { try { const v = JSON.parse(localStorage.getItem('DiarySettings')); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } }
   function diaryOpt(key) { const o = diaryStored().opts; return o && typeof o === 'object' ? o[key] : undefined; }
+  function diaryColoursOff() { return diaryStored().colours === false; }   // step b53 (O1): J16 Show timeslot colours saved off; nothing stored = colours shown
   function diaryCustomerName(ref) { return diaryOpt('j16-text:customer') === true ? (DIARY_CUSTOMERS[ref] || '') : ''; }
   function diaryEventText(ev) { return diaryCustomerName(ev.id) || ev.title; }
   function diaryBusinessArea(el, asset) { const c = diaryOpt('j16-area') === true ? DIARY_AREA_COLOUR[asset] : ''; if (c) { el.style.boxShadow = `inset 6px 0 0 ${c}`; el.dataset.diaryArea = 'on'; } }
-  function diaryDisplaySnapshot() { return [diaryOpt('j16-text:customer') === true, diaryOpt('j16-area') === true, diaryOpt('j16-order:category') === true].join('|'); }
+  function diaryDisplaySnapshot() { return [diaryOpt('j16-text:customer') === true, diaryOpt('j16-area') === true, diaryOpt('j16-order:category') === true, diaryColoursOff()].join('|'); }
   /* Step b18: Keep multiple assets expanded. Saved and off, one category stays open at a time. Nothing stored: nothing changes. A filter's reveal and the Accommodation class keep theirs. */
   let diaryLastOpen = ''; let diaryFollow = '';
   function diaryOneOpen() { return diaryOpt('j16-expand') === false; }
@@ -181,7 +182,7 @@ const k1Focus = (() => {
       }
     }
     diaryRememberReady = true;
-    if (diaryLastDisplay !== 'false|false|false') { renderCalendar(); if ($('#asset-tree')) renderAssetTree(); }
+    if (diaryLastDisplay !== 'false|false|false|false') { renderCalendar(); if ($('#asset-tree')) renderAssetTree(); }
   }
   window.addEventListener('diary-settings-load', diaryApplyRememberedDate);
   window.addEventListener('diary-settings-load', () => { diaryAutoExpand(); if (diaryAutoAll && $('#asset-tree')) renderAssetTree(); });
@@ -219,6 +220,14 @@ const k1Focus = (() => {
     blocked: 'Blocked timeslot',
     'facility-not-in-use': 'Facility not in use'
   };
+  const TIMESLOT_SAMPLE_COLOURS = {   // step b52 (X-1): the approved semantic status colours, used only when the system gives no timeslot options; always labelled Sample colours
+    confirmed: '#1f66bd',
+    quotation: '#9a6700',
+    blocked: '#667085',
+    'facility-not-in-use': '#667085'
+  };
+  const TIMESLOT_SAMPLE_LABEL = 'Sample colours';
+  const TIMESLOT_PLAIN_COLOUR = '#667085';   // step b53 (O1): colours off, every status in the neutral grey with its own pattern
 
   let timeslotVisualOptions = null;
 
@@ -239,9 +248,10 @@ const k1Focus = (() => {
     }
   }
 
-  function normalizeTimeslotVisualOptions(raw) {
+  function normalizeTimeslotVisualOptions(raw, useSample) {
     const normalized = {};
     TIMESLOT_CLASSIFICATION_KEYS.forEach((key) => {
+      if (useSample) { normalized[key] = { label: null, color: TIMESLOT_SAMPLE_COLOURS[key], sample: true }; return; }   // step b52 (X-1)
       const entry = raw && typeof raw === 'object' ? raw[key] : null;
       const label = entry && typeof entry.label === 'string' && entry.label.trim() ? entry.label.trim() : null;
       const color = entry && validateTimeslotColor(entry.color) ? entry.color.trim() : null;
@@ -266,10 +276,12 @@ const k1Focus = (() => {
   function applyTimeslotVisual(el, type) {
     const entry = getTimeslotClassificationEntry(type);
     el.classList.add('timeslot-classified');
+    const plain = !!entry.color && diaryColoursOff();   // step b53 (O1)
+    el.classList.toggle('timeslot-plain', plain);
     if (entry.color) {
       el.classList.add('timeslot-coloured');
       el.classList.remove('timeslot-colour-unavailable');
-      el.style.setProperty('--timeslot-color', entry.color);
+      el.style.setProperty('--timeslot-color', plain ? TIMESLOT_PLAIN_COLOUR : entry.color);
     } else {
       el.classList.remove('timeslot-coloured');
       el.classList.add('timeslot-colour-unavailable');
@@ -287,7 +299,9 @@ const k1Focus = (() => {
 
   function eventAccessibleLabel(ev) {
     const entry = getTimeslotClassificationEntry(ev.type);
-    const colourCue = entry.color ? entry.label || ev.status : TIMESLOT_COLOUR_UNAVAILABLE_LABEL;
+    if (entry.color && diaryColoursOff()) return `${ev.title} — ${ev.status}`;   // step b53 (O1): no colours shown, no colour cue
+    const sampleCue = CLIENT_VIEW ? (TIMESLOT_SEMANTIC_FALLBACK_LABELS[mapEventTypeToClassification(ev.type)] || ev.status) : 'Sample colour';   // step b53 (O6): the Client view names the status as its colour key does
+    const colourCue = entry.color ? (entry.sample ? sampleCue : entry.label || ev.status) : TIMESLOT_COLOUR_UNAVAILABLE_LABEL;   // step b52 (X-1)
     return `${ev.title} — ${ev.status} — ${colourCue}`;
   }
 
@@ -301,7 +315,7 @@ const k1Focus = (() => {
     }
     try {
       const raw = await provider.getTimeslotVisualOptions();
-      timeslotVisualOptions = normalizeTimeslotVisualOptions(raw);
+      timeslotVisualOptions = normalizeTimeslotVisualOptions(raw, raw === null || raw === undefined);   // step b52 (X-1): no system options = the labelled sample colours; a failed load stays colour unavailable
     } catch {
       timeslotVisualOptions = normalizeTimeslotVisualOptions(null);
     }
@@ -319,6 +333,7 @@ const k1Focus = (() => {
     list.className = 'timeslot-legend-list';
     const j1Legend = document.body.dataset.journey === '1';
     let missingColour = false;
+    let sampleColour = false;   // step b52 (X-1)
     [
       { key: 'confirmed', cue: 'solid' },
       { key: 'quotation', cue: 'quotation' },
@@ -333,7 +348,8 @@ const k1Focus = (() => {
       swatch.setAttribute('aria-hidden', 'true');
       if (entry.color) {
         swatch.classList.add('timeslot-coloured');
-        swatch.style.setProperty('--timeslot-color', entry.color);
+        swatch.style.setProperty('--timeslot-color', diaryColoursOff() ? TIMESLOT_PLAIN_COLOUR : entry.color);   // step b53 (O1)
+        if (entry.sample && !diaryColoursOff()) sampleColour = true;
       } else {
         swatch.classList.add('timeslot-colour-unavailable');
         missingColour = true;
@@ -345,6 +361,17 @@ const k1Focus = (() => {
       list.appendChild(li);
     });
     host.appendChild(list);
+    if (sampleColour && !CLIENT_VIEW) {   // step b52 (X-1): the colours are sample defaults, never system data; the Client view shows no sample words (step b38), its header says Simulated data
+      const tag = document.createElement('span');
+      tag.className = 'timeslot-legend-sample';
+      tag.textContent = TIMESLOT_SAMPLE_LABEL;
+      tag.title = 'Each organisation sets its own timeslot colours';
+      const why = document.createElement('span');   // step b53 (O2): the tooltip words for screen readers too, no new Tab stop
+      why.className = 'visually-hidden';
+      why.textContent = '. Each organisation sets its own timeslot colours';
+      tag.appendChild(why);
+      host.appendChild(tag);
+    }
     if (j1Legend && missingColour && !CLIENT_VIEW) {   // step b38: no fallback note in the Client view
       const note = document.createElement('span');
       note.className = 'j1-legend-fallback';
@@ -578,8 +605,8 @@ const k1Focus = (() => {
       startSlot: 0, endSlot: 24, visualType: 'block', access: 'Block context first handoff only', details: true, more: true
     },
     {
-      id: 'facility-not-in-use', kind: 'facility-not-in-use', label: 'Facility Not In Use', reference: 'FNI-301',
-      status: 'Facility Not In Use · Unavailable', asset: 'studio2', resource: 'Studio 2', dayOffset: 6,
+      id: 'facility-not-in-use', kind: 'facility-not-in-use', label: 'Facility not in use', reference: 'FNI-301',   // step b49 (W-22): sentence case, as on every other journey
+      status: 'Facility not in use · Unavailable', asset: 'studio2', resource: 'Studio 2', dayOffset: 6,
       startSlot: 14, endSlot: 18, visualType: 'facility-not-in-use', access: document.documentElement.getAttribute('data-presentation') === 'client' ? 'Read-only' : 'Read-only · sample', details: true, more: false
     },
     {
@@ -643,7 +670,7 @@ const k1Focus = (() => {
 
   function j4StateColor(fixture) {
     const entry = j4ProviderEntry(fixture);
-    if (entry.color) return entry.color;
+    if (entry.color) return diaryColoursOff() ? TIMESLOT_PLAIN_COLOUR : entry.color;   // step b53 (O1)
     if (fixture.kind === 'available') return 'var(--diary-success)';
     if (fixture.kind === 'selected') return 'var(--diary-blue-500)';
     if (fixture.kind === 'private') return 'var(--diary-blue-600)';
@@ -967,12 +994,12 @@ const k1Focus = (() => {
     const handedOff = fixture.kind === 'available' && !!stagedSelection;
     title.textContent = handedOff ? 'Available interval selected' : fixture.reference;
     copy.textContent = handedOff
-      ? 'One staged selection was handed to the existing J1 New Selection state and handlers; no second Cart was created.'
-      : `${fixture.label} · ${fixture.status}`;
+      ? 'Staged as a new selection in the Cart.'   // step b49 (X-4): client words for the hand-off
+      : (fixture.status.startsWith(fixture.label) ? fixture.status : `${fixture.label} · ${fixture.status}`);   // step b45 (W-02): the label is said once
     state.textContent = handedOff ? 'Selected' : fixture.label;
     time.textContent = handedOff ? j4StagedDateTime() : j4FixtureDateTime(fixture);
     resource.textContent = handedOff ? j4StagedResource() : fixture.resource;
-    access.textContent = handedOff ? 'Existing J1 New Selection state' : fixture.access;
+    access.textContent = handedOff ? 'Current selection' : fixture.access;
     guidance.textContent = j4ViewState === 'access-denied'
       ? 'Access denied: all timeslot actions are disabled.'
       : (fixture.more ? 'Direct details and the separate non-mutating context handoff are available.' : 'No mutation or lifecycle action is available.');
@@ -1717,7 +1744,7 @@ const k1Focus = (() => {
     if (!j5CanEnterAction() || j5LifecycleState !== 'ready') { announceLive(j5LifecycleMessage()); const announcement = $('#j5-action-announcement'); if (announcement) announcement.textContent = j5LifecycleMessage(); return; }
     if (action === 'Reschedule') return j6StartOperation('BookingReschedule', trigger);
     j5WorkflowTrigger = trigger; j5Operation = { action, stage: action === 'Copy' ? 'guard' : 'setup', commandToken: null, stale: false, permissionChanged: false, previewFailed: false, selectedItem: 'ITEM-LOCAL-001', selectedTarget: 'Studio 4', result: null };
-    const details = $('#j4-details-dialog'); if (details?.open) details.close('workflow'); const dialog = $('#j5-workflow-dialog'); if (!dialog) return; j5RenderWorkflow(); dialog.showModal(); window.setTimeout(() => dialog.querySelector('input, select, button:not(.dialog-close)')?.focus(), 0);
+    const details = $('#j4-details-dialog'); if (details?.open) details.close('workflow'); const dialog = $('#j5-workflow-dialog'); if (!dialog) return; { const wd = $('#j5-workflow-description'); if (wd) wd.hidden = false; }   /* step b50 (K2): J8 hides this line; shown again here */ j5RenderWorkflow(); dialog.showModal(); window.setTimeout(() => dialog.querySelector('input, select, button:not(.dialog-close)')?.focus(), 0);
   }
   function j5Button(command, text, cls = 'btn-secondary', disabled = false) { return `<button type="button" class="${cls}" data-j5-command="${command}"${disabled ? ' disabled' : ''}>${text}</button>`; }
   function j5ItemOptions(selected, includeBlocked = false) { const items = includeBlocked ? J5_REMOVE_FIXTURES : J5_BOOKING_FIXTURE.items; return items.map((item) => `<option value="${item.id}"${item.id === selected ? ' selected' : ''}>${item.name}</option>`).join(''); }
@@ -1779,7 +1806,7 @@ const k1Focus = (() => {
     if (!isJ5Journey() || !j5CanEnterAction() || j5LifecycleState !== 'ready') { announceLive(j5LifecycleMessage()); return; }
     j5WorkflowTrigger = trigger || document.activeElement;
     j5Operation = { action: 'RecurringReschedule', stage: 'setup', first: j5SeriesNow.first, start: j5SeriesNow.start, commandToken: null };
-    const dialog = $('#j5-workflow-dialog'); if (!dialog) return; j5SeriesRender(); dialog.showModal();
+    const dialog = $('#j5-workflow-dialog'); if (!dialog) return; { const wd = $('#j5-workflow-description'); if (wd) wd.hidden = false; }   /* step b50 (K2): J8 hides this line; shown again here */ j5SeriesRender(); dialog.showModal();
     window.setTimeout(() => { const f = $('#j5-rr-date'); if (f && j5Operation?.action === 'RecurringReschedule' && j5Operation.stage === 'setup') f.focus(); }, 80);
   }
   function j5SeriesSync() {
@@ -1966,6 +1993,7 @@ const k1Focus = (() => {
     if (!move || !access || $('#j5-open-corporate')) return;
     const reschedule = document.createElement('button'); reschedule.type = 'button'; reschedule.className = 'j5-action'; reschedule.dataset.j5Action = 'Reschedule'; reschedule.textContent = 'Reschedule';
     move.before(reschedule);
+    const remove = $('.j5-action[data-j5-action="Remove"]'); if (remove) move.parentElement.append(remove);   // step b48 (W-09): Remove item last, after the safe actions (DOM order = Tab order; both pages)
     const cell = document.createElement('div'); cell.id = 'j5-corporate-fact';
     const label = document.createElement('dt'); label.textContent = 'Open in';
     const value = document.createElement('dd'); const open = document.createElement('button'); open.type = 'button'; open.id = 'j5-open-corporate'; open.className = 'j5-open-corporate';
@@ -1980,7 +2008,7 @@ const k1Focus = (() => {
     if (isJ5Journey()) $$('.j5-action[data-j5-action]').forEach((button) => button.addEventListener('click', (event) => j5OpenWorkflow(event.currentTarget.dataset.j5Action, event.currentTarget)));
     if (isJ6Journey()) $$('[data-j6-action]').forEach((button) => button.addEventListener('click', (event) => j5OpenWorkflow(event.currentTarget.dataset.j6Action, event.currentTarget)));
     if (isJ6Journey()) $$('[data-j6-permission]').forEach((button) => button.addEventListener('click', (event) => { j5ReviewState = event.currentTarget.dataset.j6Permission === 'denied' ? 'denied' : 'loaded'; announceLive(j5ReviewState === 'denied' ? 'Permission denied before action entry.' : 'Permission restored.'); }));
-    document.addEventListener('click', (event) => { if (event.target.closest('#j5-workflow-footer [data-j5-command]') || (document.body.dataset.journey === '12' && event.target.closest('#j12tc-evidence [data-j5-command]'))) j5HandleWorkflowCommand(event); }); $('#j5-workflow-close')?.addEventListener('click', j5ReturnFromWorkflow); $('#j5-workflow-dialog')?.addEventListener('cancel', (event) => { event.preventDefault(); j5ReturnFromWorkflow(); }); $('#j5-workflow-dialog')?.addEventListener('close', () => { if (j5WorkflowTrigger && !j5WorkflowReturning) j5ReturnFromWorkflow(); }); $('#j4-details-dialog').addEventListener('close', (event) => { if (event?.returnValue !== 'workflow') j5RestorePlaybackControls(); });
+    document.addEventListener('click', (event) => { if (event.target.closest('#j5-workflow-footer [data-j5-command]') || (['6', '12'].includes(document.body.dataset.journey) && event.target.closest('#j12tc-evidence [data-j5-command]'))) j5HandleWorkflowCommand(event); }); $('#j5-workflow-close')?.addEventListener('click', j5ReturnFromWorkflow); $('#j5-workflow-dialog')?.addEventListener('cancel', (event) => { event.preventDefault(); j5ReturnFromWorkflow(); }); $('#j5-workflow-dialog')?.addEventListener('close', () => { if (j5WorkflowTrigger && !j5WorkflowReturning) j5ReturnFromWorkflow(); }); $('#j4-details-dialog').addEventListener('close', (event) => { if (event?.returnValue !== 'workflow') j5RestorePlaybackControls(); });
   }
   function j5ResetBootState() {
     j5SeriesReset(); j4ResetBootState(); j4ActiveFixtureId = 'private'; J5_BOOKING_FIXTURE = j5CloneBooking(); const overviewTitle = $('#j4-overview-title'); const overviewCopy = $('#j4-overview p'); const caption = $('.calendar-caption');
@@ -2073,6 +2101,7 @@ const k1Focus = (() => {
     };
     const details = $('#j4-details-dialog'); if (details?.open) details.close('workflow');
     const dialog = $('#j5-workflow-dialog'); if (!dialog) return;
+    { const wd = $('#j5-workflow-description'); if (wd) wd.hidden = false; }   // step b50 (K2): J8 hides this line; shown again here
     j6RenderWorkflow(); dialog.hidden = false; dialog.inert = false; dialog.removeAttribute('aria-hidden'); dialog.showModal();
     // Step b31 (L-19): the first field takes focus even when it is shown a moment after the window opens (the customer page re-checks its hiding 40 ms later); retried every 20 ms
     // for up to 300 ms, only while the window is open and focus is still on its close button, the window or the page body, so a person who has moved focus is never overridden.
@@ -2090,7 +2119,7 @@ const k1Focus = (() => {
     announceLive(`${j6ActionTitle(action)} opened. No server request sent.`);
   }
   function j6ResultCard(title, copy, cls = 'j6-open') {
-    const label = cls === 'j6-unverified' ? 'Not confirmed' : cls === 'j6-blocked' ? 'Blocked — known defect' : 'Confirmed';
+    const label = cls === 'j6-unverified' ? 'Not confirmed' : cls === 'j6-blocked' ? 'Blocked' : 'Confirmed';   // step b49 (X-4): client words
     return `<div class="j6-stage-card ${cls}"><span class="j6-workflow-label">${label}</span><h3>${title}</h3><p>${copy}</p></div>`;
   }
   function j6RenderTimeForm(op, heading, extra = '') {
@@ -2184,20 +2213,20 @@ const k1Focus = (() => {
       html = j6RenderTimeForm(op, 'Multiple reschedule', '<p class="j6-resource-state"><strong>Varies</strong> — heterogeneous selection. Duration: 0.00 HRS. Multi-item commit is permanently disabled.</p>'); buttons = j6Button('j6-check', 'Review availability', 'btn-primary', true) + j6Button('workflow-cancel', 'Cancel');
     } else if (op.action === 'BookingReschedule') {
       if (op.stage === 'setup') { html = j6RenderTimeForm(op, 'Booking reschedule', `${j6AutoMarkup()}<p class="j6-defect-note">${J6_DEFECT_COPY}</p>`); buttons = j6Button('j6-check', 'Continue', 'btn-primary', true) + j6Button('workflow-cancel', 'Cancel'); }
-      else if (op.stage === 'availability') { html = j6ResultCard('Availability available for review', 'Availability completed in this sample. The next Booking preview is blocked at the known HTTP 400 defect.', 'j6-safety') + `<p class="j6-defect-note">${J6_DEFECT_COPY}</p>`; buttons = j6Button('j6-check', 'Continue to preview blocker', 'btn-primary') + j6Button('j6-conflict', 'Show conflict') + j6Button('j6-error', 'Show error') + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
-      else { html = j6ResultCard('Preview blocked — HTTP 400 evidence', 'Availability completed in this sample, but the Booking preview is blocked by a known defect. Saving is never enabled and no success is simulated.', 'j6-blocked') + `<p class="j6-defect-note">${J6_DEFECT_COPY}</p>`; buttons = j6Button('workflow-cancel', 'Cancel without loss'); }
+      else if (op.stage === 'availability') { html = j6ResultCard('Availability available for review', 'Availability completed in this sample. The Booking preview that follows is not available yet.', 'j6-safety') + `<p class="j6-defect-note">${J6_DEFECT_COPY}</p>`; buttons = j6Button('j6-check', 'Continue to preview blocker', 'btn-primary') + j6Button('j6-conflict', 'Show conflict') + j6Button('j6-error', 'Show error') + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
+      else { html = j6ResultCard('Preview not available', 'Availability completed in this sample, but the Booking preview is not available yet.', 'j6-blocked') + `<p class="j6-defect-note">${J6_DEFECT_COPY}</p>`; buttons = j6Button('workflow-cancel', 'Cancel without loss'); }
     } else if (op.action === 'PublicReschedule') {
-      if (op.stage === 'setup') { html = `<div class="j6-public-banner">${J6_PUBLIC_BANNER}</div>` + j6RenderTimeForm(op, 'Public timeslot change', `${j6AutoMarkup()}<p class="j6-entry-note">${J6_ENTRY_COPY}</p><p class="j6-defect-note">${J6_DEFECT_COPY}</p>`); buttons = j6Button('j6-check', 'Continue', 'btn-primary', true) + j6Button('workflow-cancel', 'Cancel'); if (document.body.dataset.journey === '12') { html = j12CompactRescheduleSetup(html); } }
+      if (op.stage === 'setup') { html = `<div class="j6-public-banner">${J6_PUBLIC_BANNER}</div>` + j6RenderTimeForm(op, 'Public timeslot change', `${j6AutoMarkup()}<p class="j6-entry-note">${J6_ENTRY_COPY}</p><p class="j6-defect-note">${J6_DEFECT_COPY}</p>`); buttons = j6Button('j6-check', 'Continue', 'btn-primary', true) + j6Button('workflow-cancel', 'Cancel'); if (['6', '12'].includes(document.body.dataset.journey)) { html = j12CompactRescheduleSetup(html); } }
       else if (op.stage === 'availability') { html = `<div class="j6-public-banner">${J6_PUBLIC_BANNER}</div><div class="j6-stage-card ${op.availability === 'error' ? 'j6-blocked' : 'j6-safety'}"><span class="j6-workflow-label">${op.availability.toUpperCase()}</span><h3>Availability review</h3><p>${op.availability === 'loading' ? 'Availability is loading.' : op.availability === 'error' ? 'The availability check returned an error. Retry.' : op.availability === 'conflict' ? 'Conflict or unavailable. No override is offered.' : 'Availability is ready for a before/after preview. Nothing is saved.'}</p><p class="j6-defect-note">${J6_DEFECT_COPY}</p></div>`; buttons = j6Button('j6-check', 'Retry availability', 'btn-primary') + j6Button('j6-conflict', 'Show conflict') + j6Button('j6-error', 'Show error') + j6Button('j6-stale', 'Show stale target') + j6Button('j6-permission-change', 'Permission changed') + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
       else { html = `<div class="j6-public-banner">${J6_PUBLIC_BANNER}</div><div class="j6-stage-card j6-safety"><span class="j6-workflow-label">Confirmed · sample only</span><h3>Before / after preview</h3><div class="j6-indivisible"><strong>${op.baseline.date} · ${op.baseline.start}–${op.baseline.end}</strong><span>before</span></div><div class="j6-indivisible"><strong>${op.date} · ${op.start}–${op.end}</strong><span>proposed · ${op.duration}</span></div><p>No server request is sent. Confirmation is guarded by stale and permission checks.</p></div>`; buttons = j6Button('j6-confirm', 'Confirm one local change', 'btn-primary', op.stale || !op.changed) + j6Button('j6-back', 'Back') + j6Button('workflow-cancel', 'Cancel'); }
     }
-    if (document.body.dataset.journey === '12' && op.action === 'PublicReschedule' && !op.permissionChanged && !op.result && (op.stage === 'availability' || op.stage === 'preview')) html = j12CompactRescheduleNotes(html);   // step b25 (L-16)
-    if (document.body.dataset.journey === '12' && op.action === 'PublicReschedule') html = '<div class="j12tc-reschedule' + (op.stage === 'setup' ? ' j12tc-setup' : '') + '">' + html + '</div>';
+    if (['6', '12'].includes(document.body.dataset.journey) && op.action === 'PublicReschedule' && !op.permissionChanged && !op.result && (op.stage === 'availability' || op.stage === 'preview')) html = j12CompactRescheduleNotes(html);   // step b25 (L-16)
+    if (['6', '12'].includes(document.body.dataset.journey) && op.action === 'PublicReschedule') html = '<div class="j12tc-reschedule' + (op.stage === 'setup' ? ' j12tc-setup' : '') + '">' + html + '</div>';
     stage.innerHTML = html; footer.innerHTML = buttons; j6AutoWire(op);
     // L-18 (27 Oct 2026): in the setup stage the short boundary line is the sentence on screen, so the dialog is
     // described by that line, word for word — not by the long line this stage hides. Where the line is not shown (the
     // product-only customer view hides review commentary) the Master's own description stays in place.
-    if (document.body.dataset.journey === '12' && op.action === 'PublicReschedule' && op.stage === 'setup') {
+    if (['6', '12'].includes(document.body.dataset.journey) && op.action === 'PublicReschedule' && op.stage === 'setup') {
       const boundaryLine = $('#j12tc-boundary'), workflowDialog = $('#j5-workflow-dialog');
       const lineShown = boundaryLine && getComputedStyle(boundaryLine).display !== 'none';
       if (workflowDialog) workflowDialog.setAttribute('aria-describedby', lineShown ? 'j12tc-boundary' : 'j5-workflow-description');
@@ -3181,7 +3210,7 @@ const k1Focus = (() => {
     const caps = j3ReadCapacityInputs();
     if (caps.fromRaw !== '' && caps.toRaw !== '' && caps.from !== null && caps.to !== null && caps.from > caps.to) {
       if (errEl) {
-        errEl.textContent = 'Capacity From must not exceed To (checked in this sample — not server HTTP 400).';
+        errEl.textContent = 'Capacity From must not exceed To.';   // step b49 (X-4): the words the D0 page already shows
         errEl.hidden = false;
       }
       announceLive('Capacity From must not exceed To.');
@@ -4273,6 +4302,7 @@ const k1Focus = (() => {
     }
     if (j2InteractiveGrid()) { j2PaintSelection(); j2PaintEventSelection(); }
     updateNowLine(); // One Calendar: the Journey 12 now line on the Journey 2 grid too
+    fitSlotHeight();   // step b47 (C4): J2 is fitted after its own draw too (W-06 lists J2; J2 redraws by calling this function directly)
   }
 
   function j2SyncBodyDataset() {
@@ -4644,7 +4674,7 @@ const k1Focus = (() => {
       await j2GuidedReviewStep('#slot-layout-stack', 'Layout: Stack.', ++step, total, null, timing.dwellComplete);
       await j2GuidedReviewStep('#date-next', 'Date: next work week — 7–11 Sep 2026.', ++step, total, null, timing.dwellComplete);
       await j2ShowCompletionHold(
-        'Play complete finished — Maintenance, Work Week, Stack, 7–11 Sep 2026. Four UJ-02 dimensions set. REVIEW FIXTURE only; not UI/UX approval.',
+        'Play complete — Maintenance, Work Week, Stack, 7–11 Sep 2026.',   // step b49 (X-4): no team notes
         timing.completionHold
       );
     } catch (error) {
@@ -5403,8 +5433,10 @@ const k1Focus = (() => {
     const minTop = Math.max(dialogRect.top + padding, editorHead ? editorHead.getBoundingClientRect().bottom + 8 : 0);
     const maxTop = Math.max(minTop, window.innerHeight - padding - shown);
     let requestedTop = triggerRect.bottom + 8;
+    let underTrigger = false;
     if (requestedTop + shown > window.innerHeight - padding && triggerRect.top - 8 - shown >= minTop) requestedTop = triggerRect.top - 8 - shown;
-    const top = Math.max(minTop, Math.min(requestedTop, maxTop));
+    else if (requestedTop + shown > window.innerHeight - padding && requestedTop >= minTop && window.innerHeight - padding - requestedTop >= 120) underTrigger = true;   // step b51 (W-20): no room at full height above or below, so the list stays under its button and its height yields to the space below (never under the 120 px floor)
+    const top = underTrigger ? requestedTop : Math.max(minTop, Math.min(requestedTop, maxTop));
     const left = Math.max(padding, Math.min(triggerRect.left, window.innerWidth - width - padding));
     const setImportant = (property, value) => picker.style.setProperty(property, value, 'important');
     setImportant('position', 'fixed');
@@ -8267,7 +8299,7 @@ const k1Focus = (() => {
     });
     const description = $('#pricing-desc');
     if (description) description.textContent = stagedTarget
-      ? 'The staged Concession. Cart-line pricing controls are not available for a new selection.'
+      ? 'Pricing controls are not available until the item is in the cart.'   // step b48 (W-12): one plain sentence
       : 'Sample prices — the real price list is not in the sample.';
     const title = $('#pricing-title');
     if (title) title.textContent = stagedTarget ? 'Concession review' : 'Change pricing';
@@ -9260,6 +9292,7 @@ const k1Focus = (() => {
       }
     }
     vp.innerHTML = html;
+    vp.querySelectorAll('.tree-name, .j3-asset-sub').forEach((e) => { if (e.scrollWidth > e.clientWidth + 1) e.title = e.textContent; });   // step b46 (W-08): a cut name shows its full text on hover
     assetTreeDrawn = { rows, start: win.start, end: win.end, kept: kept >= 0 };   // L-61: what is drawn now (L-64: and whether a row is kept)
     if (kbInfo) { const nb = vp.querySelector('.tree-info[data-info="' + CSS.escape(kbInfo) + '"]'); if (nb) { treeRefocus = true; nb.focus({ preventScroll: true }); treeRefocus = false; } }
     if (kbBox) { const nb = vp.querySelector('.tree-check[data-res="' + CSS.escape(kbBox) + '"]'); if (nb) { treeRefocus = true; nb.focus({ preventScroll: true }); treeRefocus = false; } }   // L-62: the keyboard focus kept (L-63: the active row not moved)
@@ -9556,6 +9589,7 @@ const k1Focus = (() => {
     // One Calendar candidate: Journeys 4–6 draw their timeslots in the Journey 12 calendar (j4RenderCalendar card board retired).
     const grid = $('#calendar-grid');
     grid.innerHTML = '';
+    document.getElementById('j3-calendar-empty')?.remove();   // step b45 (W-05)
     grid.classList.remove('j4-calendar-grid');
     syncSlotLayoutControl();
     if (sharedView === 'month') { renderSharedMonth(grid); return; }   // unified build, slice 4: Month in place
@@ -9617,7 +9651,14 @@ const k1Focus = (() => {
       header.appendChild(hdr);
     });
     grid.appendChild(header);
+    if (document.body.dataset.journey === '3' && !lanes.length) {   // step b45 (W-05): one guidance line instead of an empty calendar
+      const empty = document.createElement('p'); empty.id = 'j3-calendar-empty'; empty.className = 'j3-calendar-empty';
+      empty.textContent = 'No assets selected yet. Use Search or browse assets to choose the rooms and resources to show.';
+      grid.after(empty);
+    }
 
+    document.dispatchEvent(new Event('diary:calendar-drawn'));   // step b47 (C6): the day headers are drawn; J11 labels them again (a view change too)
+    fitSlotHeight();   // step b46 (W-06): re-measured after this draw
     const slotH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--slot-h') || '10');
 
     lanes.forEach((lane) => {
@@ -9760,7 +9801,7 @@ const k1Focus = (() => {
     updateNowLine();
     $('#date-range-label').textContent = sharedRangeLabel();   // unified build, slice 1: the label follows the view (the retired j4RenderCalendar copy is left as is)
     document.body.dataset.week = isCheckpointWeek() ? 'checkpoint' : 'other';
-    if (isJ4Journey()) j4AfterCalendarRender(grid); else renderTimeslotLegend();
+    if (isJ4Journey()) j4AfterCalendarRender(grid); else if (!slotInOwn) renderTimeslotLegend();   // step b47 (C1): the fit own redraw keeps the legend (and any wording a page script gave it)
     if (document.body.dataset.journey === '12') document.dispatchEvent(new Event('j12:calendar-rendered'));
   }
 
@@ -9804,6 +9845,60 @@ const k1Focus = (() => {
     if (target) target.focus();
   }
 
+  // Step b46 (W-06): the rows grow to fill the free height. One pixel value on the page root, read by every function that places a card;
+  // measured after each draw (exact), redrawn once when the value changes; skipped where the body sets its own row height.
+  function slotFitEligible() {
+    const root = document.documentElement, was = root.style.getPropertyValue('--slot-h');
+    root.style.setProperty('--slot-h', '7.25px');
+    const own = getComputedStyle(document.body).getPropertyValue('--slot-h').trim() !== '7.25px';
+    if (was) root.style.setProperty('--slot-h', was); else root.style.removeProperty('--slot-h');
+    const layout = document.body.dataset.journey === '2' ? document.body.dataset.slotLayout : slotLayout;   // step b47 (C4): J2 keeps its own layout state
+    return !own && layout !== 'stack' && window.innerWidth >= 1100 && !!document.querySelector('#calendar-grid .cal-lane');
+  }
+  // the refit redraw tells the page, so a journey that decorates the drawn calendar (J11 day headers) can decorate it again
+  function slotRedraw() { slotOwn++; slotInOwn = true; try { renderCalendar(); } finally { slotInOwn = false; } document.dispatchEvent(new Event('diary:slots-redrawn')); }   // counts the fit own redraws since the last page draw
+  let slotRefitQueued = false, slotShrinkTimer = 0, slotShrinkCheck = false, slotActed = false, slotRecheckQueued = false, slotRecheckOnly = false, slotOwn = 0, slotInOwn = false, slotBoxMoved = false, slotGrown = false;   // step b47 (C1): the box changed size without a draw; one grow used since the last page draw
+  ['pointerdown', 'keydown', 'click'].forEach((t) => window.addEventListener(t, () => { slotActed = true; }, { capture: true, passive: true }));   // until the first input (a click included), a smaller fit applies at once
+  function slotRefit() {
+    slotRefitQueued = false;
+    const root = document.documentElement, g = document.getElementById('calendar-grid'), s = document.getElementById('calendar-scroll');
+    if (!g || !s || !s.clientHeight) return;   // the calendar box hidden (e.g. the Agenda view): nothing to fit until the next draw
+    const cur = root.style.getPropertyValue('--slot-h');
+    if (!slotFitEligible()) { if (cur) { root.style.removeProperty('--slot-h'); slotRedraw(); } return; }   // step b47 (E2): a view that is no longer fitted is cleaned up before the cap
+    if (slotOwn >= 4) return;   // at most 4 fit redraws after one page draw or window resize
+    root.style.removeProperty('--slot-h');
+    const base = parseFloat(getComputedStyle(root).getPropertyValue('--slot-h')) || 10;
+    if (cur) root.style.setProperty('--slot-h', cur);
+    const slot = parseFloat(getComputedStyle(root).getPropertyValue('--slot-h')) || base;
+    const rows = Array.from(g.querySelectorAll('.cal-lane')).reduce((t, l) => t + ((l.querySelector('.cal-day-col') || l).querySelectorAll('.cal-slot').length || 24), 0);   // step b47 (F4): rows per lane as drawn
+    const cs = getComputedStyle(s), pad = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);   // step b47 (C2): the box padding is not row space (J4-J6: 2 x 14 px)
+    const other = g.scrollHeight - rows * slot, fit = Math.min(16, Math.floor(((s.clientHeight - pad - other - 2) / rows) * 2) / 2);
+    const want = fit > base ? fit + 'px' : '';
+    if ((slotRecheckOnly || slotShrinkCheck) && cur && want && parseFloat(want) > parseFloat(cur)) {   // a re-check only shrinks; a larger value waits for the next draw,
+      if (!(slotRecheckOnly && slotBoxMoved && !slotActed && !slotGrown)) return;   // step b47 (C1): except once per page draw, before the first input, when the box itself grew (L2: the D0 legend shortened after the draw)
+      slotGrown = true;
+    }
+    if (cur && (!want || parseFloat(want) < parseFloat(cur)) && !slotShrinkCheck && slotActed) {   // after the first input, a smaller value is measured again 250 ms later, so a passing legend or message does not shrink the rows
+      clearTimeout(slotShrinkTimer); slotShrinkTimer = setTimeout(() => { slotShrinkCheck = true; slotRefit(); slotShrinkCheck = false; }, 250); return;
+    }
+    if (want !== cur) { clearTimeout(slotShrinkTimer); if (want) root.style.setProperty('--slot-h', want); else root.style.removeProperty('--slot-h'); slotRedraw(); }
+  }
+  function fitSlotHeight() {
+    if (!slotRefitQueued && !slotInOwn) {   // a page draw (not the fit own redraw) is measured right after it, in the same task (no paint and no later page script in between); at most 8 per frame
+      slotRefitQueued = true; slotOwn = 0; clearTimeout(slotShrinkTimer); slotGrown = false;
+      if (!fitSlotHeight.n) requestAnimationFrame(() => { fitSlotHeight.n = 0; });
+      if ((fitSlotHeight.n = (fitSlotHeight.n || 0) + 1) <= 8) queueMicrotask(slotRefit); else requestAnimationFrame(slotRefit);
+    }
+    slotRecheckSoon();   // and once more a frame later, to follow height taken after the draw
+    if (!fitSlotHeight.wired) {
+      fitSlotHeight.wired = true; let t = 0; window.addEventListener('resize', () => { clearTimeout(t); clearTimeout(slotShrinkTimer); t = setTimeout(fitSlotHeight, 150); });   // step b47 (D1): a pending shrink re-check is dropped
+      const box = document.getElementById('calendar-scroll'); if (window.ResizeObserver && box) new ResizeObserver(() => { slotBoxMoved = true; slotRecheckSoon(); }).observe(box);   // the calendar box changed size without a draw (a message or panel above it): re-check
+    }
+  }
+  function slotRecheckSoon() {   // at the next frame, measured again: only a smaller value (or a first fit) applies
+    if (!slotRecheckQueued) { slotRecheckQueued = true; requestAnimationFrame(() => { slotRecheckQueued = false; slotRecheckOnly = true; try { slotRefit(); } finally { slotRecheckOnly = false; slotBoxMoved = false; } }); }
+  }
+
   function updateNowLine() {
     const line = $('#now-line');
     // One Calendar candidate (conditional Gate A item 4): drawn inside every lane at the checkpoint's 'now' (08:05) so it
@@ -9817,13 +9912,15 @@ const k1Focus = (() => {
     if (!document.querySelector('#calendar-grid .cal-day-header.is-today')) return;
     const slotH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--slot-h') || '10');
     const top = (5 / 30) * slotH; // 08:05 is five minutes into the first 30-minute row; every grid starts at 08:00
+    const tk = document.querySelector('#calendar-grid .cal-day-header.is-today')?.dataset.date;   // step b46 (W-07): the today column only
     document.querySelectorAll('#calendar-grid .cal-lane-body').forEach((body) => {
-      if (!body.querySelector('.cal-day-col .cal-slot')) return;
+      const col = body.querySelector('.cal-day-col.is-today-column') || (tk ? body.querySelector(`.cal-day-col[data-date="${tk}"]`) : null);
+      if (!col || !col.querySelector('.cal-slot')) return;
       const n = document.createElement('div');
       n.className = 'now-line cal-now-line';
       n.setAttribute('aria-hidden', 'true');
       n.style.top = `${top}px`;
-      body.appendChild(n);
+      col.appendChild(n);
     });
   }
 
@@ -10374,8 +10471,8 @@ const k1Focus = (() => {
   window.__unifiedPlayState = () => ({ active: playJourneyActive, key: UNIFIED_KEY });
   // Unified build, slice 7: the journey menu, Play all 16, a scripted demonstration from the fresh fixture, and ask before a Cart would be lost.
   const UNIFIED_NAMES = { 1: 'Create booking & Cart', 2: 'Modes, views & date', 3: 'Search & selected assets', 4: 'Timeslots & calendar', 5: 'Existing booking actions',
-    6: 'Reschedule & reallocation', 7: 'New-booking pricing', 8: 'Existing pricing change', 9: 'Recurring booking', 10: 'Blocks (Maintenance)',
-    11: 'Diary notes', 12: CLIENT_VIEW ? 'Public-event actions' : 'Public-event actions (review only)', 13: 'Configuration & capacity', 14: 'Location & handoffs',
+    6: 'Reschedule & reallocation', 7: 'New-booking pricing', 8: 'Existing pricing change', 9: 'Recurring booking', 10: CLIENT_VIEW ? 'Private block management' : 'Blocks (Maintenance)',   // step b49 (X-4): the Client view menu name matches the page title
+    11: 'Diary notes', 12: CLIENT_VIEW ? 'Public event actions' : 'Public-event actions (review only)', 13: 'Configuration & capacity', 14: 'Location & handoffs',
     15: 'Agenda, Custom view & export', 16: 'Rights, settings & states' };
   const UNIFIED_AUTOPLAY = 'optimoUnified.autoplay.v1';
   const UNIFIED_ALL = 'optimoUnified.playAll.v1';
@@ -11130,7 +11227,7 @@ const k1Focus = (() => {
             <span class="j9-occ-count" role="status">${series.onlyConflicts && conflicts.length ? `Showing ${conflicts.length} out of ${total} occurrences` : `Showing all ${total} occurrences`}</span>
           </div>
           <ol class="j9-occ-list">${shown.map((r) => `<li class="is-${r.status}"><span class="j9-occ-main"><span class="j9-occ-date">${series.rows.indexOf(r) + 1}. ${shortDate(r.date)}</span><span class="j9-occ-status"><span class="j9-mark" aria-hidden="true">${STATUS_MARK[r.status]}</span>${r.text}</span></span><span class="j9-occ-actions"><button type="button" class="j9-icon" data-j9-act="show" data-date="${r.date}" title="Show in Diary" aria-label="Show ${shortDate(r.date)} in Diary">${ICON.eye}</button><button type="button" class="j9-icon j9-icon-remove" data-j9-act="remove" data-date="${r.date}" title="Remove this date" aria-label="Remove ${shortDate(r.date)}">${ICON.remove}</button></span></li>`).join('')}</ol>
-          <button type="button" class="j9-delete-conflicts" data-j9-act="delete"${conflicts.length ? '' : ' disabled'}>${ICON.trash}<span>Delete All Conflicting Dates (${conflicts.length})</span></button>
+          <button type="button" class="j9-delete-conflicts" data-j9-act="delete"${conflicts.length ? '' : ' disabled'}>${ICON.trash}<span>Delete all conflicting dates (${conflicts.length})</span></button>
         </div>
         <div class="j9-series-foot"><button type="button" class="j9-link" data-j9-act="extend">Extend series</button><button type="button" class="j9-link" data-j9-act="change">Change recurrence</button><button type="button" class="j9-link" data-j9-act="clear">Remove series</button></div>
         <p class="j9-note">In the Cart as one series. Not booked, and no price in this sample. Simulated data.</p>
@@ -11979,7 +12076,7 @@ const k1Focus = (() => {
 
   const J8_BOUNDARY = 'Sample data · nothing is saved';
   const J8_TOTAL_UNAVAILABLE = 'Proposed total unavailable — not confirmed for this change.';
-  const J8_BLOCKED_COPY = 'BLOCKED/DEFECT-AFFECTED — Booking preview returned HTTP 400; no Booking PATCH follows. No successful Booking update is claimed or simulated.';
+  const J8_BLOCKED_COPY = 'Preview not available — this change cannot be previewed yet.';   // step b49 (X-4): plain words, the blocked state unchanged
   const J8_ITEMS = [
     { id: 'current-item', label: 'Studio 2 private allocation', current: true },
     { id: 'alternate-item', label: 'Studio lighting', current: false }
@@ -12302,7 +12399,7 @@ const k1Focus = (() => {
     const stage = $('#j5-workflow-stage');
     if (workflowTitle) workflowTitle.textContent = title;
     if (kicker) kicker.textContent = eyebrow;
-    if (description) description.textContent = `${J8_BOUNDARY}. Reload restores the sample.`;
+    if (description) { description.textContent = `${J8_BOUNDARY}. Reload restores the sample.`; description.hidden = true; }   // step b48 (W-11): said once on screen, in the boxed note below; the window description stays for assistive technology
     if (stage) { stage.setAttribute('aria-live', 'off'); stage.innerHTML = `<p class="j8-boundary"><strong>${J8_BOUNDARY}</strong> · existing item, package or pricing change.</p>`; }
     $('#j5-workflow-preview').hidden = true;
     $('#j5-workflow-preview').replaceChildren();
@@ -12344,12 +12441,12 @@ const k1Focus = (() => {
   }
   function j8RenderProposed() {
     j8RenderCommon('Proposed local change', 'Proposed result');
-    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel j8-proposed" aria-labelledby="j8-proposed-heading"><h3 id="j8-proposed-heading">PROPOSED · LOCAL ONLY · NOT PERSISTED</h3><dl class="j8-proposal-facts"><div><dt>Original Booking</dt><dd>${j8Subject.reference} · version ${j8Subject.version}</dd></div><div><dt>Current booking</dt><dd>${j8Subject.resource} · ${j8Subject.dateLabel} · ${j8Subject.time}</dd></div><div><dt>Proposed change</dt><dd>${j8Operation.itemChoice === 'current-item' ? 'Current item retained' : 'Alternate item selected'} · ${j8Operation.packageChoice === 'current-package' ? 'Current package retained' : 'Alternate package selected'}</dd></div></dl><p class="j8-total-unavailable">${J8_TOTAL_UNAVAILABLE}</p><p class="j8-evidence">Sample comparison only; the original Booking remains unchanged.</p></section>`);
-    j8Footer(`${j8Button('proposed-back', 'Back')} ${j8Button('patch-preview', 'Review patch preview', 'btn-primary')}`);
+    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel j8-proposed" aria-labelledby="j8-proposed-heading"><h3 id="j8-proposed-heading">Proposed change</h3><dl class="j8-proposal-facts"><div><dt>Original Booking</dt><dd>${j8Subject.reference} · version ${j8Subject.version}</dd></div><div><dt>Current booking</dt><dd>${j8Subject.resource} · ${j8Subject.dateLabel} · ${j8Subject.time}</dd></div><div><dt>Proposed change</dt><dd>${j8Operation.itemChoice === 'current-item' ? 'Current item retained' : 'Alternate item selected'} · ${j8Operation.packageChoice === 'current-package' ? 'Current package retained' : 'Alternate package selected'}</dd></div></dl><p class="j8-total-unavailable">${J8_TOTAL_UNAVAILABLE}</p><p class="j8-selection-note">The original booking stays unchanged.</p></section>`);
+    j8Footer(`${j8Button('proposed-back', 'Back')} ${j8Button('patch-preview', 'Preview changes', 'btn-primary')}`);
   }
   function j8RenderBlocked() {
-    j8RenderCommon('Preview blocked', 'Terminal blocker');
-    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel j8-blocked" aria-labelledby="j8-blocked-heading"><h3 id="j8-blocked-heading">${J8_BLOCKED_COPY}</h3><p>Original Booking remains unchanged. This terminal state has no retry, override, confirm or update-success action.</p><span class="j8-evidence">Blocked — known defect</span></section>`);
+    j8RenderCommon('Preview blocked', 'Not available');   // step b49 (X-4): client words
+    $('#j5-workflow-stage').insertAdjacentHTML('beforeend', `<section class="j8-panel j8-blocked" aria-labelledby="j8-blocked-heading"><h3 id="j8-blocked-heading">${J8_BLOCKED_COPY}</h3><p>The original booking is unchanged.</p><span class="j8-evidence">Known issue</span></section>`);
     j8Footer(j8Button('terminal-cancel', 'Cancel without loss', 'btn-primary'));
   }
   function j8Render() {
@@ -12391,9 +12488,9 @@ const k1Focus = (() => {
     if (j8State === 'pkg_step_two' && command === 'package-back') return j8SetState('pkg_step_one', 'Returned to package step one with selection preserved.');
     if (j8State === 'pkg_step_two' && command === 'package-apply') return j8SetState('pricing_setup', 'Package selection added to the local proposal.');
     if (j8State === 'sales_category_confirm' && command === 'sales-proceed') return j8SetState('branch_confirm', 'Generic branch confirmation opened.');
-    if (j8State === 'branch_confirm' && command === 'branch-confirm') return j8SetState('proposed', 'Local proposed result opened; no Booking mutation occurred.');
+    if (j8State === 'branch_confirm' && command === 'branch-confirm') return j8SetState('proposed', 'Proposed change ready to review.');
     if (j8State === 'proposed' && command === 'proposed-back') return j8SetState('pricing_setup', 'Returned to pricing setup for revision.');
-    if (j8State === 'proposed' && command === 'patch-preview') return j8SetState('persist_blocked', 'Patch preview is blocked by the observed HTTP 400; the terminal state exposes only Cancel without loss.');
+    if (j8State === 'proposed' && command === 'patch-preview') return j8SetState('persist_blocked', 'Preview not available. Use Cancel to close.');
   }
   function j8HandleChange(event) {
     const target = event.target;
@@ -12800,6 +12897,7 @@ const k1Focus = (() => {
     const origin = state.origin;
     state.origin = null;
     if (origin?.isConnected) origin.focus();
+    else if (origin?.dataset?.date) document.querySelector(`body[data-journey="11"] .cal-day-header[data-date="${origin.dataset.date}"]`)?.focus();   // step b46 (W-06): a refit redraw replaced the header
   }
   function closeNotes(restore = true) {
     const dialog = $('j11-notes-dialog');
@@ -12871,6 +12969,8 @@ const k1Focus = (() => {
     setHidden($('j11-notes-dialog'), false);
     setHidden($('j11-delete-dialog'), false);
     decorateHeaders();
+    document.addEventListener('diary:slots-redrawn', decorateHeaders);   // step b46 (W-06): the row refit redraws the headers
+    document.addEventListener('diary:calendar-drawn', decorateHeaders);   // step b47 (C6): every grid draw, a view change too, redraws the headers
     ['date-prev', 'date-next', 'date-today', 'picker-apply'].forEach((id) => $(id)?.addEventListener('click', () => window.setTimeout(decorateHeaders, 0), true));
     document.addEventListener('click', (event) => {
       if (!isJ11()) return;
@@ -12954,9 +13054,11 @@ const k1Focus = (() => {
         node.dataset.j12Event = 'fixture';
         node.innerHTML = `<strong>${FIXTURE.title}</strong><span class="j12-event-meta">${FIXTURE.assetName} · ${FIXTURE.time}</span><span class="j12-event-tag">${document.documentElement.getAttribute('data-presentation') === 'client' ? 'Public event' : 'Public event · sample'}</span>`;
         col.appendChild(node);
+        if (state.refocusEvent && (!document.activeElement || document.activeElement === document.body)) node.focus();   // step b52 build 3: a calendar redraw replaced the focused event, so the new event takes the focus back
       } else if (node.parentElement !== col) {
         col.appendChild(node);
       }
+      state.refocusEvent = false;   // step b52 build 3
       node.className = 'cal-event j12-public-event' + (state.selected ? ' j12-selected' : '');
       if (state.selected && !state.eventTrigger?.isConnected) state.eventTrigger = node;
       node.setAttribute('aria-pressed', String(state.selected));
@@ -13030,6 +13132,15 @@ const k1Focus = (() => {
     const grid = $('calendar-grid');
     if (!grid || grid.dataset.j12Hooked === 'true') return;
     grid.dataset.j12Hooked = 'true';
+    document.addEventListener('focusout', (e) => {   // step b52 build 3: the focused event removed by a redraw (no next element), not a move to another control
+      const t = e.target;
+      if (!t || t.id !== 'j12-public-event' || e.relatedTarget) return;
+      queueMicrotask(() => {
+        if (t.isConnected || (document.activeElement && document.activeElement !== document.body)) return;
+        const now = document.getElementById('j12-public-event');
+        if (now) now.focus(); else state.refocusEvent = true;   // painted again in the same draw (j12:calendar-rendered), or at the next paint
+      });
+    }, true);
     const observer = new MutationObserver(() => {
       if (!document.getElementById('j12-public-event')) window.requestAnimationFrame(paintFixture);
     });
@@ -13493,7 +13604,7 @@ const k1Focus = (() => {
           // is not added: it replaced this one within the same frame, so nothing was shown and the acknowledgement was not read.
           closeDialog(true, true);
           var toast = window.__journey10Shared && window.__journey10Shared.showToast;
-          var ackMsg = document.documentElement.getAttribute("data-presentation") === "client" ? "Handoff details closed. Nothing was opened." : "Preview acknowledged locally — no navigation";   // step b39: the Client view
+          var ackMsg = "Handoff acknowledged.";   /* step b49 (X-4): one plain message in both views, kept apart from the close words (L-13) */   // step b39: the Client view
           if (toast) toast(ackMsg); else announce(ackMsg);
         });
         document.addEventListener("keydown", function(e) {
@@ -13837,7 +13948,7 @@ const k1Focus = (() => {
         '<p class="j15-coltitle">Columns (13) <span class="muted">— code-defined · downloaded file not verified</span></p>' +
         `<p class="j15-cols-line">${EXPORT_COLUMNS.map((c) => esc(c)).join(' · ')}</p>` +
         `<div class="j15-preview-wrap"><table class="j15-preview-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>` +
-        '<div class="j15-proposed"><h3>Proposed export behaviour — needs your decision (DEC-J15-03)</h3><ul>' +
+        '<div class="j15-proposed"><h3>How Export will work</h3><ul>' +   // step b49 (X-4): no decision code on screen
         '<li>Disable Export while the file is being prepared, so it cannot run twice.</li>' +
         '<li>Confirm when the file is ready (“Agenda exported: N rows”).</li>' +
         '<li>When there is nothing to export, disable Export and say so.</li>' +
@@ -14005,7 +14116,7 @@ const k1Focus = (() => {
       '<div class="j15-states" role="group" aria-label="Agenda state"><button type="button" data-state="populated" aria-pressed="true">Events</button><button type="button" data-state="no-search" aria-pressed="false">No search yet</button><button type="button" data-state="empty" aria-pressed="false">Empty</button><button type="button" data-state="loading" aria-pressed="false">Loading</button></div>' +
       '<button type="button" id="j15-guide-toggle" aria-expanded="true">Hide</button></div>' +
       '<div class="j15-guide-body"><ol><li><em>Agenda</em> in the view bar shows this week\'s events full-width.</li><li>Tick <em>Show booked events only</em>.</li><li><em>Export</em> shows the export preview (no file is created).</li><li><em>Details</em> on a row opens its secondary actions.</li><li><em>Custom</em> → pick dates and days → <em>Apply</em>.</li><li><em>Week</em> returns to the normal calendar.</li></ol>' +
-      '<p class="j15-note">Proposed, not current behaviour: Export\'s “Preparing…” step and its lock when there is nothing to export (decision DEC-J15-03). Today\'s Export gives no feedback.</p>' +
+      '<p class="j15-note">Planned: Export shows “Preparing…” while the file is made, and is unavailable when there is nothing to export. Today, Export shows no progress or confirmation.</p>' +
       '<p class="j15-note">Phones: here the Agenda and Custom buttons are cut off at the end of the view bar; in the current system and some Master journeys the view buttons are hidden on small screens. Mobile entry is an open decision.</p></div></aside>');
     // Batch B2 / L-55, L-37 (27 Oct 2026, candidate): also on short screens (600 px tall or less) — at zoom 200 % on a 1280 × 800 window the open
     // guide covered 5 controls. The guide stays one click away (its own toggle).
@@ -14146,8 +14257,8 @@ const k1Focus = (() => {
       '<label>Month view <select id="j16-seg-month" data-j16-opt="j16-seg-month" data-j16-seg><option>12 hours</option><option selected>24 hours</option></select></label>' +
       '</div><p class="j16-hint" id="j16-seg-hint">Available when 24 Hour View is off.</p></div>' +
       '<div class="j16-block"><p class="j16-hint">Here, Event or Customer Name, Business Area, Category &gt; Venue &gt; Asset and Remember last view change the calendar. Keep multiple assets expanded, when off and saved, lets one category stay open at a time, except while filters are on; when on and saved, Expand all and Collapse all appear above the asset list unless a search is typed or Auto Expand is chosen. Venue &gt; Auto Expand All Assets opens the first venue with every category each time the Diary opens. The other choices are kept for the next opening. The sample calendar always shows working hours, 08:00 to 20:00, whether 24 Hour View is ticked or not.</p></div>' +
-      '<div class="j16-block"><span class="j16-label">Rights displays (proposed — display only)</span>' +
-      '<div class="j16-row"><span class="j16-muted">Example: Agenda requires right <b>959</b> · shown as a label, nothing is enforced · the intended UI/API right matrix is RIGHTS-01 (open).</span></div></div>' +
+      '<div class="j16-block"><span class="j16-label">Rights labels (display only)</span>' +   // step b49 (X-4): client words, the display unchanged
+      '<div class="j16-row"><span class="j16-muted">Example: Agenda needs right <b>959</b> · shown as a label only; nothing is blocked.</span></div></div>' +
       '<div class="j16-block"><span class="j16-label">Outlook and SignalR</span>' +
       '<p class="j16-hint">Outlook: no verifiable runtime outcome exists — excluded. SignalR: connection and one send are confirmed in the evidence, but collaboration, reconnect and topology are unverified, so no prototype behaviour is proposed. (DEC-J16-05)</p></div>' +
       '<p class="j16-hint"><b>Saved in this browser only:</b> your choices return the next time you open the Diary here. Nothing is sent to a server.</p>' +
@@ -14158,7 +14269,7 @@ const k1Focus = (() => {
       '<div class="j16-guide-body"><ol>' +
       '<li>This page opened with the Settings dialog (review entry).</li>' +
       '<li>Choose options and press <em>Save</em> — you get a message, and your choices return after a reload, in this browser only.</li>' +
-      '<li>Open <em>Agenda</em> — a rights strip appears under the Agenda toolbar: display proposal only (RIGHTS-01 open).</li>' +
+      '<li>Open <em>Agenda</em> — a rights strip appears under the Agenda toolbar; it shows labels only.</li>' +
       '<li>On a phone, the view bar now scrolls horizontally — proposed fix for DEC-J15-05 (DEC-J16-04).</li>' +
       '<li>Agenda, Custom and Week still work exactly as in Journey 15.</li></ol>' +
       '<p class="j16-note">Out of the proposal: Outlook behaviour, SignalR collaboration behaviour, the notification catalogue, any rights enforcement, any Journey 15-or-earlier change.</p></div></aside>');
@@ -14204,6 +14315,7 @@ const k1Focus = (() => {
   }
   function j16Write(d, v) { if (v) d.querySelectorAll('[data-j16-opt]').forEach((n) => { const x = v[j16Key(n)]; if (x === undefined) return; if (n.type === 'radio' || n.type === 'checkbox') n.checked = x; else n.value = x; }); j16Sync(d); }
   function openSettings(trigger) {
+    if ($('#j16-settings-dialog') && !$('#j16-settings-dialog').hidden) return;   // step b50 (K3): already open, nothing to do (a second call would mark the side panels inert twice)
     state.trigger = trigger || $('#j16-settings-entry') || $('.view-switch .view-btn[data-view="agenda"]');
     const open = $('#j16-settings-dialog') && !$('#j16-settings-dialog').hidden;
     if (!open) state.prevTitle = document.title;
@@ -14219,6 +14331,7 @@ const k1Focus = (() => {
     d.hidden = false;
     const app = $('#app-shell'); if (app) app.inert = true;
     const g = $('#j16-guide'); if (g) g.inert = true;
+    $$('#j14-diary-panel, #j12-event-actions-panel').forEach((p) => { p.dataset.settingsInert = p.inert ? '1' : '0'; p.inert = true; });   // step b48 (W-23): the side panels outside the app shell are covered too
     // KA1 (22 Oct 2026, L-25): the dialog starts on its selected option ("Today" unless another was saved), not on "Save" — the first key press
     // or a held Enter no longer saves before any choice; "Save" comes after the settings. A marked radio stands for its group, as Tab does: v2 — after
     // a saved choice the dialog reopens on that choice, not on an unselected "Today".
@@ -14232,6 +14345,7 @@ const k1Focus = (() => {
     d.hidden = true;
     const app = $('#app-shell'); if (app) app.inert = false;
     const g = $('#j16-guide'); if (g) g.inert = false;
+    $$('#j14-diary-panel, #j12-event-actions-panel').forEach((p) => { if (p.dataset.settingsInert) { p.inert = p.dataset.settingsInert === '1'; delete p.dataset.settingsInert; } });   // step b48 (W-23): each panel gets its own state back
     if (state.prevTitle) { document.title = state.prevTitle; state.prevTitle = null; }
     placeGuide();
     if (restore && state.trigger && state.trigger.isConnected) state.trigger.focus();
@@ -14286,7 +14400,7 @@ const k1Focus = (() => {
       btn.className = 'j16-btn';
       btn.textContent = 'Settings';
       btn.setAttribute('title', 'Diary settings');   // step b23: the dialog's own heading (was the review-only wording, shown on every route since b22)
-      btn.setAttribute('aria-haspopup', 'dialog');   // step b23: says the entry opens a dialog (as the Cart's dialog toggle, app.js 7641)
+      btn.setAttribute('aria-haspopup', 'dialog');   // step b23: says the entry opens a dialog (as the Cart dialog toggle does; step b50 W-21: no line number)
       bar.appendChild(btn);
     }
     if (state.away) { state.ready = true; return; }
@@ -14298,9 +14412,9 @@ const k1Focus = (() => {
       const strip = $('#j16-rights-strip');
       if (agenda && tb && !strip) {
         tb.insertAdjacentHTML('afterend',
-          '<div class="j16-rights-strip" id="j16-rights-strip"><span class="j16-right"><b>Agenda</b> requires right 959</span>' +
+          '<div class="j16-rights-strip" id="j16-rights-strip"><span class="j16-right"><b>Agenda</b> needs right 959 (label only)</span>' +
           '<span class="j16-right"><b>Week/Custom</b> inherit the Diary view rights</span>' +
-          '<span>proposed display only — nothing is enforced · RIGHTS-01 open</span></div>');
+          '<span>nothing is blocked</span></div>');   // step b49 (X-4): client words
       } else if (!agenda && strip) strip.remove();
     };
     const cal = $('#calendar');
